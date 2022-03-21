@@ -32,8 +32,8 @@ type Heap a = (Int, [Int], [(Int, a)])
 type Addr   = Int
 
 hInitial :: Heap a
---hInitial = (0, [1..], [])
-hInitial = (0, [1..100], [])
+hInitial = (0, [1..], [])
+--hInitial = (0, [1..100], [])
 
 hAlloc :: Heap a -> a -> (Heap a, Addr)
 hAlloc (size, (next : free), cts) n = ((size + 1, free, (next, n) : cts), next)
