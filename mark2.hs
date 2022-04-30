@@ -133,37 +133,68 @@ instantiate (EVar v)               heap env = (heap, aLookup env v (error ("Unde
 instantiate (EConstr tag arity)    heap env = instantiateConstr tag arity heap env
 instantiate (ECase e alts)         heap env = error "Can't instantiate case exprs"
 {-
-  letrec対応版のinstantiate関数は、演習2.11の確認用テストプログラム専用の実装になってしまっている。
-  ・defsの中の右辺にENumが含まれている場合を考えていない。ENumが含まれていたら、ヒープ使用数を+1する必要がありそう。
-  ・defsの中の右辺に左辺とは異なるEVarが含まれている場合を考えていない。EVarが含まれていて、環境に存在しない未知の変数なら、ヒープの使用数を増やす必要がありそう。
-    テストプログラムでは、未知の変数を使用していない。
-  ・defsの定義を格納する最初の位置を決めるのに、(maximum (map snd env)) + 1しているのは、(f 3) 4 のEApの分を1個見込んでいるから。
-
-  Pattern match is redundant の問題も未解決。
--}
+Pattern match is redundant の問題は、
 
 instantiate (ELet recursive defs body) heap env
   = instantiate body newheap newenv
-    where
-      prepare [] env n = env
-      prepare (def : defs) env base
-        = prepare defs env' base'
-          where
-            cnt (EAp e1 e2) n = n + 1 + cnt e1 0 + cnt e2 0
-            cnt def         n = n
-            offset = cnt (snd def) 0
-            env' = (fst def, base + offset) : env
-            base' = base + offset
-      newenv = prepare defs env ((maximum (map snd env)) + 1)
-      auxfunc [] heap env = (heap, env)
-      auxfunc (def : defs) heap env
-        = auxfunc defs heap' env
-          where
-            (heap', addr) = instantiate (snd def) heap newenv
-      (newheap, _) = auxfunc defs heap newenv
+      ...
+
 instantiate (ELet nonRecursive defs body) heap env
   = instantiate body newheap newenv
+      ...
+
+の様にしていたことが原因だった。
+(recursiveとnonRecursiveがただの仮引数とみなされて、TrueとFalseの置き換えということが認識されず、同一パターンと認識されてしまった模様。)
+とりあえず、
+
+  instantiate (ELet isRec defs body) heap env
+    | isRec == nonRecursive
+      = instantiate body newheap newenv
+        ...
+
+  instantiate (Elet isRec defs body) heap env
+    | isRec == recursive
+      = instantiate body newheap newenv
+        ...
+
+とすることで問題を解消できた。
+-}
+
+instantiate (ELet isRec defs body) heap env
+  | isRec == recursive
+    = instantiate body newheap newenv
+      where
+        {-
+          letrec対応版は、山下様の実装を、letrec専用にして引用させていただいた。
+        -}
+        (newheap, extraBindings) = mapAccuml instantiateRhs heap defs
+        {-
+          mapAccuml                :: (a -> b -> (a, c)) -> a -> [b] -> (a, [c]) は、
+          instantiateRhs           :: (TiHeap -> (String, Expr String) -> (TiHeap, (String, Int))) に、
+          heap                     :: TiHeap と、
+          defs                     :: [(String, Expr String)] の要素を一つずつを渡して、
+          (newheap, extraBindings) :: (TiHeap, [(String, Int)]) を得る。
+        -}
+        newenv = extraBindings ++ env
+        instantiateRhs heap (name, rhs)  -- instantiateRhs :: TiHeap -> (String, Expr String) -> (TiHeap, (String, Int))
+          = (heap1, (name, addr))
+            where
+              (heap1, addr) =instantiate rhs heap newenv
+              {-
+                instantiate   :: Expr String -> TiHeap -> [(String, Int)] -> (TiHeap, Int) は、
+                rhs           :: Expr String と、
+                heap          :: TiHeap と、
+                newenv        :: [(String, Int)] を受け取り、
+                (heap1, addr) :: (TiHeap, Int) を返す。
+              -}
+
+instantiate (ELet isRec defs body) heap env
+  | isRec == nonRecursive
+    = instantiate body newheap newenv
     where
+        {-
+          山下様の実装では、let/letrecr両方に対応されているが、とりあえず現状はletrec専用として引用させていただき、let用はそのまま残した。
+        -}
       auxfunc [] heap env = (heap, env)
       auxfunc (def : defs) heap env
         = auxfunc defs heap' env'
@@ -257,3 +288,5 @@ runProg :: [Char] -> [Char] -- name changed to not conflict
 runProg = showResults . eval . compile . parse -- "run": name conflict
 
 ex_2_11 = "pair x y f = f x y ; fst p = p K ; snd p = p K1 ; f x y = letrec a = pair x b ; b = pair y a in fst (snd (snd (snd a))) ; main = f 3 4"
+
+sampleProg  = "oct g x = let h = twice g in let k = twice h in k (k x) ; main = oct I 4"
