@@ -212,7 +212,8 @@ iInterleave :: Iseq -> [Iseq] -> Iseq
 -- BEGIN
 iInterleave sep [] = iNil
 iInterleave sep [x] = x
-iInterleave sep (x1 : x2 : xs) = ((x1 `iAppend` sep) `iAppend` x2) `iAppend` (iInterleave sep xs)
+iInterleave sep (x1 : [x2]) = x1 `iAppend` sep `iAppend` x2
+iInterleave sep (x1 : x2 : xs) = x1 `iAppend` sep `iAppend` x2 `iAppend` sep `iAppend` (iInterleave sep xs)
 -- END
 
 {-
@@ -222,6 +223,7 @@ iInterleave sep (x1 : x2 : xs) = ((x1 `iAppend` sep) `iAppend` x2) `iAppend` (iI
 
 {-
 -- Exercise 1.3 (pprExpr, pprAExpr, pprProgram)
+pprExpr に式を追加してcase 式とラムダ式を処理し、pprAExprとpprProgram の定義を同じスタイルで記述します。
 -}
 
 --
@@ -234,9 +236,11 @@ iInterleave sep (x1 : x2 : xs) = ((x1 `iAppend` sep) `iAppend` x2) `iAppend` (iI
 抽象データ型を実装するには、iseqを表すためにどの型が使用されているかを指定する必要があります。
 -}
 
+{-
 data Iseq = INil
           | IStr String
           | IAppend Iseq Iseq
+-}
 
 
 {-
@@ -247,7 +251,7 @@ iNil :: Iseq -- The empty iseq
 iNil = INil
 
 iStr :: String -> Iseq -- Turn a string into an iseq
-iStr str = IStr str
+-- iStr str = IStr str
 
 iAppend :: Iseq -> Iseq -> Iseq -- Append two iseqs
 iAppend seq1 seq2 = IAppend seq1 seq2
@@ -257,13 +261,13 @@ iAppend seq1 seq2 = IAppend seq1 seq2
 次のセクションでそれらを改善します。
 -}
 iNewline :: Iseq -- New line with indentation
-iNewline = IStr "\n"
+-- iNewline = IStr "\n"
 
 iIndent :: Iseq -> Iseq -- Indent an iseq
-iIndent seq = seq
+-- iIndent seq = seq
 
 iDisplay :: Iseq -> String -- Turn an iseq into a string
-iDisplay seq = flatten [seq]
+-- iDisplay seq = flatten [seq]
 
 {-
 関数flattenは、iseqRepのリストを取得し、リスト内の各iseqRepsを連結した結果を返します。
@@ -272,18 +276,26 @@ flattenは、抽象型iseqではなく、表現型iseqRepを操作すること�
 
 私たちは、ワークリストと呼ばれるその引数のケース分析によってflattenを実行します。
 -}
-flatten :: [Iseq] -> String
-{- ワークリストが空の場合、これで完了です。-}
-flatten []                         = ""
-{- それ以外の場合は、ワークリストの最初の要素でケース分析を行うことで作業します。
-   INilの場合は、ワークリストからアイテムをポップするだけです。 -}
-flatten (INil : seqs)              = flatten seqs
-{- IStrの場合は、指定された文字列を追加して、残りのワークリストをフラット化することで機能します。 -}
-flatten (IStr s : seqs)            = s ++ (flatten seqs)
-{- これまでのところ、flattenがリストを取得するという事実は、私たちにはあまり役に立ちませんでした。
-   IAppendを扱うと、list引数の正当性がより明確にわかります。
-   実行する必要があるのは、もう1つのアイテムをワークリストの先頭にプッシュすることだけです。 -}
-flatten (IAppend seq1 seq2 : seqs) = flatten (seq1 : seq2 : seqs)
+-- flatten :: [Iseq] -> String
+{-
+ワークリストが空の場合、これで完了です。
+-}
+-- flatten [] = ""
+{-
+それ以外の場合は、ワークリストの最初の要素でケース分析を行うことで作業します。
+INilの場合は、ワークリストからアイテムをポップするだけです。
+-}
+-- flatten (INil : seqs) = flatten seqs
+{-
+IStrの場合は、指定された文字列を追加して、残りのワークリストをフラット化することで機能します。
+-}
+-- flatten (IStr s : seqs) = s ++ (flatten seqs)
+{-
+これまでのところ、flattenがリストを取得するという事実は、私たちにはあまり役に立ちませんでした。
+IAppendを扱うと、list引数の正当性がより明確にわかります。
+実行する必要があるのは、もう1つのアイテムをワークリストの先頭にプッシュすることだけです。
+-}
+-- flatten (IAppend seq1 seq2 : seqs) = flatten (seq1 : seq2 : seqs)
 {-
 *Language> flatten [pprExpr (EVar "x"), pprExpr (ENum 1)]
 "x1"
@@ -291,11 +303,19 @@ flatten (IAppend seq1 seq2 : seqs) = flatten (seq1 : seq2 : seqs)
 "f x (g x)"
 -}
 
+{-
 -- Exercise 1.4
+iseq のサイズに関して平坦化のコストはいくらですか?
+上記のようにiseq を使用するようにpprExpr を変更し、前の演習と同じ実験を使用して新しい実装の効果を測定します。
+pprExpr の結果にiDisplayを適用することを忘れないでください。
+
 -- Exercise 1.5
+抽象データ型を使用する主な利点は、インターフェイスに影響を与えずにADT の実装を変更できることです。
+この例として、引数のいずれかがINil の場合に単純化された結果を返すようにiAppend を再定義します。
+-}
 
 --
--- 1.5.4 Layout and indentation
+-- 1.5.4 レイアウトとインデント
 --
 
 {-
@@ -303,18 +323,14 @@ flatten (IAppend seq1 seq2 : seqs) = flatten (seq1 : seq2 : seqs)
 以前と同じ精神で、最初に2つのコンストラクタIIndentとINewlineを追加してiseqRep型を拡張し、
 これらのコンストラクタを使用するように操作を再定義します。
 -}
-{-
 data Iseq = INil
           | IStr String
           | IAppend Iseq Iseq
           | IIndent Iseq
           | INewline
--}
 
-{-
 iIndent seq = IIndent seq
 iNewline    = INewline
--}
 
 {-
 次に、flattenをより強力にする必要があります。
@@ -322,35 +338,46 @@ iNewline    = INewline
 次に、そのワークリストは(iseq, num)ペアで構成されている必要があります。
 ここで、数値は対応するiseqに必要なインデントを示します。
 -}
-{-
 flatten :: Int              -- Current column; 0 for first column
            -> [(Iseq, Int)] -- Work list
            -> String        -- Result
--}
-{- フラット化の興味深いケースは、INewlineを処理する場合です。
-   これは、インデントを実行する必要がある場所だからです。 -}
-{-
-flatten col ((INewline,          indent) : seqs) = '\n' : (space indent) ++ (flatten indent seqs)
--}
-{- 新しい業に移動してインデントスペースを追加したため、
-   flattenの再帰呼び出しには現在のカラムのインデント引数があることに注意してください。 -}
-{-
-flatten col ((IIndent seq,       indent) : seqs) = flatten col ((seq, col) : seqs)
--}
--- Exercise 1.6 (add equation for flatten for INil)
--- Exercise 1.6 (add equation for flatten for IStr)
--- Exercise 1.6 (add equation for flatten for IAppend)
 
-{- フラット化を適切に初期化するには、iDisplayを変更する必要があります。 -}
 {-
-iDisplay :: Iseq -> String -- Turn an iseq into a string
-iDisplay seq = flatten 0 [(seq, 0)]
+flatten を適切に初期化するには、iDisplay を変更する必要があります。
 -}
+iDisplay seq = flatten 0 [(seq, 0)]
+
+{-
+flattenの興味深いケースは、INewlineを処理する場合です。
+これは、インデントを実行する必要がある場所だからです。
+-}
+flatten col ((INewline, indent) : seqs) = '\n' : (space indent) ++ (flatten indent seqs)
+{-
+新しい行に移動してインデントスペースを追加したため、
+flattenの再帰呼び出しには現在のカラムのインデント引数があることに注意してください。
+これは、新しい行に移動してインデントスペースを追加したためです。
+
+IIndent ケースは、現在の列から現在のインデントを設定するだけです。
+-}
+flatten col ((IIndent seq, indent) : seqs) = flatten col ((seq, col) : seqs)
+
+-- Exercise 1.6 (add equation for flatten for INil)
+flatten col ((INil, indent) : seqs) = flatten col seqs
+-- Exercise 1.6 (add equation for flatten for IStr)
+-- flatten col ((IStr s, indent) : seqs) = (space indent) ++ s ++ (flatten col seqs)  -- (思い切り間違えた自分のコード・・・文字列の前に空白を入れると勘違いしている。)
+flatten col ((IStr s, indent) : seqs) = s ++ (flatten (col + length s) seqs)  -- (nobsun様の実装をカンニング!)
+-- Exercise 1.6 (add equation for flatten for IAppend)
+flatten col ((IAppend seq1 seq2, indent) : seqs) = flatten col ((seq1, indent) : (seq2, indent) : seqs)  -- 
+
+flatten col [] = ""
 
 -- Exercise 1.7 (modify iStr to check for a '\n' is embedded in a string given to IStr)
+iStr [] = IStr ""
+iStr (x : xs) | x == '\n' = IAppend INewline (iStr xs)
+              | otherwise = IAppend (IStr [x]) (iStr xs)  -- うっかり (iStr [x]) としてしまうと、止まらなくなる模様。
 
 --
--- 1.5.5 Operator precedence
+-- 1.5.5 演算子の優先順位
 --
 
 {-
@@ -402,7 +429,7 @@ pprExpr (ELet isrec defns expr) = iConcat [ iStr keyword,
 -}
 
 --
--- 1.5.6 Other useful function on iseq
+-- 1.5.6 iseqのその他の便利な機能
 --
 
 iNum :: Int -> Iseq
@@ -593,6 +620,18 @@ pThen4 combine p1 p2 p3 p4 toks
                                     (v3, toks3) <- p3 toks2,
                                     (v4, toks4) <- p4 toks3]
 
+{-
+-- Pack{ <tag> , <arity> } をパースするために追加してみた。
+pThen6 :: (a -> b -> c -> d -> e -> f -> g) -> Parser a -> Parser b -> Parser c -> Parser d -> Parser e -> Parser f -> Parser g
+pThen6 combine p1 p2 p3 p4 p5 p6 toks
+  = [(combine v1 v2 v3 v4 v5 v6, toks6) | (v1, toks1) <- p1 toks,
+                                          (v2, toks2) <- p2 toks1,
+                                          (v3, toks3) <- p3 toks2,
+                                          (v4, toks4) <- p4 toks3,
+                                          (v5, toks5) <- p5 toks4,
+                                          (v6, toks6) <- p6 toks5]
+-}
+
 -- 文法のもう1つの非常に一般的な機能は、記号の0回以上の繰り返しを要求することです。
 -- これを反映するために、パーサpを受け取り、pが認識する0回以上の出現を認識する新しいパーサを返す関数pZeroOrMoreが必要です。
 -- 成功した解析によって返される値は、pの継続的な使用によって返される値のリストである可能性があります。
@@ -720,7 +759,8 @@ pVar toks = pSat (\tok -> (isAlpha (hd tok)) && ((all isIdChar (tl tok)) || ((tl
 -- > keywords = ["let", "letrec", "case", "in", "of", "Pack"]
 
 keywords :: [String]
-keywords = ["let", "letrec", "case", "in", "of", "Pack"]
+--keywords = ["let", "letrec", "case", "in", "of", "Pack"]
+keywords = ["let", "letrec", "case", "in", "of", "Pack", "Pack{"]
 
 --pVar toks = pSat (\tok -> (all isAlpha tok) && (not (elem tok keywords))) toks  -- これでは、変数名は全文字英字に限定されてしまう。
 pVar toks = pSat (\tok -> ((isAlpha (hd tok)) && ((all isIdChar (tl tok)) || ((tl tok) == ""))) && (not (elem tok keywords))) toks
@@ -789,7 +829,8 @@ syntax = take_first_parse . pProgram
          where
            take_first_parse ((prog, []) : others) = prog
            take_first_parse (parse      : others) = take_first_parse others
-           take_first_parse other                 = error "Syntax error"
+--           take_first_parse other                 = error "Syntax error"
+           take_first_parse other                 = error $ "Syntax error" ++ (show other)
 
 pProgram :: Parser CoreProgram
 pProgram = pOneOrMoreWithSep pSc (pLit ";")
@@ -835,7 +876,8 @@ ex1_21'' = "f = 3 ; g x y = let z = x in z"
 pExpr :: Parser (Expr String)
 pExpr = ((pThen4 mk_letorletrec ((pLit "let") `pAlt` (pLit "letrec")) pDefns (pLit "in") pExpr) `pAlt`
          (pThen4 mk_lambda (pLit "\\") (pOneOrMore pVar) (pLit ".") pExpr) `pAlt`
-         (pThen4 mk_case (pLit "case") pExpr (pLit "of") pAlters)) `pAlt`
+         (pThen4 mk_case (pLit "case") pExpr (pLit "of") pAlters) `pAlt`
+        pAexpr) `pAlt`  -- これをしないと、Pack{<tag>,<arity>}をパースできないので注意！
         pExpr1
         where
           mk_letorletrec letorletrec defns _ body = ELet (if letorletrec == "letrec" then True else False) defns (body)
@@ -858,6 +900,8 @@ pAlter = pThen4 mk_alter (pThen3 mk_int (pLit "<") pNum (pLit ">")) (pZeroOrMore
          where
            mk_int _ num _ = num
            mk_alter num vars _ expr = (num, vars, expr)
+
+pPackArgs = pZeroOrMore pExpr
 
 {-
 *Language> length "\\"
@@ -916,12 +960,13 @@ pCase = pThen4 mk_case (pLit "case") pExpr (pLit "of") pAlters
 pExpr = pThen EAp pExpr pAexpr
 -}
 
-pAexpr = (pThen4 mk_constr (pLit "Pack{") pNum pNum (pLit "}")) `pAlt`
+pAexpr = (pThen4 mk_constr (pLit "Pack") (pLit "{") (pThen3 mk_tag_arity pNum (pLit ",") pNum) (pLit "}")) `pAlt`
          (pThen3 mk_expr (pLit "(") pExpr (pLit ")")) `pAlt`
          (pVar `pApply` EVar) `pAlt`
          (pNum `pApply` ENum)
          where
-           mk_constr _ tag arity _ = EConstr tag arity
+           mk_tag_arity tag _ arity = (tag, arity)
+           mk_constr _ _ (tag, arity) _ = EConstr tag arity
            mk_expr _ expr _ = expr
 
 {-
@@ -1030,4 +1075,54 @@ assembleOp e1 (FoundOp op e2) = EAp (EAp (EVar op) e1) e2
 
 *Language> pExpr ["Pack{", "1", "2", "}"]
 [(EConstr 1 2,[])]
+-}
+
+{-
+*Template> (putStrLn . runProg) "main = K 1 2"
+   1)stk [   1: NSupercom main ]
+
+   2)stk [  11: NAp    9   10 (NNum 2) ]
+
+   3)stk [   9: NAp    3    8 (NNum 1)
+  11: NAp    9   10 (NNum 2) ]
+
+   4)stk [   3: NSupercom K
+   9: NAp    3    8 (NNum 1)  11: NAp    9   10 (NNum 2) ]
+
+   5)stk [   8: NNum 1 ]  -- ついにMark1が動いた！！！
+
+
+
+Total number of steps = 4
+-}
+
+{-
+*Template> (putStrLn . runProg) "main = S K K 3"
+   1)stk [   1: NSupercom main ]
+
+   2)stk [  11: NAp    9   10 (NNum 3) ]
+
+   3)stk [   9: NAp    8    3 (NSupercom K)
+  11: NAp    9   10 (NNum 3) ]
+
+   4)stk [   8: NAp    5    3 (NSupercom K)
+   9: NAp    8    3 (NSupercom K)  11: NAp    9   10 (NNum 3) ]
+
+   5)stk [   5: NSupercom S
+   8: NAp    5    3 (NSupercom K)   9: NAp    8    3 (NSupercom K)
+  11: NAp    9   10 (NNum 3) ]
+
+   6)stk [  14: NAp   12   13 (NAp 3 10) ]
+
+   7)stk [  12: NAp    3   10 (NNum 3)
+  14: NAp   12   13 (NAp 3 10) ]
+
+   8)stk [   3: NSupercom K
+  12: NAp    3   10 (NNum 3)  14: NAp   12   13 (NAp 3 10) ]
+
+   9)stk [  10: NNum 3 ]  -- ついにMark1が動いた！！！
+
+
+
+Total number of steps = 8
 -}
