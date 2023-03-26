@@ -10,11 +10,14 @@
 \begin{document}
 
 \maketitle
+\newpage
 
 \tableofcontents
+\newpage
 
 \begin{abstract}
 \end{abstract}
+\newpage
 
 \section*{序文}
 
@@ -121,6 +124,7 @@ Mirandaなどの本格的な関数型言語で書かれたプログラムをコ�
 \subsection*{ソースコードの取得}
 
 \subsection*{間違いを見つけたら}
+\newpage
 
 \section{コア言語}
 
@@ -1518,7 +1522,7 @@ assembleOp e1 (FoundOp op e2) = EAp (EAp (EVar op) e1) e2
 	\item[演習 1.24] 提案された行に沿って文法を変換し、変更をMirandaコードに直訳して、結果のパーサをテストします。
 \end{description}
 
-\subsubsection{概要}
+\subsubsection{まとめ}
 
 パーサー構築関数のライブラリによって効率的に処理できる文法は、LL(1) 文法と呼ばれます。
 これは、従来の再帰降下パーサーによって処理できるものとまったく同じクラスです [Aho et al. 1986]。
@@ -1530,12 +1534,14 @@ assembleOp e1 (FoundOp op e2) = EAp (EAp (EVar op) e1) e2
 
 気をつけなければならないことはたくさんありますが (左再帰、演算子の優先順位、共有)、
 実装されている言語に関係なく、再帰降下パーサーではまったく同じ問題が発生します。
+\newpage
 
 \begin{verbatim}
   module Template where
   import Language
   import Utils
 \end{verbatim}
+\newpage
 
 \section{テンプレートのインスタンス化}
 
@@ -3580,6 +3586,14 @@ $f$を変更することでスキップされますが、$b$は変更されま�
 \begin{description}
 	\item[演習 2.36] このガベージコレクターを実装します。
 \end{description}
+\newpage
+
+\begin{verbatim}
+  module GM where
+  import Language
+  import Utils
+\end{verbatim}
+\newpage
 
 \section{Gマシン}
 
@@ -6354,7 +6368,7 @@ Mark 5コンパイラの開発時に見たサンプルプログラムをもう�
 Mark 7マシンでは、これらの値はVスタックと呼ばれる新しいステートコンポーネントに保持されます。
 問題は、実機では数値をヒープに入れたり取り出したりするのは高くつく操作であることです。
 マシンのレジスタセットやスタックを利用する方がはるかに効率的です。
-Mark 7 G-machineではスタックを使うので、レジスタが足りなくなる心配はありません。
+Mark 7 Gマシンではスタックを使うので、レジスタが足りなくなる心配はありません。
 \vskip\baselineskip
 
 プログラム
@@ -6425,7 +6439,7 @@ Mark 7 G-machineは、Vスタックのブール値\texttt{False}を\texttt{1}と
 
 ヒープにオブジェクトを作成しアクセスすることが、スタックにオブジェクトを保持することと比較して性能上のペナルティがあるマシンでは、
 V-stackの使用は改善されると期待されます。
-Vスタックがどのように機能するかを見た後、Mark 7マシンを実装するためにG-machineに小さな修正を加えます。
+Vスタックがどのように機能するかを見た後、Mark 7マシンを実装するためにGマシンに小さな修正を加えます。
 
 \subsubsection{データ構造}
 
@@ -6584,7 +6598,7 @@ Vスタックを検査してどの命令ストリームを使用するかを決�
 \vskip\baselineskip
 
 \begin{description}
-	\item[演習 3.40] 命令データ型の拡張、showInstruction関数の再定義、新しい命令遷移の実装、ディスパッチ関数の修正。
+	\item[演習 3.40] 命令データ型の拡張、\texttt{showInstruction}関数の再定義、新しい命令遷移の実装、\texttt{dispatch}関数の修正。
 \end{description}
 
 次に、コンパイラの改造（かなり大掛かりなもの）について考えてみましょう。
@@ -6886,24 +6900,114 @@ Mark7マシンについて特筆すべき点は、現在のVスタックをダ�
 
 しかし、現時点では、かなり効率的なマシンを製造しています。
 次の章では、TIM について説明します。
+\newpage
 
-\section{TIM: the three instruction machine}
-\subsection{Background: How TIM works}
-\subsection{Mark 1: A minimal TIM}
-\subsection{Mark 2: Adding arithmetic}
-\subsection{Mark 3: let(rec) expressions}
-\subsection{Mark 4: Updating}
-\subsection{Mark 5: Structured data}
-\subsection{Mark 6: Constant applicative forms and the code store}
-\subsection{Summary}
+\begin{verbatim}
+  module Tim where
+  import Utils
+  import Language
+\end{verbatim}
+\newpage
+
+\section{TIM: 3命令マシン}
+
+3つの命令マシンであるTIMは、最初は、これまでに見たものとは非常に異なる形のリダクションマシンのように見えます。
+それでも、一連の比較的単純な手順でGマシンをTIMに変換できることがわかりました。
+この章では、これらの手順について説明し、それによってTIMがどのように機能するかを示し、完全な最小TIMコンパイラと評価器を定義します。
+そして、それに対する一連の改善と最適化を開発します。
+\vskip\baselineskip
+
+TIMはFairbairnとWrayによって発明されたもので、彼らの元の論文[Fairbairn and Wray 1987]は読む価値があります。
+この章で採用したアプローチとはまったく異なる方法でTIMを説明します。
+ただし、この章で作成された資料は、FairbairnとWrayの研究をはるかに超えているため、
+あまり知られていないアイデアが議論され、実装されている後のセクションで、詳細レベルが高められています。
+提示された新しいアイデアの多くはGuy Argoによるものであり、彼のFPCA論文[Argo 1989]と博士論文[Argo 1991]に提示されています。
+
+\subsection{背景: TIMの仕組み}
+\subsubsection{Flattening}
+\subsubsection{Tupling}
+\subsubsection{Spinelessness}
+\subsubsection{An example}
+\subsubsection{Defining the machine with state transition rules}
+\subsubsection{Compilation}
+\subsubsection{Updating}
+
+\subsection{Mark 1: 最小限のTIM}
+\subsubsection{Overall structure}
+\subsubsection{Data type definitions}
+\subsubsection{Compiling program}
+\subsubsection{The evaluator}
+\subsubsection{Printing the results}
+\subsubsection{Garbage collection \dag}
+
+\subsection{Mark 2: 算術演算の追加}
+\subsubsection{Overview: How arithmetic works}
+\subsubsection{Adding simple arithmetic to the implementation}
+\subsubsection{Compilation schemes for arithmetic}
+
+\subsection{Mark 3: \texttt{let(rec)}式}
+\subsubsection{\texttt{let} expressions}
+\subsubsection{\texttt{letrec} expressions}
+\subsubsection{Reusing frame slots \dag}
+\subsubsection{Garbage collection \dag}
+
+\subsection{Mark 4: 更新}
+\subsubsection{The basic technology}
+\subsubsection{Compiling \texttt{PushMarker} instruction}
+\subsubsection{Implementing the updating mechanism}
+\subsubsection{Problem with updating indirections}
+\subsubsection{Updating shared \texttt{let(rec)}-bound variables}
+\subsubsection{Eliminating indirection chains}
+\subsubsection{Updating partial applications}
+
+\subsection{Mark 5: 構造化データ}
+\subsubsection{The general approach}
+\subsubsection{Transition rules and compilation schemes for data structures}
+\subsubsection{Trying it out}
+\subsubsection{Printing a list}
+\subsubsection{Using data structures directly \dag}
+
+\subsection{Mark 6: Constant applicative forms and the code store \dag}
+\subsubsection{Implementing CAFs}
+\subsubsection{Modeling code store more faithfully}
+
+\subsection{まとめ}
+\newpage
+
+\begin{verbatim}
+  module ParGM where
+  import Utils
+  import Language
+  --import GM
+\end{verbatim}
+\newpage
 
 \section{A Parallel G-machine}
+
 \subsection{Introduction}
+\subsubsection{Parallel functional programming}
+\subsubsection{Parallel graph reduction}
+
 \subsection{Mark 1: A minimal parallel G-machine}
+\subsubsection{Data type definitions}
+\subsubsection{The evaluator}
+\subsubsection{Compiling a program}
+\subsubsection{Printing the results}
+
 \subsection{Mark 2: The evaluate-and-die model}
+\subsubsection{The node data structure}
+\subsubsection{The instruction set}
+
 \subsection{Mark 3: A realistic parallel G-machine}
+\subsubsection{Scheduling policy}
+\subsubsection{Conservative and speculative parallelism}
+
 \subsection{Mark 4: A better way to handle blocking}
+\subsubsection{Data structures}
+\subsubsection{Locking and unlocking}
+
 \subsection{Conclusions}
+\newpage
 
 \section{Lambda Lifting}
 \subsection{Introduction}
@@ -6915,6 +7019,7 @@ Mark7マシンについて特筆すべき点は、現在のVスタックをダ�
 \subsection{Mark 5: Improvements to full laziness}
 \subsection{Mark 6: Dependency analysis}
 \subsection{Conclusions}
+\newpage
 
 \section{A ユーティリティモジュール}
 
