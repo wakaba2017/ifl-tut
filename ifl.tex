@@ -6697,7 +6697,7 @@ Mark 6マシンで行ったように、このコードを手作業でコンパ�
 \end{tabular}
 \vskip\baselineskip
 
-図3.18に示すBスキームは、別のタイプのコンテキストを構成しています。
+図3.18に示す$\mathcal{B}$スキームは、別のタイプのコンテキストを構成しています。
 $\mathcal{B}$スキームによってコンパイルされるには、式はWHNFへの評価が必要であることが分かっているだけでなく、整数型かブール型の式でなければなりません。
 以下の式は$\mathcal{B}$スキームを介して伝搬されます。
 
@@ -6705,7 +6705,7 @@ $\mathcal{B}$スキームによってコンパイルされるには、式はWHNF
 	\item \texttt{let(rec)} $\Delta$ \texttt{in} $e$が$\mathcal{B}$-strictコンテキストで現れた場合、
 	      式$e$も$\mathcal{B}$-strictコンテキストになります。
 	\item \texttt{if} $e_0$ $e_1$ $e_2$という式が$\mathcal{B}$-strictコンテキストで現れたら、
-	      $e_0, e_1, e_2$という式もB-strictコンテキストで現れることになります。
+	      $e_0, e_1, e_2$という式も$\mathcal{B}$-strictコンテキストで現れることになります。
 	\item $e_0$ $\odot$ $e_1$ が $\mathcal{B}$-strict のコンテキストで出現し、 $\odot$ が比較または算術演算子である場合、
 	      式 $e_0$ と $e_1$ も $\mathcal{B}$-strict のコンテキストで出現します。
 	\item もし\texttt{negate} $e$が$\mathcal{B}$-strictのコンテキストで発生した場合、式$e$も同様となる。
@@ -6982,9 +6982,15 @@ TIMはFairbairnとWrayによって発明されたもので、彼らの元の論�
 \end{verbatim}
 \newpage
 
-\section{A Parallel G-machine}
+\section{並列Gマシン}
 
 \subsection{Introduction}
+
+この章では、並列Gマシン用の抽象マシンとコンパイラを開発します。
+これは、ESPRITプロジェクト415の一部として開発された並列Gマシンの簡易バージョンに基づいています。
+興味のある読者は、簡単にアクセスできる[Kingdon et al 1991]を参照してください。
+[Peyton Jones 1989]では、並列グラフ簡約の一般的な紹介を見つけることができます。
+
 \subsubsection{Parallel functional programming}
 \subsubsection{Parallel graph reduction}
 
@@ -7009,21 +7015,99 @@ TIMはFairbairnとWrayによって発明されたもので、彼らの元の論�
 \subsection{Conclusions}
 \newpage
 
-\section{Lambda Lifting}
+\section{ラムダリフティング}
+
+この章では、本書で以前に見たマシンに受け入れられる一連のプログラムを拡張する方法を見ていきます。
+導入する拡張機能は、\textbf{ローカル関数定義}を許可することです。
+次に、代替アプローチに直面します。
+
+\begin{itemize}
+  \item 環境に対処するためのメカニズムをマシンに追加します。
+  \item ローカル関数定義がないようにプログラムを変換します。
+  代わりに、すべての関数がスーパー コンビネータとして定義されます。
+\end{itemize}
+
+この本では、常に2番目のアプローチが取られると想定してきました。
+
+この章は、\textbf{完全なlaziness}の概念を紹介する適切なポイントでもあります。
+ここでも、関数型言語のこの望ましい最適化は、プログラム変換を使用して実現されます。
+
 \subsection{Introduction}
-\subsection{Improving the expr data type}
+
+\subsection{Improving the \texttt{expr} data type}
+
+\begin{verbatim}
+  module Lambda where
+  import Utils
+  import Language
+\end{verbatim}
+
 \subsection{Mark 1: A simple lambda lifter}
+\subsubsection{Implementing a simple lambda lifter}
+\subsubsection{Free variables}
+\subsubsection{Generating supercombinators}
+\subsubsection{Making all the variables unique}
+\subsubsection{Collecting supercombinators}
+
 \subsection{Mark 2: Improving the simple lambda lifter}
-\subsection{Mark 3: Johnson-style lambda lifter}
+\subsubsection{Simple extensions}
+\subsubsection{Eliminating redundant supercombinators}
+\subsubsection{Eliminating redundant local definitions}
+
+\subsection{Mark 3: Johnsson-style lambda lifter}
+\subsubsection{implementation}
+\subsubsection{Abstracting free variables in functions}
+\subsubsection{A tricky point \dag}
+
 \subsection{Mark 4: A separate full laziness pass}
+\subsubsection{A review of full laziness}
+\subsubsection{Full-lazy lambda lifting in the presence of \texttt{let(rec)}s}
+\subsubsection{Full laziness without lambda lifting}
+\subsubsection{A full lazy lambda lifter}
+\subsubsection{Separating the lambdas}
+\subsubsection{Adding level numbers}
+\subsubsection{Identifying MFEs}
+\subsubsection{Renaming variables}
+\subsubsection{Floating \texttt{let(rec)} expressions}
+
 \subsection{Mark 5: Improvements to full laziness}
-\subsection{Mark 6: Dependency analysis}
+\subsubsection{Adding \texttt{case} expressions}
+\subsubsection{Eliminating redundant supercombinators}
+\subsubsection{Avoiding redundant full laziness}
+
+\subsection{Mark 6: Dependency analysis \dag}
+\subsubsection{Strongly connected components}
+\subsubsection{Implementing a strongly connected component algorithm}
+\subsubsection{A dependency analysis}
+
 \subsection{Conclusions}
 \newpage
 
 \section{A ユーティリティモジュール}
 
+このAppendixでは、本全体で使用されるさまざまな便利な型と関数の定義を示します。
+
+\begin{verbatim}
+  module Utils where
+\end{verbatim}
+
+\begin{verbatim}
+  -- The following definitions are used to make some synonyms for routines
+  -- in the Gofer prelude to be more Miranda compatible
+  shownum n = show n
+  hd :: [a] -> a
+  hd = head -- in Gofer standard prelude
+  tl :: [a] -> [a]
+  tl = tail -- in Gofer standard prelude
+  zip2 :: [a] -> [b] -> [(a,b)]
+  zip2 = zip -- in Gofer standard prelude
+  -- can't do anything about # = length, since # not binary.
+\end{verbatim}
+
 \subsection{The heap type}
+
+抽象データ型の\texttt{heap}と\texttt{address}は、実装ごとにガベージコレクションされたノードのヒープを表すために使用されます。
+
 \subsubsection{Specification}
 \subsubsection{Representation}
 
