@@ -599,10 +599,7 @@ compile program
 buildInitialHeap :: CoreProgram -> (GmHeap, GmGlobals)
 buildInitialHeap program
   = mapAccuml allocateSc hInitial compiled
-    where compiled = map compileSc (preludeDefs ++ program) ++
-                      compiledPrimitives
-    --where
-    --  compiled = map compileSc program
+    where compiled = map compileSc (preludeDefs ++ program ++ primitives)  -- Mark7で変更
 
 type GmCompiledSC = (Name, Int, GmCode)
 
@@ -703,6 +700,25 @@ compileE' :: Int -> GmCompiler
 compileE' offset expr env
   = [Split offset] ++ compileE expr env ++ [Slide offset]
 
+-- Mark7で追加
+compileB :: GmCompiler  -- Bスキーム
+compileB (ENum n) env = [Pushbasic n]
+compileB (ELet recursive defs e) args
+  | recursive = compileLetrec compileB defs e args  -- recursive が True  の場合
+  | otherwise = compileLet    compileB defs e args  -- recursive が False の場合
+compileB (EAp (EAp (EVar op) e0) e1) env
+  | length temp == 1 = compileB e1 env ++ compileB e0 env' ++ [snd (hd temp)]
+  | otherwise        = compileC e1 env ++ compileC (EAp (EVar op) e0) env' ++ [Mkap]
+    where env'  = argOffset 1 env
+          temp  = [(oprtr, instrctn) | (oprtr, instrctn) <- builtInDyadic, oprtr == op]
+compileB (EAp (EVar "negate") e) env
+  = compileB e env ++ [Neg]
+compileB (EAp (EAp (EAp (EVar "if") e0) e1) e2) env
+  = compileB e0 env ++ [Cond e1' e2']
+    where e1' = compileB e1 env
+          e2' = compileB e2 env
+compileB e env = compileC e env ++ [Get]
+
 -- Mark3で追加
 compileLet :: GmCompiler -> [(Name, CoreExpr)] -> GmCompiler
 {-
@@ -752,23 +768,25 @@ compileAlts comp alts env
 argOffset :: Int -> GmEnvironment -> GmEnvironment
 argOffset n env = [(v, n+m) | (v,m) <- env]
 
-compiledPrimitives :: [GmCompiledSC]
-compiledPrimitives
+-- Mark7で追加
+primitives :: [(Name,[Name],CoreExpr)]
+primitives
   = [
-     ("+",      2, [Push 1, Eval, Push 1, Eval, Add, Update 2, Pop 2, Unwind]),      -- Mark4で追加
-     ("-",      2, [Push 1, Eval, Push 1, Eval, Sub, Update 2, Pop 2, Unwind]),      -- Mark4で追加
-     ("*",      2, [Push 1, Eval, Push 1, Eval, Mul, Update 2, Pop 2, Unwind]),      -- Mark4で追加
-     ("/",      2, [Push 1, Eval, Push 1, Eval, Div, Update 2, Pop 2, Unwind]),      -- Mark4で追加
-     ("negate", 1, [Push 0, Eval, Neg, Update 1, Pop 1, Unwind]),                    -- Mark4で追加
-     ("==",     2, [Push 1, Eval, Push 1, Eval, Eq, Update 2, Pop 2, Unwind]),       -- Mark4で追加
-     ("~=",     2, [Push 1, Eval, Push 1, Eval, Ne, Update 2, Pop 2, Unwind]),       -- Mark4で追加
-     ("<",      2, [Push 1, Eval, Push 1, Eval, Lt, Update 2, Pop 2, Unwind]),       -- Mark4で追加
-     ("<=",     2, [Push 1, Eval, Push 1, Eval, Le, Update 2, Pop 2, Unwind]),       -- Mark4で追加
-     (">",      2, [Push 1, Eval, Push 1, Eval, Gt, Update 2, Pop 2, Unwind]),       -- Mark4で追加
-     (">=",     2, [Push 1, Eval, Push 1, Eval, Ge, Update 2, Pop 2, Unwind]),       -- Mark4で追加
-     -- ("if",     3, [Push 0, Eval, Cond [Push 1] [Push 2], Update 3, Pop 3, Unwind])  -- Mark4で追加
-     ("if",     3, [Push 0, Eval, Casejump [(1, [Split 0, Push 2, Eval, Slide 0]),
-                                            (2, [Split 0, Push 1, Eval, Slide 0])], Update 3, Pop 3, Unwind])  -- Mark6で変更
+     ("+", ["x","y"], (EAp (EAp (EVar "+") (EVar "x")) (EVar "y"))),
+     ("-", ["x","y"], (EAp (EAp (EVar "-") (EVar "x")) (EVar "y"))),
+     ("*", ["x","y"], (EAp (EAp (EVar "*") (EVar "x")) (EVar "y"))),
+     ("/", ["x","y"], (EAp (EAp (EVar "/") (EVar "x")) (EVar "y"))),
+     ("negate", ["x"], (EAp (EVar "negate") (EVar "x"))),
+     ("==", ["x","y"], (EAp (EAp (EVar "==") (EVar "x")) (EVar "y"))),
+     ("~=", ["x","y"], (EAp (EAp (EVar "~=") (EVar "x")) (EVar "y"))),
+     (">=", ["x","y"], (EAp (EAp (EVar ">=") (EVar "x")) (EVar "y"))),
+     (">",  ["x","y"], (EAp (EAp (EVar ">") (EVar "x")) (EVar "y"))),
+     ("<=", ["x","y"], (EAp (EAp (EVar "<=") (EVar "x")) (EVar "y"))),
+     ("<",  ["x","y"], (EAp (EAp (EVar "<") (EVar "x")) (EVar "y"))),
+     ("if", ["c","t","f"],
+            (EAp (EAp (EAp (EVar "if") (EVar "c")) (EVar "t")) (EVar "f"))),
+     ("True", [], (EConstr 2 0)),
+     ("False", [], (EConstr 1 0))
     ]
 
 -- Mark5で追加
