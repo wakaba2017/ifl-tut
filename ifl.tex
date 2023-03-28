@@ -6924,6 +6924,33 @@ TIMはFairbairnとWrayによって発明されたもので、彼らの元の論�
 提示された新しいアイデアの多くはGuy Argoによるものであり、彼のFPCA論文[Argo 1989]と博士論文[Argo 1991]に提示されています。
 
 \subsection{背景: TIMの仕組み}
+
+次の関数定義を検討してください。
+
+\begin{verbatim}
+  f x y = g E1 E2
+\end{verbatim}
+
+ここで、\texttt{E1} と \texttt{E2} は任意の (そしておそらく複雑な) 式であり、\texttt{g} はその他の関数です。
+テンプレートのインスタンス化マシン (第 2 章) と G マシン (第 3 章) の両方が、次のリダクションを実行します。
+
+\begin{verbatim}
+      @    reduces to    @
+     / \                / \
+    @   y              @   E2
+   / \                / \
+  f   x              g   E1
+\end{verbatim}
+
+Gマシンはこれを行うためにかなりの数の(単純な)命令を必要としますが、テンプレートマシンは1つの(複雑な)ステップでそれを行います。
+ですが、最終的な結果は同じです。
+
+この図で、\texttt{E1} と \texttt{E2} は式 \texttt{E1} と \texttt{E2} のグラフです。
+たとえば、\texttt{E1} が \texttt{(x+y)*(x-y)} の場合、\texttt{g} の最初の引数は \texttt{(x+y)*(x-y)} のグラフになります。
+このグラフは、($\mathcal{C}$ コンパイル スキームによって生成されたコードによって) ヒープに苦労して構築する必要があります。
+残念ながら、\texttt{g} は最初の引数を使用せずに破棄する可能性があるため、これは無駄な作業になる可能性があります。
+関数への引数に対して行われるグラフ作成の量を制限する何らかの方法を見つけたいと考えています。
+
 \subsubsection{Flattening}
 \subsubsection{Tupling}
 \subsubsection{Spinelessness}
