@@ -616,6 +616,15 @@ compileSc (name, env, body)
   = (name, length env, compileR body (zip2 env [0..]))
 
 compileR :: GmCompiler  -- Rスキーム
+compileR (ELet recursive defs e) args  -- Mark7で追加
+  | recursive = compileLetrec compileR defs e args  -- recursive が True  の場合
+  | otherwise = compileLet    compileR defs e args  -- recursive が False の場合
+compileR (EAp (EAp (EAp (EVar "if") e0) e1) e2) env
+  = compileB e0 env ++ [Cond e1' e2']
+    where e1' = compileR e1 env
+          e2' = compileR e2 env
+compileR (ECase e alts) env  -- Mark7で追加
+  = compileE e env ++ [Casejump (compileAlts compileR' alts env)]
 --compileR e env = compileC e env ++ [Slide (length env + 1), Unwind]
 compileR e env = compileE e env ++ [Update d, Pop d, Unwind]
                  where d = length env
@@ -651,18 +660,18 @@ compileE (ELet recursive defs e) args
   | recursive = compileLetrec compileE defs e args  -- recursive が True  の場合
   | otherwise = compileLet    compileE defs e args  -- recursive が False の場合
 compileE (EAp (EAp (EVar op) e0) e1) env
-  | length temp == 1 = compileE e1 env ++ compileE e0 env' ++ [snd (hd temp)]
+  | length temp == 1 = compileB (EAp (EAp (EVar op) e0) e1) env ++ temp'
   | otherwise        = compileC e1 env ++ compileC (EAp (EVar op) e0) env' ++ [Mkap]
     where env'  = argOffset 1 env
           temp  = [(oprtr, instrctn) | (oprtr, instrctn) <- builtInDyadic, oprtr == op]
+          temp' | fst (hd temp) `elem` ["+", "-", "*", "div"] = [Mkint]
+                | otherwise = [Mkbool]
 compileE (EAp (EVar "negate") e) env
-  = compileE e env ++ [Neg]
-{-
+  = compileB (EAp (EVar "negate") e) env ++ [Mkint]
 compileE (EAp (EAp (EAp (EVar "if") e0) e1) e2) env
-  = compileE e0 env ++ [Cond e1' e2']
+  = compileB e0 env ++ [Cond e1' e2']
     where e1' = compileE e1 env
           e2' = compileE e2 env
--}
 compileE (ECase e alts) env  -- Mark6で追加
   = compileE e env ++ [Casejump (compileAlts compileE' alts env)]
 compileE (EConstr t a) env  -- Mark6で追加
@@ -699,6 +708,13 @@ compileCForEConstrInEAp e env eapcnt
 compileE' :: Int -> GmCompiler
 compileE' offset expr env
   = [Split offset] ++ compileE expr env ++ [Slide offset]
+
+-- Mark7で追加
+compileR' :: Int -> GmCompiler
+compileR' offset expr env
+  = [Split offset] ++ compileR expr env'
+    where d = length env
+          env' = argOffset (offset + d) env
 
 -- Mark7で追加
 compileB :: GmCompiler  -- Bスキーム
