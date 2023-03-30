@@ -1014,6 +1014,16 @@ b_4_1' = "cons x xs = Pack{2,2} x xs ; " ++
          "             (cons n (downfrom (n-1))) ; " ++
          "main = downfrom 4"
 
+b_4_2 = "cons = Pack{2,2} ; " ++
+        "nil = Pack{1,0} ; " ++
+        "downfrom n = if (n == 0) " ++
+        "             nil " ++
+        "             (cons n (downfrom (n-1))) ; " ++
+        "length xs = case xs of " ++
+        "                   <1> -> 0; " ++
+        "                   <2> y ys -> 1 + length ys ; " ++
+        "main = length (downfrom 4)"
+
 test_program_3_8_7_1  = "f x = Pack{2,2} (case x of <1> -> 1; <2> -> 2) Pack{1,0}"
 
 test_program_3_8_7_1' = "f x = Pack{2,2} (g x) Pack{1,0} ; " ++
@@ -1027,4 +1037,5 @@ test_program_3_8_7_2' = "prefix p xs = map (f p) xs ; " ++
 -- テストプログラム (ここまで) --
 ---------------------------------
 
+main :: IO()
 main = (putStrLn . runProg) b_3_2_3'
