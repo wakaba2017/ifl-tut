@@ -496,7 +496,11 @@ boxBoolean b state
 
 -- Mark4で追加
 comparison :: (Int -> Int -> Bool) -> GmState -> GmState
-comparison = primitive2 boxBoolean unboxInteger
+comparison op state
+  = putVStack (result : as) state
+    where (a0 : a1 : as) = getVStack state
+          result | op a0 a1 = 2
+                 | otherwise = 1
 
 -- Mark6で追加
 pack :: Int -> Int -> GmState -> GmState  -- 遷移規則 (3.30)
@@ -720,10 +724,10 @@ compileR' offset expr env
 compileB :: GmCompiler  -- Bスキーム
 compileB (ENum n) env = [Pushbasic n]
 compileB (ELet recursive defs e) args
-  | recursive = compileLetrec compileB defs e args  -- recursive が True  の場合
-  | otherwise = compileLet    compileB defs e args  -- recursive が False の場合
+  | recursive = compileLetrecB compileB defs e args  -- recursive が True  の場合
+  | otherwise = compileLetB    compileB defs e args  -- recursive が False の場合
 compileB (EAp (EAp (EVar op) e0) e1) env
-  | length temp == 1 = compileB e1 env ++ compileB e0 env' ++ [snd (hd temp)]
+  | length temp == 1 = compileB e1 env ++ compileB e0 env ++ [snd (hd temp)]
   | otherwise        = compileC e1 env ++ compileC (EAp (EVar op) e0) env' ++ [Mkap]
     where env'  = argOffset 1 env
           temp  = [(oprtr, instrctn) | (oprtr, instrctn) <- builtInDyadic, oprtr == op]
@@ -733,7 +737,7 @@ compileB (EAp (EAp (EAp (EVar "if") e0) e1) e2) env
   = compileB e0 env ++ [Cond e1' e2']
     where e1' = compileB e1 env
           e2' = compileB e2 env
-compileB e env = compileC e env ++ [Get]
+compileB e env = compileE e env ++ [Get]
 
 -- Mark3で追加
 compileLet :: GmCompiler -> [(Name, CoreExpr)] -> GmCompiler
@@ -749,6 +753,12 @@ compileLet comp defs expr env
   = compileLet' defs env ++ comp expr env' ++ [Slide (length defs)]
     where env' = compileArgs defs env
 
+-- Mark7で追加
+compileLetB :: GmCompiler -> [(Name, CoreExpr)] -> GmCompiler
+compileLetB comp defs expr env
+  = compileLet' defs env ++ comp expr env' ++ [Pop (length defs)]
+    where env' = compileArgs defs env
+
 -- Mark3で追加
 compileLet' :: [(Name, CoreExpr)] -> GmEnvironment -> GmCode
 compileLet' [] env = []
@@ -759,6 +769,12 @@ compileLet' ((name, expr):defs) env
 compileLetrec :: GmCompiler -> [(Name, CoreExpr)] -> GmCompiler
 compileLetrec comp defs expr env
   = [Alloc (length defs)] ++ compileLetrec' defs env' ++ comp expr env' ++ [Slide (length defs)]
+    where env' = compileArgs defs env
+
+-- Mark7で追加
+compileLetrecB :: GmCompiler -> [(Name, CoreExpr)] -> GmCompiler
+compileLetrecB comp defs expr env
+  = [Alloc (length defs)] ++ compileLetrec' defs env' ++ comp expr env' ++ [Pop (length defs)]
     where env' = compileArgs defs env
 
 -- Mark3で追加
@@ -1117,6 +1133,16 @@ b_4_1' = "cons x xs = Pack{2,2} x xs ; " ++
          "             (cons n (downfrom (n-1))) ; " ++
          "main = downfrom 4"
 
+b_4_2 = "cons = Pack{2,2} ; " ++
+        "nil = Pack{1,0} ; " ++
+        "downfrom n = if (n == 0) " ++
+        "             nil " ++
+        "             (cons n (downfrom (n-1))) ; " ++
+        "length xs = case xs of " ++
+        "                   <1> -> 0; " ++
+        "                   <2> y ys -> 1 + length ys ; " ++
+        "main = length (downfrom 4)"
+
 test_program_3_8_7_1  = "f x = Pack{2,2} (case x of <1> -> 1; <2> -> 2) Pack{1,0}"
 
 test_program_3_8_7_1' = "f x = Pack{2,2} (g x) Pack{1,0} ; " ++
@@ -1131,4 +1157,4 @@ test_program_3_8_7_2' = "prefix p xs = map (f p) xs ; " ++
 ---------------------------------
 
 main :: IO()
-main = (putStrLn . runProg) b_3_2_3'
+main = (putStrLn . runProg) b_3_2_1
