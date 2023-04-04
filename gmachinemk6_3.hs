@@ -774,12 +774,12 @@ showInstruction Gt             = iStr "Gt"                            -- Mark4�
 showInstruction Ge             = iStr "Ge"                            -- Mark4で追加
 showInstruction (Cond     a b)
   = (iStr "Cond ") `iAppend`
-    (iStr "(") `iAppend`
+    (iStr "[") `iAppend`
     subFuncForCond (map showInstruction a) `iAppend`
-    (iStr ") ") `iAppend`
-    (iStr "(") `iAppend`
+    (iStr "] ") `iAppend`
+    (iStr "[") `iAppend`
     subFuncForCond (map showInstruction b) `iAppend`
-    (iStr ")")  -- Mark4で追加
+    (iStr "]")  -- Mark4で追加、Mark6で削除され、Mark7で復活
     where
       subFuncForCond [] = iNil
       subFuncForCond [x] = x
@@ -793,11 +793,16 @@ showInstruction (Casejump  cs)
   = iStr "Casejump" `iAppend` (subFuncForCasejump1 cs)  -- Mark6で追加
     where
       subFuncForCasejump1 [] = iNil
-      subFuncForCasejump1 ((n, c) : cs) = (iStr "(") `iAppend` (iNum n) `iAppend` (iStr ",") `iAppend`
-                                          (subFuncForCasejump2 c) `iAppend` (iStr ")") `iAppend`
+      subFuncForCasejump1 ((n, c) : cs) = (iStr " (") `iAppend` (iNum n) `iAppend` (iStr ", [") `iAppend`
+                                          (subFuncForCasejump2 (map showInstruction c)) `iAppend` (iStr "])") `iAppend`
                                           (subFuncForCasejump1 cs)
+      {-
       subFuncForCasejump2 [] = iNil
       subFuncForCasejump2 (x : xs) = (showInstruction x) `iAppend` (subFuncForCasejump2 xs)
+      -}
+      subFuncForCasejump2 [] = iNil
+      subFuncForCasejump2 [x] = x
+      subFuncForCasejump2 (x : xs) = x `iAppend` iStr("; ") `iAppend` subFuncForCasejump2 xs
 showInstruction (Split      n) = (iStr "Split ") `iAppend` (iNum n)                    -- Mark6で追加
 showInstruction Print          = iStr "Print"                                          -- Mark6で追加
 
