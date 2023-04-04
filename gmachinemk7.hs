@@ -686,6 +686,7 @@ compileE (EConstr t a) env  -- Mark6で追加
 compileE (EAp e1 e2) env
   = case (fst resultOfTraverse) of
     (EConstr t a) -> compileC e2 env ++ compileCForEConstrInEAp e1 (argOffset 1 env) 1 ++ snd resultOfTraverse
+    --(EConstr t a) -> compileC e2 env ++ compileCForEConstrInEAp e1 env               1 ++ snd resultOfTraverse
     _             -> compileC e2 env ++ compileC                e1 (argOffset 1 env)   ++ snd resultOfTraverse
     where resultOfTraverse = subFuncForEAp e1 True
 compileE e env = compileC e env ++ [Eval]
@@ -716,9 +717,7 @@ compileE' offset expr env
 -- Mark7で追加
 compileR' :: Int -> GmCompiler
 compileR' offset expr env
-  = [Split offset] ++ compileR expr env'
-    where d = length env
-          env' = argOffset (offset + d) env
+  = [Split offset] ++ compileR expr env
 
 -- Mark7で追加
 compileB :: GmCompiler  -- Bスキーム
@@ -881,12 +880,12 @@ showInstruction Gt             = iStr "Gt"                            -- Mark4�
 showInstruction Ge             = iStr "Ge"                            -- Mark4で追加
 showInstruction (Cond     a b)
   = (iStr "Cond ") `iAppend`
-    (iStr "(") `iAppend`
+    (iStr "[") `iAppend`
     subFuncForCond (map showInstruction a) `iAppend`
-    (iStr ") ") `iAppend`
-    (iStr "(") `iAppend`
+    (iStr "] ") `iAppend`
+    (iStr "[") `iAppend`
     subFuncForCond (map showInstruction b) `iAppend`
-    (iStr ")")  -- Mark4で追加、Mark6で削除され、Mark7で復活
+    (iStr "]")  -- Mark4で追加、Mark6で削除され、Mark7で復活
     where
       subFuncForCond [] = iNil
       subFuncForCond [x] = x
@@ -900,11 +899,16 @@ showInstruction (Casejump  cs)
   = iStr "Casejump" `iAppend` (subFuncForCasejump1 cs)  -- Mark6で追加
     where
       subFuncForCasejump1 [] = iNil
-      subFuncForCasejump1 ((n, c) : cs) = (iStr "(") `iAppend` (iNum n) `iAppend` (iStr ",") `iAppend`
-                                          (subFuncForCasejump2 c) `iAppend` (iStr ")") `iAppend`
+      subFuncForCasejump1 ((n, c) : cs) = (iStr " (") `iAppend` (iNum n) `iAppend` (iStr ", [") `iAppend`
+                                          (subFuncForCasejump2 (map showInstruction c)) `iAppend` (iStr "])") `iAppend`
                                           (subFuncForCasejump1 cs)
+      {-
       subFuncForCasejump2 [] = iNil
       subFuncForCasejump2 (x : xs) = (showInstruction x) `iAppend` (subFuncForCasejump2 xs)
+      -}
+      subFuncForCasejump2 [] = iNil
+      subFuncForCasejump2 [x] = x
+      subFuncForCasejump2 (x : xs) = x `iAppend` iStr("; ") `iAppend` subFuncForCasejump2 xs
 showInstruction (Split      n) = (iStr "Split ") `iAppend` (iNum n)                    -- Mark6で追加
 showInstruction Print          = iStr "Print"                                          -- Mark6で追加
 showInstruction (Pushbasic  n) = (iStr "Pushbasic ") `iAppend` (iNum n)                -- Mark7で追加
