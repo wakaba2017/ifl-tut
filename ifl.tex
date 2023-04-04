@@ -6135,22 +6135,15 @@ $n$の値は、コンストラクタ内のコンポーネントの数によっ�
 	式へのポインタをスタックの一番上に残します。                                                            \\
 	\\
 	\begin{tabular}{r c l}
-		$\mathcal{E} \llbracket \texttt{case} ~ e ~ \texttt{of} ~ alts \rrbracket ~ \rho$                          & $=$ & $\mathcal{E} \llbracket e \rrbracket ~ \rho ~ \texttt{++}$                        \\
-		                                                                                                           &     & $\left[\texttt{Casejump} ~ \mathcal{D} \llbracket alts \rrbracket ~ \rho \right]$ \\
-		$\mathcal{E} \llbracket \texttt{Pack\{} t \texttt{,} a \texttt{\}} ~ e_1 ~ \ldots ~ e_a \rrbracket ~ \rho$ & $=$ & $\mathcal{C} \llbracket e_a \rrbracket ~ \rho^{+0} ~ \texttt{++}$                 \\
-		                                                                                                           &     & $\ldots$                                                                          \\
-		                                                                                                           &     & $\mathcal{C} \llbracket e_1 \rrbracket ~ \rho^{+(a-1)} ~ \texttt{++}$             \\
-		                                                                                                           &     & $\left[\texttt{Pack} ~ t ~ a \right]$                                             \\
+		$\mathcal{E} \llbracket \texttt{case} ~ e ~ \texttt{of} ~ alts \rrbracket ~ \rho$                          & $=$ & $\mathcal{E} \llbracket e \rrbracket ~ \rho ~ \texttt{++} ~ \left[\texttt{Casejump} ~ \mathcal{D} \llbracket alts \rrbracket ~ \rho \right]$                                                         \\
+		$\mathcal{E} \llbracket \texttt{Pack\{} t \texttt{,} a \texttt{\}} ~ e_1 ~ \ldots ~ e_a \rrbracket ~ \rho$ & $=$ & $\mathcal{C} \llbracket e_a \rrbracket ~ \rho^{+0} ~ \texttt{++} ~ \cdots ~ \texttt{++} ~ \mathcal{C} \llbracket e_1 \rrbracket ~ \rho^{+(a-1)} ~ \texttt{++} ~ \left[\texttt{Pack} ~ t ~ a \right]$ \\
 	\end{tabular}
 	\\ \hline
 	$\mathcal{C} \llbracket e \rrbracket ~ \rho$は、環境$\rho$で$e$のグラフを構築するコードを生成し、       \\
 	それへのポインタをスタックの一番上に残します。                                                          \\
 	\\
 	\begin{tabular}{r c l}
-		$\mathcal{C} \llbracket \texttt{Pack\{} t \texttt{,} a \texttt{\}} ~ e_1 ~ \ldots ~ e_a \rrbracket ~ \rho$ & $=$ & $\mathcal{C} \llbracket e_a \rrbracket ~ \rho^{+0} ~ \texttt{++}$     \\
-		                                                                                                           &     & $\ldots$                                                              \\
-		                                                                                                           &     & $\mathcal{C} \llbracket e_1 \rrbracket ~ \rho^{+(a-1)} ~ \texttt{++}$ \\
-		                                                                                                           &     & $\left[\texttt{Pack} ~ t ~ a \right]$                                 \\
+		$\mathcal{C} \llbracket \texttt{Pack\{} t \texttt{,} a \texttt{\}} ~ e_1 ~ \ldots ~ e_a \rrbracket ~ \rho$ & $=$ & $\mathcal{C} \llbracket e_a \rrbracket ~ \rho^{+0} ~ \texttt{++} ~ \cdots ~ \texttt{++} ~ \mathcal{C} \llbracket e_1 \rrbracket ~ \rho^{+(a-1)} ~ \texttt{++} ~ \left[\texttt{Pack} ~ t ~ a \right]$ \\
 	\end{tabular}
 	\\ \hline
 	$\mathcal{D} \llbracket alts \rrbracket ~ \rho$は、\texttt{case}式の選択肢のリストをコンパイルします。  \\
@@ -6162,10 +6155,8 @@ $n$の値は、コンストラクタ内のコンポーネントの数によっ�
 	$\mathcal{A} \llbracket alt \rrbracket ~ \rho$は、\texttt{case}式の各選択肢のコードをコンパイルします。 \\
 	\\
 	\begin{tabular}{r c l}
-		$\mathcal{A} \llbracket \texttt{<} t \texttt{>} ~ x_1 ~ \ldots ~ x_n ~ \texttt{->} body \rrbracket ~ \rho$ & $=$ & $t ~ \texttt{->} ~ \left[\texttt{Split} ~ n \right] ~ \texttt{++}$                                   \\
-		                                                                                                           &     & $\mathcal{E} \llbracket body \rrbracket ~ \rho' ~ \texttt{++}$                                       \\
-		                                                                                                           &     & $\left[\texttt{Slide} ~ n \right]$                                                                   \\
-		                                                                                                           &     & ここで $\rho' = \rho^{+n} \left[x_1 ~ \mapsto ~ 0, ~ \ldots , ~ x_n ~ \mapsto ~ n - 1\right]$ です。 \\
+		$\mathcal{A} \llbracket \texttt{<} t \texttt{>} ~ x_1 ~ \ldots ~ x_n ~ \texttt{->} ~ body \rrbracket ~ \rho$ & $=$ & $t ~ \texttt{->} ~ \left[\texttt{Split} ~ n \right] ~ \texttt{++} ~ \mathcal{E} \llbracket body \rrbracket ~ \rho' ~ \texttt{++} ~ \left[\texttt{Slide} ~ n \right]$ \\
+		                                                                                                             &     & ここで $\rho' = \rho^{+n} \left[x_1 ~ \mapsto ~ 0, ~ \ldots , ~ x_n ~ \mapsto ~ n - 1\right]$ です。                                                                 \\
 	\end{tabular}
 	\\ \hline
 \end{tabular}
@@ -6691,7 +6682,7 @@ Mark 6マシンで行ったように、このコードを手作業でコンパ�
 		                                                                         &     & 他の比較式についても同様。                                                                                                                                                                   \\
 		$\mathcal{B} \llbracket \texttt{negate} ~ e \rrbracket ~ \rho$           & $=$ & $\mathcal{B} \llbracket e \rrbracket ~ \rho ~ \texttt{++} ~ \left[\texttt{Neg} \right]$                                                                                                      \\
 		$\mathcal{B} \llbracket \texttt{if} ~ e_0 ~ e_1 ~ e_2 \rrbracket ~ \rho$ & $=$ & $\mathcal{E} \llbracket e_0 \rrbracket ~ \rho ~ \texttt{++} ~ \left[\texttt{Cond} ~ (\mathcal{B} \llbracket e_1 \rrbracket ~ \rho) ~ (\mathcal{B} \llbracket e_2 \rrbracket ~ \rho) \right]$ \\
-		$\mathcal{B} \llbracket e \rrbracket ~ \rho$                             & $=$ & $\mathcal{C} \llbracket e \rrbracket ~ \rho ~ \texttt{++} ~ \left[\texttt{Get} \right]$                                                                                                      \\
+		$\mathcal{B} \llbracket e \rrbracket ~ \rho$                             & $=$ & $\mathcal{E} \llbracket e \rrbracket ~ \rho ~ \texttt{++} ~ \left[\texttt{Get} \right]$                                                                                                      \\
 		                                                                         &     & デフォルトケース                                                                                                                                                                             \\ \hline
 	\end{tabular}
 \end{tabular}
@@ -6746,9 +6737,9 @@ $\mathcal{B}$-strictなコンテキストを生成します。
 		                                                                                                           &     & $\mathcal{E} \llbracket e \rrbracket ~ \rho' ~ \texttt{++} ~ \left[\texttt{Slide} ~ n\right]$                                                                                                \\
 		                                                                                                           &     & ここで $\rho' = \rho^{+n} \left[x_1 ~ \mapsto ~ n - 1, ~ \ldots , ~ x_n ~ \mapsto ~ 0\right]$ です。                                                                                         \\
 		$\mathcal{E} \llbracket \texttt{case} ~ e ~ \texttt{of} ~ alts \rrbracket ~ \rho$                          & $=$ & $\mathcal{E} \llbracket e \rrbracket ~ \rho ~ \texttt{++} ~ \left[\texttt{Casejump} ~ \mathcal{D_E} \llbracket alts \rrbracket ~ \rho \right]$                                               \\
-		$\mathcal{E} \llbracket \texttt{Pack\{} t \texttt{,} a \texttt{\}} ~ e_1 ~ \ldots ~ e_a \rrbracket ~ \rho$ & $=$ & $\mathcal{C} \llbracket e_a \rrbracket ~ \rho^{+0} ~ \texttt{++}$                                                                                                                            \\
+		$\mathcal{E} \llbracket \texttt{Pack\{} t \texttt{,} a \texttt{\}} ~ e_1 ~ \ldots ~ e_a \rrbracket ~ \rho$ & $=$ & $\mathcal{C} \llbracket e_a \rrbracket ~ \rho ~ \texttt{++}$                                                                                                                                 \\
 		                                                                                                           &     & $\ldots$                                                                                                                                                                                     \\
-		                                                                                                           &     & $\mathcal{C} \llbracket e_1 \rrbracket ~ \rho^{+(a-1)} ~ \texttt{++}$                                                                                                                        \\
+		                                                                                                           &     & $\mathcal{C} \llbracket e_1 \rrbracket ~ \rho ~ \texttt{++}$                                                                                                                                 \\
 		                                                                                                           &     & $\left[\texttt{Pack} ~ t ~ a \right]$                                                                                                                                                        \\
 		$\mathcal{E} \llbracket e_0 ~ \texttt{+} ~ e_1 \rrbracket ~ \rho$                                          & $=$ & $\mathcal{B} \llbracket e_0 ~ \texttt{+} ~ e_1 \rrbracket ~ \rho ~ \texttt{++} ~ \left[\texttt{Mkint} \right]$                                                                               \\
 		                                                                                                           &     & 他の算術式についても同様。                                                                                                                                                                   \\
@@ -6828,8 +6819,8 @@ $\mathcal{R}$スキームの新しいコンパイルスキームを図3.20に示
 	$\mathcal{A_R} \llbracket alt \rrbracket ~ \rho ~ d$は、\texttt{case}式の各選択肢のコードをコンパイルします。 \\
 	\\
 	\begin{tabular}{r c l}
-		$\mathcal{A_R} \llbracket \texttt{<} t \texttt{>} ~ x_1 ~ \ldots ~ x_n ~ \texttt{->} body \rrbracket ~ \rho ~ d$ & $=$ & $t ~ \texttt{->} ~ \left[\texttt{Split} ~ n \right] ~ \texttt{++} ~ \mathcal{R} \llbracket body \rrbracket ~ \rho'  ~ (n + d)$ \\
-		                                                                                                                 &     & ここで $\rho' = \rho^{+n} \left[x_1 ~ \mapsto ~ 0, ~ \ldots , ~ x_n ~ \mapsto ~ n - 1\right]$ です。                           \\
+		$\mathcal{A_R} \llbracket \texttt{<} t \texttt{>} ~ x_1 ~ \ldots ~ x_n ~ \texttt{->} ~ body \rrbracket ~ \rho ~ d$ & $=$ & $t ~ \texttt{->} ~ \left[\texttt{Split} ~ n \right] ~ \texttt{++} ~ \mathcal{R} \llbracket body \rrbracket ~ \rho'  ~ (n + d)$ \\
+		                                                                                                                   &     & ここで $\rho' = \rho^{+n} \left[x_1 ~ \mapsto ~ 0, ~ \ldots , ~ x_n ~ \mapsto ~ n - 1\right]$ です。                           \\
 	\end{tabular}
 	\\ \hline
 \end{tabular}
@@ -6964,7 +6955,7 @@ Gマシンはこれを行うためにかなりの数の(単純な)命令を必�
 
 私たちは、\texttt{c1}と\texttt{c2}という2つの補助関数を発明しました。
 この定義は明らかに古いものと同等ですが、\textbf{\texttt{E1}がどれほど大きく複雑であっても、\texttt{f}の縮小中に行われる唯一の作業は、
-\texttt{(c1 x y)}のグラフを作成することです。}
+	\texttt{(c1 x y)}のグラフを作成することです。}
 
 さらに良いことに、Gマシンの実装には、自動的に得られるさらなる利点があります。
 最初の定義では、\texttt{E1}は$\mathcal{C}$スキームによってコンパイルされます。
@@ -7181,9 +7172,9 @@ TIMプログラムがどのように機能するかの例を示します。
 次に、代替アプローチに直面します。
 
 \begin{itemize}
-  \item 環境に対処するためのメカニズムをマシンに追加します。
-  \item ローカル関数定義がないようにプログラムを変換します。
-  代わりに、すべての関数がスーパー コンビネータとして定義されます。
+	\item 環境に対処するためのメカニズムをマシンに追加します。
+	\item ローカル関数定義がないようにプログラムを変換します。
+	      代わりに、すべての関数がスーパー コンビネータとして定義されます。
 \end{itemize}
 
 この本では、常に2番目のアプローチが取られると想定してきました。
