@@ -7068,7 +7068,105 @@ TIMプログラムがどのように機能するかの例を示します。
   Take 3
 \end{verbatim}
 
+マシンの状態は次のようになります。
+
+\begin{verbatim}
+        |        |       |
+        |----------------|
+                                        ------------------
+  Frame ptr ------------------------> f | f-code | f-frm |
+                                        |----------------|
+                                      g | g-code | g-frm |
+                                        |----------------|
+                                      x | x-code | x-frm |
+                                        ------------------
+\end{verbatim}
+
+次に、\texttt{f}の引数を準備する必要があります。
+\texttt{(g x x)}という1つのみがあり、そのクロージャをスタックにプッシュします。
+クロージャのフレームポインタは現在のフレームポインタレジスタにすぎないため、命令はコードラベルを提供するだけで済みます。
+
+\begin{verbatim}
+  Push (Label "c1")
+\end{verbatim}
+
+最後に、\texttt{f}にジャンプします。
+\texttt{f}はグローバルなスーパーコンビネータではなく、\texttt{compose}の引数であるため、
+\texttt{f}は、現在のフレームのクロージャによって表されます。
+私たちがしなければならないことは、クロージャをフェッチし、そのフレームポインタをフレームポインタレジスタにロードし、
+そのコードポインタをプログラムカウンタにロードすることです。
+これは次の命令によって行われます。
+
+\begin{verbatim}
+  Enter (Arg 1) -- f is argument 1
+\end{verbatim}
+
+この命令の後、マシンの状態は次のようになります。
+
+\begin{verbatim}
+      |       |       |
+      |---------------|               -----------------
+      | c1    |   ----|-----------> f | f-code| f-frm |
+      |---------------|               |---------------|
+                                    g | g-code| g-frm |
+Frame ptr:   f-frm                    |---------------|
+Program ctr: f-code                 x | x-code| x-frm |
+                                      -----------------
+\end{verbatim}
+
+それだ！
+\texttt{compose2}の本体は、次の3つの命令だけで構成されています。
+
+\begin{verbatim}
+  compose2:   Take 3                -- 3 arguments
+              Push (Label "c1")     -- closure for (g x x)
+              Enter (Arg 1)         -- f is argument 1
+\end{verbatim}
+
+ただし、ラベル\texttt{c1}を処理する必要があります。
+\texttt{(g x x)}のクロージャーが必要な場合は、\texttt{Enter}命令で入力されるため、プログラムカウンタは\texttt{c1}を指し、
+\texttt{f}、\texttt{g}、および\texttt{x}を含む元のフレームへのフレームポインタ。
+この時点で必要なことは、\texttt{g}の引数、つまり\texttt{x}を準備し、\texttt{g}を入力することだけです。
+
+\begin{verbatim}
+  c1:         Push (Arg 3)          -- x is argument 3
+              Push (Arg 3)          -- x again
+              Enter (Arg 2)         -- g is argument 2
+\end{verbatim}
+
+\texttt{Push (Arg 3)}命令は、現在のフレームから\texttt{x}のクロージャのコピーをフェッチし、それをスタックにプッシュします。
+次に、\texttt{Enter (Arg 2)}命令が、現在スタックにある引数
+\footnote{\texttt{(g x x)}クロージャに入ったときにスタックが空でなかった場合、2つ以上になる可能性があります。}
+に\texttt{g}を適用します。
+
 \subsubsection{状態遷移規則によるマシンの定義}
+
+3つの命令マシンと呼ばれる理由がわかります。
+\texttt{Take}、\texttt{Push}、\texttt{Enter}の3つの主要な命令があります。
+いくつかの点で、3つの命令しかないと主張するのはかなり楽観的です。
+なぜなら、\texttt{Push}と\texttt{Enter}には両方ともいくつかの「アドレス指定モード」があり、
+さらに、やがてかなりの数の新しい命令を発明する必要があるからです。
+それにしても素敵な名前ですね。
+\vskip\baselineskip
+
+いつものように、状態遷移規則を使用して、各命令の正確な作用を表現します。
+まず、マシンの状態を定義する必要があります。
+これは、
+
+\[
+(instructions, ~ frame pointer, ~ stack, ~ heap, ~ code store)
+\]
+
+または略して$(i, ~ f, ~ s, ~ h, ~ c)$の五つ組です。
+コード ストアは、まだ説明されていない唯一の項目です。
+コードのコレクションが含まれており、それぞれにラベルが付いています。
+実際には、コードストアにはコンパイル済みのスーパーコンビネータの定義が含まれており、
+それぞれにスーパーコンビネータの名前が付けられていますが、
+原則として、有用であることが判明した場合は、他のラベル付けされたコードフラグメントも含めることができます。
+\vskip\baselineskip
+
+次に、各命令の遷移規則を作成します。
+
 \subsubsection{コンパイル}
 
 \subsubsection{更新}
