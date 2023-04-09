@@ -955,8 +955,8 @@ showDumpItem :: GmDumpItem -> Iseq
 showDumpItem (code, stack, vstack)  -- Mark7で変更
   = iConcat [iStr "<",
              shortShowInstructions 3 code, iStr ", ",
-             shortShowVStack vstack, iStr ", ",
-             shortShowStack stack, iStr ">"]
+             shortShowStack stack, iStr ", ",
+             shortShowVStack vstack, iStr ">"]
 
 -- Mark7で追加
 showVStack :: GmState -> Iseq
