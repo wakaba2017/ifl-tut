@@ -390,6 +390,7 @@ Mirandaの\texttt{where}句と同様に、ローカル定義は、
 \vskip\baselineskip
 \texttt{case}式は、多方向ジャンプのように、非常に単純な操作上の解釈を持っています。
 分析する式を評価し、それが構築されているコンストラクタのタグを取得して、適切な選択肢を評価します。
+\newpage
 
 \subsection{コア言語の構文} \label{sec_1_2}
 
@@ -461,6 +462,7 @@ Mirandaの\texttt{where}句と同様に、ローカル定義は、
 		数値                 & $num$     & $\rightarrow$ & $digit_1 \ldots digit_n$                                                                                                                                         & $n \geq 1$              \\ \hline
 	\end{tabular}
 \end{center}
+\newpage
 
 \subsection{コア言語のデータ型} \label{sec_1_3}
 
@@ -506,8 +508,10 @@ data Expr a
 \begin{verbatim}
 type CoreExpr = Expr Name
 \end{verbatim}
+\newpage
 
 \subsection{A small standard prelude} \label{sec_1_4}
+\newpage
 
 \subsection{コア言語用のプリティプリンタ} \label{sec_1_5}
 
@@ -945,6 +949,7 @@ pprint :: CoreProgram -> String
 	      実際、適切な一般化を行うことは、多くの場合、プログラムを作成する際の主要な創造的ステップです。
 	      ただし、この本には一般化の例がたくさんあり、アイデアを伝えるのに役立つことを願っています。
 \end{itemize}
+\newpage
 
 \subsection{コア言語のパーサ} \label{sec_1_6}
 
@@ -1890,6 +1895,7 @@ CAFの興味深い点は、スーパーコンビネータ自体がredexである
 これは、各実装で実際に発生することがわかります。
 \vskip\baselineskip
 これでグラフ簡約のレビューは終わりです。
+\newpage
 
 \subsection{状態遷移システム}
 
@@ -2004,6 +2010,7 @@ multFinal state = m == 0 && d == 0
            (2,1,2,2),(2,1,1,3),(2,1,0,4),
            (2,0,2,4),(2,0,1,5),(2,0,0,6)]
 \end{verbatim}
+\newpage
 
 \subsection{Mark 1: 最小限のテンプレートインスタンス化グラフ簡約器}
 
@@ -2639,6 +2646,7 @@ showStats (stack, dump, heap, globals, stats)
 	      エラーの原因となった状態が出力されますか？
 	      そうでない場合は、なぜですか？)
 \end{description}
+\newpage
 
 \subsection{Mark 2: \texttt{let(rec)} 式}
 
@@ -2703,6 +2711,7 @@ Mirandaでこれを試してみると、すべてが完全に機能します。
 	      このプログラムを実行するとどうなりますか？
 	      この問題は、Mirandaのような強く型付けされた言語で発生する可能性がありますか？
 \end{description}
+\newpage
 
 \subsection{Mark 3: 更新機能の追加}
 
@@ -2810,6 +2819,7 @@ instantiateAndUpdate (EAp e1 e2) upd_addr heap env
 	      \texttt{scStep}自体から更新コードを削除します。
 	      削減の数と割り当てられたヒープノードの数に対するこの変更の影響を測定します。
 \end{description}
+\newpage
 
 \subsection{Mark 4: 算術演算機能の追加}
 
@@ -2869,6 +2879,7 @@ primitives = [ ("negate", Neg),
 さらにプリミティブを追加するには、\texttt{primitive}型にコンストラクターを追加し、\texttt{primitives}関連付けリストに要素を追加します。
 \vskip\baselineskip
 次に、\texttt{allocateSc}を定義したのと同じように、\texttt{allocatePrim}を定義できます。
+\newpage
 
 \subsection{Mark 5: 構造化データ型の追加}
 
@@ -3215,6 +3226,7 @@ main = fst (snd (fst (MkPair (MkPair 1 (MkPair 2 3)) 4)))
 \begin{description}
 	\item[演習 2.26] これらの変更を実装し、数値のリストを返すプログラムを作成して実装をテストします。
 \end{description}
+\newpage
 
 \subsection{代替実装 \dag}
 
@@ -3260,6 +3272,7 @@ type TiDump = Stack Num
 \end{description}
 
 \subsubsection{データ値の代替表演}
+\newpage
 
 \subsection{ガベージコレクション}
 
@@ -3720,6 +3733,7 @@ Gマシンの最初のバージョン (これはlazyではありません) で�
 テンプレートインスタンス化マシンは\texttt{x}を2回評価します。
 2 回目の場合はもちろん、すでに評価されていることがわかります。
 コンパイルされた実装は、コンパイル時に\texttt{x}が既に評価されていることを発見し、評価ステップを省略できます。
+\newpage
 
 \subsection{テンプレートを構築するためのコード シーケンス}
 
@@ -3921,6 +3935,7 @@ redexを新しくインスタンス化された本体に置き換え、\texttt{S
   Slide n+1
   Unwind
 \end{verbatim}
+\newpage
 
 \subsection{Mark 1: 最小限のGマシン}
 
@@ -4679,6 +4694,7 @@ Mark 1 Gマシン については、このケースを無視します。
 	      グローバル コンポーネントのアクセス関数を定義して、putGlobals と呼ぶ必要があります。
 
 \end{description}
+\newpage
 
 \subsection{Mark 2: 遅延評価させる} \label{sec:gmachinelazy}
 
@@ -4831,6 +4847,7 @@ Mark 1 マシンでは、各スーパーコンビネータのコードは [\text
 	      Mark1マシンで取得した値と異なるのはなぜですか?
 	      マシンのステップ数を比較するのは公正ですか?
 \end{description}
+\newpage
 
 \subsection{Mark 3: let(rec) 式}
 
@@ -4891,7 +4908,7 @@ Mark1マシンに関して:
 
 \vskip\baselineskip
 
-\begin{tabular} {|c|l r r l l l|} \hline
+\begin{tabular} {|c|l r r l l|} \hline
 	(3.19) &                   & [\texttt{Unwind}] & $a_0 : \ldots : a_n : s$         & $h\left[\begin{array}{l}
 				a_0 : \texttt{NGlobal} ~ \textit{n} ~ \textit{c} \\
 				a_1 : \texttt{NAp} ~ a_0 ~ a_1'                  \\
@@ -5151,6 +5168,7 @@ Mark3 G マシンの場合、ヒープ内に $n$ 個の場所を作成する \te
 	\item[演習 3.20] 言語に \texttt{letrec} 構文がない場合、不動点コンビネータ \texttt{Y} をどのように定義しますか?
 	      この定義は、例で使用した定義とどう違うのでしょうか?
 \end{description}
+\newpage
 
 \subsection{Mark 4: プリミティブの追加} \label{sec:gmachineadprim}
 
@@ -5623,6 +5641,7 @@ Mark3マシンからのすべての命令を再利用します。
 \begin{description}
 	\item[演習 3.27] 新しい命令とコンパイラが機能することを確認するために、Appendix B のどのテストプログラムを使用しますか?
 \end{description}
+\newpage
 
 \subsection{Mark 5: 算術演算のより良い処理に向けて}
 
@@ -5746,35 +5765,26 @@ $\mathcal{R}$スキームから$\mathcal{E}$スキームの関数を呼び出す
 	$\mathcal{E} \llbracket e \rrbracket ~ \rho$は，環境$\rho$において式$e$をWHNFに評価するコードをコンパイルし、                                                              \\
 	スタックの先頭に式へのポインタを残します。                                                                                                                                 \\
 	\begin{tabular}{r c l}
-		$\mathcal{E} \llbracket i \rrbracket ~ \rho$                             & $=$ & $\left[\texttt{Pushint} ~ i \right]$                                                                                            \\
-		\multicolumn{3}{l}{$\mathcal{E} \llbracket \texttt{let} ~ x_1 ~ \texttt{=} ~ e_1\texttt{;} ~  \ldots \texttt{;} ~ x_n ~ \texttt{=} ~ e_n ~ \texttt{in} ~ e \rrbracket ~ \rho$}                                   \\
-		                                                                         & $=$ & $\mathcal{C} \llbracket e_1 \rrbracket ~ \rho^{+0} ~ \texttt{++}$                                                               \\
-		                                                                         &     & $\ldots$                                                                                                                        \\
-		                                                                         &     & $\mathcal{C} \llbracket e_n \rrbracket ~ \rho^{+(n - 1)} ~ \texttt{++}$                                                         \\
-		                                                                         &     & $\mathcal{E} \llbracket e \rrbracket ~ \rho' ~ \texttt{++}$                                                                     \\
-		                                                                         &     & $\left[\texttt{Slide} ~ n\right]$                                                                                               \\
-		                                                                         &     & ここで $\rho' = \rho^{+n} \left[x_1 ~ \mapsto ~ n - 1, ~ \ldots , ~ x_n ~ \mapsto ~ 0\right]$ です。                            \\
-		\multicolumn{3}{l}{$\mathcal{E} \llbracket \texttt{letrec} ~ x_1 ~ \texttt{=} ~ e_1\texttt{;} ~  \ldots \texttt{;} ~ x_n ~ \texttt{=} ~ e_n ~ \texttt{in} ~ e \rrbracket ~ \rho$}                                \\
-		                                                                         & $=$ & $\left[\texttt{Alloc} ~ n\right] ~ \texttt{++}$                                                                                 \\
-		                                                                         &     & $\mathcal{C} \llbracket e_1 \rrbracket ~ \rho' ~ \texttt{++}$                                                                   \\
-		                                                                         &     & $\left[\texttt{Update} ~ n - 1\right] ~ \texttt{++}$                                                                            \\
-		                                                                         &     & $\ldots$                                                                                                                        \\
-		                                                                         &     & $\mathcal{C} \llbracket e_n \rrbracket ~ \rho' ~ \texttt{++}$                                                                   \\
-		                                                                         &     & $\left[\texttt{Update} ~ 0\right] ~ \texttt{++}$                                                                                \\
-		                                                                         &     & $\mathcal{E} \llbracket e \rrbracket ~ \rho' ~ \texttt{++}$                                                                     \\
-		                                                                         &     & $\left[\texttt{Slide} ~ n\right]$                                                                                               \\
-		                                                                         &     & ここで $\rho' = \rho^{+n} \left[x_1 ~ \mapsto ~ n - 1, ~ \ldots , ~ x_n ~ \mapsto ~ 0\right]$ です。                            \\
-		$\mathcal{E} \llbracket e_0 ~ \texttt{+} ~ e_1 \rrbracket ~ \rho$        & $=$ & $\mathcal{E} \llbracket e_1 \rrbracket ~ \rho ~ \texttt{++}$                                                                    \\
-		                                                                         &     & $\mathcal{E} \llbracket e_0 \rrbracket ~ \rho^{+1} ~ \texttt{++}$                                                               \\
-		                                                                         &     & $\left[\texttt{Add} \right]$                                                                                                    \\
-		                                                                         &     & 他の算術式や比較式についても同様。                                                                                              \\
-		$\mathcal{E} \llbracket \texttt{negate} ~ e \rrbracket ~ \rho$           & $=$ & $\mathcal{E} \llbracket e \rrbracket ~ \rho ~ \texttt{++}$                                                                      \\
-		                                                                         &     & $\left[\texttt{Neg} \right]$                                                                                                    \\
-		$\mathcal{E} \llbracket \texttt{if} ~ e_0 ~ e_1 ~ e_2 \rrbracket ~ \rho$ & $=$ & $\mathcal{E} \llbracket e_0 \rrbracket ~ \rho ~ \texttt{++}$                                                                    \\
-		                                                                         &     & $\left[\texttt{Cond} ~ (\mathcal{E} \llbracket e_1 \rrbracket ~ \rho) ~ (\mathcal{E} \llbracket e_2 \rrbracket ~ \rho) \right]$ \\
-		$\mathcal{E} \llbracket e \rrbracket ~ \rho$                             & $=$ & $\mathcal{C} \llbracket e \rrbracket ~ \rho ~ \texttt{++}$                                                                      \\
-		                                                                         &     & $\left[\texttt{Eval} \right]$                                                                                                   \\
-		                                                                         &     & デフォルトケース                                                                                                                \\ \hline
+		$\mathcal{E} \llbracket i \rrbracket ~ \rho$                             & $=$ & $\left[\texttt{Pushint} ~ i \right]$                                                                                                                                                         \\
+		\multicolumn{3}{l}{$\mathcal{E} \llbracket \texttt{let} ~ x_1 ~ \texttt{=} ~ e_1\texttt{;} ~  \ldots \texttt{;} ~ x_n ~ \texttt{=} ~ e_n ~ \texttt{in} ~ e \rrbracket ~ \rho$}                                                                                                \\
+		                                                                         & $=$ & $\mathcal{C} \llbracket e_1 \rrbracket ~ \rho^{+0} ~ \texttt{++}$                                                                                                                            \\
+		                                                                         &     & $\ldots$                                                                                                                                                                                     \\
+		                                                                         &     & $\mathcal{C} \llbracket e_n \rrbracket ~ \rho^{+(n - 1)} ~ \texttt{++}$                                                                                                                      \\
+		                                                                         &     & $\mathcal{E} \llbracket e \rrbracket ~ \rho' ~ \texttt{++} ~ \left[\texttt{Slide} ~ n\right]$                                                                                                \\
+		                                                                         &     & ここで $\rho' = \rho^{+n} \left[x_1 ~ \mapsto ~ n - 1, ~ \ldots , ~ x_n ~ \mapsto ~ 0\right]$ です。                                                                                         \\
+		\multicolumn{3}{l}{$\mathcal{E} \llbracket \texttt{letrec} ~ x_1 ~ \texttt{=} ~ e_1\texttt{;} ~  \ldots \texttt{;} ~ x_n ~ \texttt{=} ~ e_n ~ \texttt{in} ~ e \rrbracket ~ \rho$}                                                                                             \\
+		                                                                         & $=$ & $\left[\texttt{Alloc} ~ n\right] ~ \texttt{++}$                                                                                                                                              \\
+		                                                                         &     & $\mathcal{C} \llbracket e_1 \rrbracket ~ \rho' ~ \texttt{++} ~ \left[\texttt{Update} ~ n - 1\right] ~ \texttt{++}$                                                                           \\
+		                                                                         &     & $\ldots$                                                                                                                                                                                     \\
+		                                                                         &     & $\mathcal{C} \llbracket e_n \rrbracket ~ \rho' ~ \texttt{++} ~ \left[\texttt{Update} ~ 0\right] ~ \texttt{++}$                                                                               \\
+		                                                                         &     & $\mathcal{E} \llbracket e \rrbracket ~ \rho' ~ \texttt{++} ~ \left[\texttt{Slide} ~ n\right]$                                                                                                \\
+		                                                                         &     & ここで $\rho' = \rho^{+n} \left[x_1 ~ \mapsto ~ n - 1, ~ \ldots , ~ x_n ~ \mapsto ~ 0\right]$ です。                                                                                         \\
+		$\mathcal{E} \llbracket e_0 ~ \texttt{+} ~ e_1 \rrbracket ~ \rho$        & $=$ & $\mathcal{E} \llbracket e_1 \rrbracket ~ \rho ~ \texttt{++} ~ \mathcal{E} \llbracket e_0 \rrbracket ~ \rho^{+1} ~ \texttt{++} ~ \left[\texttt{Add} \right]$                                  \\
+		                                                                         &     & 他の算術式や比較式についても同様。                                                                                                                                                           \\
+		$\mathcal{E} \llbracket \texttt{negate} ~ e \rrbracket ~ \rho$           & $=$ & $\mathcal{E} \llbracket e \rrbracket ~ \rho ~ \texttt{++} ~ \left[\texttt{Neg} \right]$                                                                                                      \\
+		$\mathcal{E} \llbracket \texttt{if} ~ e_0 ~ e_1 ~ e_2 \rrbracket ~ \rho$ & $=$ & $\mathcal{E} \llbracket e_0 \rrbracket ~ \rho ~ \texttt{++} ~ \left[\texttt{Cond} ~ (\mathcal{E} \llbracket e_1 \rrbracket ~ \rho) ~ (\mathcal{E} \llbracket e_2 \rrbracket ~ \rho) \right]$ \\
+		$\mathcal{E} \llbracket e \rrbracket ~ \rho$                             & $=$ & $\mathcal{C} \llbracket e \rrbracket ~ \rho ~ \texttt{++} ~ \left[\texttt{Eval} \right]$                                                                                                     \\
+		                                                                         &     & デフォルトケース                                                                                                                                                                             \\ \hline
 	\end{tabular}
 \end{tabular}
 \vskip\baselineskip
@@ -5826,6 +5836,7 @@ Strictコンテキストを式の属性と見なすと、部分式はその親�
 したがって、妥協点を受け入れるしかありません。
 本書では、限られた式の集合である算術式だけを特別な方法で扱いました。
 この解析をより一般的な式に拡張する研究が盛んに行われています [Burn 1991]。
+\newpage
 
 \subsection{Mark 6: データ構造の追加}
 
@@ -6335,6 +6346,7 @@ Mark4マシン用に開発したコードの一部を再利用することで、
 \begin{description}
 	\item[演習 3.38] \texttt{Pushglobal}命令の\texttt{pushglobal}関数に拡張機能を実装し、コンパイラを変更します。
 \end{description}
+\newpage
 
 \subsection{Mark 7: さらなる改善}
 
@@ -6880,6 +6892,7 @@ Mark7マシンについて特筆すべき点は、現在のVスタックをダ�
 	      なぜ新しい命令が元のシーケンスより好ましいのでしょうか？
 	      (ヒント：いくつかのサンプルプログラムからの統計値を利用すること)
 \end{description}
+\newpage
 
 \subsection{結論}
 
@@ -6954,7 +6967,7 @@ Gマシンはこれを行うためにかなりの数の(単純な)命令を必�
 \end{verbatim}
 
 私たちは、\texttt{c1}と\texttt{c2}という2つの補助関数を発明しました。
-この定義は明らかに古いものと同等ですが、\textbf{\texttt{E1}がどれほど大きく複雑であっても、\texttt{f}の縮小中に行われる唯一の作業は、
+この定義は明らかに古いものと同等ですが、\textbf{\texttt{E1}がどれほど大きく複雑であっても、\texttt{f}の簡約中に行われる唯一の作業は、
 	\texttt{(c1 x y)}のグラフを作成することです。}
 
 さらに良いことに、Gマシンの実装には、自動的に得られるさらなる利点があります。
@@ -7154,7 +7167,7 @@ Program ctr: f-code                 x | x-code| x-frm |
 これは、
 
 \[
-(instructions, ~ frame pointer, ~ stack, ~ heap, ~ code store)
+	(instructions, ~ frame pointer, ~ stack, ~ heap, ~ code store)
 \]
 
 または略して$(i, ~ f, ~ s, ~ h, ~ c)$の五つ組です。
@@ -7179,6 +7192,7 @@ Program ctr: f-code                 x | x-code| x-frm |
 更新しないバージョンの優雅さと速度(複製はさておき)の一部を失う複雑さを追加します。
 
 後でセクション4.5で更新に戻りますが、それまでは非更新バージョンを実装するだけで十分です。
+\newpage
 
 \subsection{Mark 1: 最小限のTIM}
 \subsubsection{Overall structure}
@@ -7187,17 +7201,20 @@ Program ctr: f-code                 x | x-code| x-frm |
 \subsubsection{The evaluator}
 \subsubsection{Printing the results}
 \subsubsection{Garbage collection \dag}
+\newpage
 
 \subsection{Mark 2: 算術演算の追加}
 \subsubsection{Overview: How arithmetic works}
 \subsubsection{Adding simple arithmetic to the implementation}
 \subsubsection{Compilation schemes for arithmetic}
+\newpage
 
 \subsection{Mark 3: \texttt{let(rec)}式}
 \subsubsection{\texttt{let} expressions}
 \subsubsection{\texttt{letrec} expressions}
 \subsubsection{Reusing frame slots \dag}
 \subsubsection{Garbage collection \dag}
+\newpage
 
 \subsection{Mark 4: 更新}
 \subsubsection{The basic technology}
@@ -7207,6 +7224,7 @@ Program ctr: f-code                 x | x-code| x-frm |
 \subsubsection{Updating shared \texttt{let(rec)}-bound variables}
 \subsubsection{Eliminating indirection chains}
 \subsubsection{Updating partial applications}
+\newpage
 
 \subsection{Mark 5: 構造化データ}
 \subsubsection{The general approach}
@@ -7214,10 +7232,12 @@ Program ctr: f-code                 x | x-code| x-frm |
 \subsubsection{Trying it out}
 \subsubsection{Printing a list}
 \subsubsection{Using data structures directly \dag}
+\newpage
 
 \subsection{Mark 6: Constant applicative forms and the code store \dag}
 \subsubsection{Implementing CAFs}
 \subsubsection{Modeling code store more faithfully}
+\newpage
 
 \subsection{まとめ}
 \newpage
@@ -7241,24 +7261,29 @@ Program ctr: f-code                 x | x-code| x-frm |
 
 \subsubsection{Parallel functional programming}
 \subsubsection{Parallel graph reduction}
+\newpage
 
 \subsection{Mark 1: A minimal parallel G-machine}
 \subsubsection{Data type definitions}
 \subsubsection{The evaluator}
 \subsubsection{Compiling a program}
 \subsubsection{Printing the results}
+\newpage
 
 \subsection{Mark 2: The evaluate-and-die model}
 \subsubsection{The node data structure}
 \subsubsection{The instruction set}
+\newpage
 
 \subsection{Mark 3: A realistic parallel G-machine}
 \subsubsection{Scheduling policy}
 \subsubsection{Conservative and speculative parallelism}
+\newpage
 
 \subsection{Mark 4: A better way to handle blocking}
 \subsubsection{Data structures}
 \subsubsection{Locking and unlocking}
+\newpage
 
 \subsection{Conclusions}
 \newpage
@@ -7281,6 +7306,7 @@ Program ctr: f-code                 x | x-code| x-frm |
 ここでも、関数型言語のこの望ましい最適化は、プログラム変換を使用して実現されます。
 
 \subsection{Introduction}
+\newpage
 
 \subsection{Improving the \texttt{expr} data type}
 
@@ -7289,6 +7315,7 @@ Program ctr: f-code                 x | x-code| x-frm |
   import Utils
   import Language
 \end{verbatim}
+\newpage
 
 \subsection{Mark 1: A simple lambda lifter}
 \subsubsection{Implementing a simple lambda lifter}
@@ -7296,16 +7323,19 @@ Program ctr: f-code                 x | x-code| x-frm |
 \subsubsection{Generating supercombinators}
 \subsubsection{Making all the variables unique}
 \subsubsection{Collecting supercombinators}
+\newpage
 
 \subsection{Mark 2: Improving the simple lambda lifter}
 \subsubsection{Simple extensions}
 \subsubsection{Eliminating redundant supercombinators}
 \subsubsection{Eliminating redundant local definitions}
+\newpage
 
 \subsection{Mark 3: Johnsson-style lambda lifter}
 \subsubsection{implementation}
 \subsubsection{Abstracting free variables in functions}
 \subsubsection{A tricky point \dag}
+\newpage
 
 \subsection{Mark 4: A separate full laziness pass}
 \subsubsection{A review of full laziness}
@@ -7317,16 +7347,19 @@ Program ctr: f-code                 x | x-code| x-frm |
 \subsubsection{Identifying MFEs}
 \subsubsection{Renaming variables}
 \subsubsection{Floating \texttt{let(rec)} expressions}
+\newpage
 
 \subsection{Mark 5: Improvements to full laziness}
 \subsubsection{Adding \texttt{case} expressions}
 \subsubsection{Eliminating redundant supercombinators}
 \subsubsection{Avoiding redundant full laziness}
+\newpage
 
 \subsection{Mark 6: Dependency analysis \dag}
 \subsubsection{Strongly connected components}
 \subsubsection{Implementing a strongly connected component algorithm}
 \subsubsection{A dependency analysis}
+\newpage
 
 \subsection{Conclusions}
 \newpage
@@ -7358,16 +7391,20 @@ Program ctr: f-code                 x | x-code| x-frm |
 
 \subsubsection{Specification}
 \subsubsection{Representation}
+\newpage
 
 \subsection{The association list type}
 
 \subsection{Generating unique names}
 \subsubsection{Representation}
+\newpage
 
 \subsection{Sets}
 \subsubsection{Representation}
+\newpage
 
 \subsection{Other useful function definitions}
+\newpage
 
 \section{B コア言語プログラムの例}
 
@@ -7426,6 +7463,7 @@ headとtailの関数 (\texttt{hd}と\texttt{tl}) は、引数が空のリスト�
   infinite x = cons x (infinite x) ;
   main = hd (tl (infinite 4))
 \end{verbatim}
+\newpage
 
 \subsection{\texttt{let}と\texttt{letrec}}
 
@@ -7454,6 +7492,7 @@ headとtailの関数 (\texttt{hd}と\texttt{tl}) は、引数が空のリスト�
                in xs ;
   main = hd (tl (tl (infinite 4)))
 \end{verbatim}
+\newpage
 
 \subsection{算術演算}
 
