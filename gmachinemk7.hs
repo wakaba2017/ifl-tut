@@ -983,7 +983,7 @@ showNode s a (NGlobal n g) = iConcat [iStr "Global ", iStr v]
                              where v = head [n | (n,b) <- getGlobals s, a==b]
 showNode s a (NAp a1 a2) = iConcat [iStr "Ap ", iStr (showaddr a1),
                                     iStr " ", iStr (showaddr a2)]
-showNode s a (NInd n) = iConcat [iStr "Ind ", iStr(showaddr a)]  -- Mark2で追加
+showNode s a (NInd n) = iConcat [iStr "Ind ", iStr(showaddr n)]  -- Mark2で追加
 showNode s a (NConstr t as)  -- Mark6で追加
   = iConcat [iStr "Cons ", iNum t, iStr " [",
              iInterleave (iStr ", ") (map (iStr.showaddr) as), iStr "]"]
@@ -1161,4 +1161,4 @@ test_program_3_8_7_2' = "prefix p xs = map (f p) xs ; " ++
 ---------------------------------
 
 main :: IO()
-main = (putStrLn . runProg) b_3_2_1
+main = (putStrLn . runProg) b_1_1_3
