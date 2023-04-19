@@ -327,7 +327,15 @@ unwind state
           where ((i, s) : d) = getDump state
                 ak           = last (getStack state)  -- asが空リストの場合、last asではエラーとなるため、改めてスタックを取得している。
                 as'          = rearrange n (getHeap state) (getStack state)
-      newState (NInd n) = putCode [Unwind] (putStack (n : as) state)  -- 遷移規則 (3.17)
+      --newState (NInd n) = putCode [Unwind] (putStack (n : as) state)  -- 遷移規則 (3.17)
+      {-
+        hLookup heap n の結果が、(NNum n')だったら、[Unwind]の代わりに[Return]をputCodeしてもいいはず。
+      -}
+      newState (NInd n) = putCode newCommand (putStack (n : as) state)  -- 遷移規則 (3.17)
+        where n' = hLookup heap n
+              newCommand = case n' of
+                           (NNum _) -> [Return]
+                           _        -> [Unwind]
       newState (NConstr t as) = putCode i' (putStack (a : s') (putDump d state))  -- 遷移規則 (3.35)
         where ((i', s') : d) = getDump state
 
@@ -691,7 +699,6 @@ compileR (EAp (EAp (EAp (EVar "if") e0) e1) e2) env
           e2' = compileR e2 env
 compileR (ECase e alts) env  -- Mark7で追加
   = compileE e env ++ [Casejump (compileAlts compileR' alts env)]
---compileR e env = compileC e env ++ [Slide (length env + 1), Unwind]
 compileR e env = compileE e env ++ [Update d, Pop d, Unwind]
                  where d = length env
 
