@@ -320,7 +320,17 @@ unwind state
       heap = getHeap state
       newState (NNum n) = putCode i' (putStack (a : s') (putDump d state))  -- 遷移規則 (3.22)
         where ((i', s') : d) = getDump state
-      newState (NAp a1 a2) = putCode [Unwind] (putStack (a1:a:as) state)  -- 遷移規則 (3.11)
+      --newState (NAp a1 a2) = putCode [Unwind] (putStack (a1:a:as) state)  -- 遷移規則 (3.11)
+      {-
+        hLookup heap a1 の結果が、(NGlobal n' c')で、length (a:as) < n' が成り立つなら、[Unwind]の代わりに[Return]をputCodeしてもいいはず。
+      -}
+      newState (NAp a1 a2) = putCode newCommand (putStack (a1:a:as) state)  -- 遷移規則 (3.11)
+        where e1 = hLookup heap a1
+              newCommand = case e1 of
+                           (NGlobal n' _) -> if length (a:as) < n'
+                                             then [Return]
+                                             else [Unwind]
+                           _ -> [Unwind]
       newState (NGlobal n c)
         | length as < n = putCode i (putStack (ak : s) (putDump d state))  -- 遷移規則 (3.29)
         | otherwise     = putCode c (putStack as' state)  -- 遷移規則 (3.19)
@@ -699,6 +709,7 @@ compileR (EAp (EAp (EAp (EVar "if") e0) e1) e2) env
           e2' = compileR e2 env
 compileR (ECase e alts) env  -- Mark7で追加
   = compileE e env ++ [Casejump (compileAlts compileR' alts env)]
+--compileR e env = compileC e env ++ [Slide (length env + 1), Unwind]
 compileR e env = compileE e env ++ [Update d, Pop d, Unwind]
                  where d = length env
 
