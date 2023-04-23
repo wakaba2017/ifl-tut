@@ -586,19 +586,9 @@ showInstruction Gt             = iStr "Gt"                            -- Mark4�
 showInstruction Ge             = iStr "Ge"                            -- Mark4で追加
 showInstruction (Cond     a b)
   = (iStr "Cond ") `iAppend`
-    (iStr "(") `iAppend`
-    subFuncForCond (map showInstruction a) `iAppend`
-    (iStr ") ") `iAppend`
-    (iStr "(") `iAppend`
-    subFuncForCond (map showInstruction b) `iAppend`
-    (iStr ")")  -- Mark4で追加
-    where
-      subFuncForCond [] = iNil
-      subFuncForCond (x : xs) = x `iAppend` subFuncForCond xs
-      {-
-        map showInstruction a の結果、リスト a に含まれる命令が1個ずつ showInstruction された Iseq型データ のリストが出来るので、
-        その各要素の間に `iAppend` を挟み込んだ Iseq型データを得たい。
-      -}
+    (shortShowInstructions 3 a) `iAppend`
+    (iStr " ") `iAppend`
+    (shortShowInstructions 3 b)
 
 showState :: GmState -> Iseq
 showState s
