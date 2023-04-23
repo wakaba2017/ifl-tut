@@ -971,35 +971,17 @@ showInstruction Gt             = iStr "Gt"                            -- Mark4�
 showInstruction Ge             = iStr "Ge"                            -- Mark4で追加
 showInstruction (Cond     a b)
   = (iStr "Cond ") `iAppend`
-    (iStr "[") `iAppend`
-    subFuncForCond (map showInstruction a) `iAppend`
-    (iStr "] ") `iAppend`
-    (iStr "[") `iAppend`
-    subFuncForCond (map showInstruction b) `iAppend`
-    (iStr "]")  -- Mark4で追加、Mark6で削除され、Mark7で復活
-    where
-      subFuncForCond [] = iNil
-      subFuncForCond [x] = x
-      subFuncForCond (x : xs) = x `iAppend` iStr("; ") `iAppend` subFuncForCond xs
-      {-
-        map showInstruction a の結果、リスト a に含まれる命令が1個ずつ showInstruction された Iseq型データ のリストが出来るので、
-        その各要素の間に `iAppend` を挟み込んだ Iseq型データを得たい。
-      -}
+    (shortShowInstructions 3 a) `iAppend`
+    (iStr " ") `iAppend`
+    (shortShowInstructions 3 b)
 showInstruction (Pack     t a) = (iStr "Pack ") `iAppend` (iNum t) `iAppend` (iStr " ") `iAppend` (iNum a)  -- Mark6で追加
 showInstruction (Casejump  cs)
-  = iStr "Casejump" `iAppend` (subFuncForCasejump1 cs)  -- Mark6で追加
+  = iStr "Casejump" `iAppend` (subFuncForCasejump cs)  -- Mark6で追加
     where
-      subFuncForCasejump1 [] = iNil
-      subFuncForCasejump1 ((n, c) : cs) = (iStr " (") `iAppend` (iNum n) `iAppend` (iStr ", [") `iAppend`
-                                          (subFuncForCasejump2 (map showInstruction c)) `iAppend` (iStr "])") `iAppend`
-                                          (subFuncForCasejump1 cs)
-      {-
-      subFuncForCasejump2 [] = iNil
-      subFuncForCasejump2 (x : xs) = (showInstruction x) `iAppend` (subFuncForCasejump2 xs)
-      -}
-      subFuncForCasejump2 [] = iNil
-      subFuncForCasejump2 [x] = x
-      subFuncForCasejump2 (x : xs) = x `iAppend` iStr("; ") `iAppend` subFuncForCasejump2 xs
+      subFuncForCasejump [] = iNil
+      subFuncForCasejump ((n, c) : cs) = (iStr " (") `iAppend` (iNum n) `iAppend` (iStr ", ") `iAppend`
+                                          (shortShowInstructions 3 c) `iAppend` (iStr ")") `iAppend`
+                                          (subFuncForCasejump cs)
 showInstruction (Split      n) = (iStr "Split ") `iAppend` (iNum n)                    -- Mark6で追加
 showInstruction Print          = iStr "Print"                                          -- Mark6で追加
 showInstruction (Pushbasic  n) = (iStr "Pushbasic ") `iAppend` (iNum n)                -- Mark7で追加
