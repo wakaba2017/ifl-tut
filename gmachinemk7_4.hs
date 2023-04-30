@@ -337,15 +337,7 @@ unwind state
           where ((i, s) : d) = getDump state
                 ak           = last (getStack state)  -- asが空リストの場合、last asではエラーとなるため、改めてスタックを取得している。
                 as'          = rearrange n (getHeap state) (getStack state)
-      --newState (NInd n) = putCode [Unwind] (putStack (n : as) state)  -- 遷移規則 (3.17)
-      {-
-        hLookup heap n の結果が、(NNum n')だったら、[Unwind]の代わりに[Return]をputCodeしてもいいはず。
-      -}
-      newState (NInd n) = putCode newCommand (putStack (n : as) state)  -- 遷移規則 (3.17)
-        where n' = hLookup heap n
-              newCommand = case n' of
-                           (NNum _) -> [Return]
-                           _        -> [Unwind]
+      newState (NInd n) = putCode [Unwind] (putStack (n : as) state)  -- 遷移規則 (3.17)
       newState (NConstr t as) = putCode i' (putStack (a : s') (putDump d state))  -- 遷移規則 (3.35)
         where ((i', s') : d) = getDump state
 
