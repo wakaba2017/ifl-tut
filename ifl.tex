@@ -7179,8 +7179,174 @@ Program ctr: f-code                 x | x-code| x-frm |
 \vskip\baselineskip
 
 次に、各命令の遷移規則を作成します。
+\texttt{Take} $n$ は、スタックの上位 $n$ 個の要素を新しいフレームに形成し、現在のフレームポインタがそれを指すようにします。
+\vskip\baselineskip
+
+\begin{tabular} {|c|l r l r l l|} \hline
+	(4.1) &                   & \texttt{Take} $n$ : $i$ & $f$  & $c_1$ : $\ldots$ : $c_n$ : $s$ & $h$                                            & $c$ \\
+	      & $\Longrightarrow$ & $i$                     & $f'$ & $s$                            & $h$[$f'$ : $\langle c_1, \ldots, c_n \rangle$] & $c$ \\ \hline
+\end{tabular}
+\vskip\baselineskip
+
+次に、\texttt{Push} と \texttt{Enter} のルールについて説明します。
+これらの 2 つの命令はまったく同じアドレッシング モード (\texttt{Arg}、\texttt{Label} など) を持ち、それらの間には非常に明確な関係があります。
+
+\begin{quote}
+	\texttt{Push}/\texttt{Enter}の関係。
+	\texttt{Push} $arg$ 命令がクロージャー $(i, f )$ をスタックにプッシュする場合、
+	\texttt{Enter} $arg$ は $i$ をプログラムカウンタにロードし、$f$ を現在のフレームポインタにロードします。
+\end{quote}
+
+\texttt{Push} (\texttt{Arg} $n$) 命令は、現在のフレームから $n$ 番目のクロージャをフェッチし、それをスタックにプッシュします。
+\vskip\baselineskip
+
+\begin{tabular} {|c|l r l r l l|} \hline
+	(4.2) &                   & \texttt{Push} (\texttt{Arg} $k$) : $i$ & $f$ & $s$                  & $h$[$f$ : $\langle (i_1, f_1), \ldots, (i_k, f_k), \ldots, (i_n, f_n) \rangle$] & $c$ \\
+	      & $\Longrightarrow$ & $i$                                    & $f$ & ($i_k$, $f_k$) : $s$ & $h$                                                                             & $c$ \\ \hline
+\end{tabular}
+\vskip\baselineskip
+
+\texttt{Push} (\texttt{Label} $l$) は、コードストアでラベル $l$ を検索し、
+このコードポインタと現在のフレームポインタで構成されるクロージャをプッシュします。
+\vskip\baselineskip
+
+\begin{tabular} {|c|l r l r l l|} \hline
+	(4.3) &                   & \texttt{Push} (\texttt{Label} $l$) : $i$ & $f$ & $s$               & $h$ & $c$[$l$ : $i'$] \\
+	      & $\Longrightarrow$ & $i$                                      & $f$ & ($i'$, $f$) : $s$ & $h$ & $c$             \\ \hline
+\end{tabular}
+\vskip\baselineskip
+
+\texttt{compose} の例では、任意のラベル \texttt{c1} を作成する必要がありました。
+これらのラベルを考え出さなければならないのは面倒です。
+代わりに、プッシュ命令の新しい形式、\texttt{Push} (\texttt{Code} $i$) を追加するだけです。
+これにより、ターゲットコードシーケンス $i$ が命令自体の一部になります。
+したがって、
+
+\begin{verbatim}
+  Push (Label "c1")
+\end{verbatim}
+
+の代わりに
+
+\begin{verbatim}
+  Push (Code [Push (Arg 3), Push (Arg 3), Enter (Arg 2)])
+\end{verbatim}
+
+と書くことが出来ます。
+適切な状態遷移規則は次のとおりです。
+\vskip\baselineskip
+
+\begin{tabular} {|c|l r l r l l|} \hline
+	(4.4) &                   & \texttt{Push} (\texttt{Code} $i'$) : $i$ & $f$ & $s$               & $h$ & $c$ \\
+	      & $\Longrightarrow$ & $i$                                      & $f$ & ($i'$, $f$) : $s$ & $h$ & $c$ \\ \hline
+\end{tabular}
+\vskip\baselineskip
+
+これまでのところ、\texttt{Arg}、\texttt{Code}、\texttt{Label} の 3 つの「アドレス指定モード」があります。
+整数定数用に \texttt{IntConst} をもう 1 つ追加する必要があります。
+たとえば、呼び出し \texttt{(f 6)} は次のコードにコンパイルされます。
+
+\begin{verbatim}
+  Push (IntConst 6)
+  Enter (Label "f")
+\end{verbatim}
+
+\texttt{Push} 命令は常にクロージャ (つまり、コードポインタ/フレームポインタのペア) をスタックにプッシュしますが、
+整数定数の場合は、どのクロージャをプッシュするかはまったく明確ではありません。
+整数自体を格納する場所が必要なので、その目的のためにフレームポインタスロットを「スチール」しましょう。
+\footnote{整数はフレームポインタよりも大きくないという暗黙の仮定を行っていますが、これは通常実際には当てはまります。}
+この決定は、次の規則につながります。
+ここで、\texttt{intCode} は整数クロージャの (まだ未定の) コードシーケンスです。
+\vskip\baselineskip
+
+\begin{tabular} {|c|l r l r l l|} \hline
+	(4.5) &                   & \texttt{Push} (\texttt{IntConst} $n$) : $i$ & $f$ & $s$                           & $h$ & $c$ \\
+	      & $\Longrightarrow$ & $i$                                         & $f$ & (\texttt{intCode}, $n$) : $s$ & $h$ & $c$ \\ \hline
+\end{tabular}
+\vskip\baselineskip
+
+\texttt{intCode} は何をすべきか?
+今のところ、私たちのマシンは演算を行わないので、簡単な解決策は \texttt{intCode} を空のコードシーケンスにすることです。
+
+\begin{verbatim}
+  intCode = []
+\end{verbatim}
+
+整数クロージャが入力されると、マシンは空のコードシーケンスにジャンプし、実行が停止します。
+これにより、Mark 1 には十分な整数を返すプログラムを書くことができます。
+
+\texttt{Push} 命令については以上です。
+\texttt{Enter} 命令のルール (アドレス指定ごとに 1 つ)
+モードでは、\texttt{Push}/\texttt{Enter} 関係から直接に従います。
+\vskip\baselineskip
+
+\begin{tabular} {|c|l r l r l l|} \hline
+	(4.6) &                   & [\texttt{Enter} (\texttt{Label} $l$)] & $f$ & $s$ & $h$ & $c$[$l$ : $i$] \\
+	      & $\Longrightarrow$ & $i$                                   & $f$ & $s$ & $h$ & $c$            \\ \hline
+\end{tabular}
+\vskip\baselineskip
+
+\begin{tabular} {|c|l r l r l l|} \hline
+	(4.7) &                   & [\texttt{Enter} (\texttt{Arg} $k$)] & $f$   & $s$ & $h$[$f$ : $\langle (i_1, f_1), \ldots, (i_k, f_k), \ldots, (i_n, f_n) \rangle$] & $c$ \\
+	      & $\Longrightarrow$ & $i_k$                               & $f_k$ & $s$ & $h$                                                                             & $c$ \\ \hline
+\end{tabular}
+\vskip\baselineskip
+
+\begin{tabular} {|c|l r l r l l|} \hline
+	(4.8) &                   & [\texttt{Enter} (\texttt{Code} $i$)] & $f$ & $s$ & $h$ & $c$ \\
+	      & $\Longrightarrow$ & $i$                                  & $f$ & $s$ & $h$ & $c$ \\ \hline
+\end{tabular}
+\vskip\baselineskip
+
+\begin{tabular} {|c|l r l r l l|} \hline
+	(4.9) &                   & [\texttt{Enter} (\texttt{IntConst} $n$)] & $f$ & $s$ & $h$ & $c$ \\
+	      & $\Longrightarrow$ & \texttt{intCode}                         & $n$ & $s$ & $h$ & $c$ \\ \hline
+\end{tabular}
 
 \subsubsection{コンパイル}
+
+これで、各 TIM 命令が何を行うかについて正確な説明ができました。
+プログラムを TIM 命令に変換する方法を説明する必要があります。
+これは、以前と同様に、一連の\textbf{コンパイルスキーム}を使用して行います。
+各スーパーコンビネーターは、図 4.1 に示す $\mathcal{SC}$ スキームでコンパイルされます。
+$\mathcal{SC}$ に渡される初期環境は、各スーパーコンビネータ名をそのラベルアドレッシングモードにバインドします。
+$\mathcal{SC}$ スキームは単に \texttt{Take} 命令を生成し、$\mathcal{R}$ スキームを呼び出して、
+各引数に使用するアドレッシングモードを指定するバインドによって強化された環境を渡します。
+\vskip\baselineskip
+
+\begin{tabular} {|l|} \hline
+	$\mathcal{SC} \llbracket e \rrbracket ~ \rho$は、環境$\rho$におけるスーパーコンビネータ定義$def$のTIMコードです。 \\
+	\\
+	\begin{tabular}{r c l}
+		$\mathcal{SC} \llbracket f ~ x_1 ~ \ldots ~ x_n ~ \texttt{=} ~ e \rrbracket ~ \rho$ & $=$ & \texttt{Take} $n$ \texttt{:} $\mathcal{R} \llbracket e \rrbracket ~ \rho[x_1 \mapsto \texttt{Arg} ~ 1, \ldots, x_n \mapsto \texttt{Arg} ~ n]$
+	\end{tabular}
+	\\ \hline
+	$\mathcal{R} \llbracket e \rrbracket ~ \rho$は、環境$\rho$の式$e$の値をスタック上の引数に適用するTIMコードです。  \\
+	\\
+	\begin{tabular}{r c l}
+		$\mathcal{R} \llbracket e_1 ~ e_2 \rrbracket ~ \rho$ & $=$ & \texttt{Push} ($\mathcal{A} \llbracket e_2 \rrbracket ~ \rho$) \texttt{:} $\mathcal{R} \llbracket e_1 \rrbracket ~ \rho$ \\
+		$\mathcal{R} \llbracket a \rrbracket ~ \rho$         & $=$ & \texttt{Enter} ($\mathcal{A} \llbracket a \rrbracket ~ \rho$)                                                            \\
+		                                                     &     & ここで、$a$ は整数、変数、またはスーパーコンビネータです。
+	\end{tabular}
+	\\ \hline
+	$\mathcal{A} \llbracket e \rrbracket ~ \rho$は、環境$\rho$における式$e$のTIMアドレッシングモードです。            \\
+	\\
+	\begin{tabular}{r c l l}
+		$\mathcal{A} \llbracket x \rrbracket ~ \rho$ & $=$ & $\rho ~ x$                                                   & ここで、$x$ は $\rho$ によって束縛されます。 \\
+		$\mathcal{A} \llbracket n \rrbracket ~ \rho$ & $=$ & \texttt{IntConst} $n$                                        & ここで、$n$ は整数です。                     \\
+		$\mathcal{A} \llbracket e \rrbracket ~ \rho$ & $=$ & \texttt{Code} ($\mathcal{R} \llbracket e \rrbracket ~ \rho$) & その他                                       \\
+	\end{tabular}
+	\\ \hline
+\end{tabular}
+\vskip\baselineskip
+
+$\mathcal{R}$ スキーム (図 4.1) は、変数またはスーパーコンビネータが見つかるまで、単純に引数をスタックにプッシュします。
+$\mathcal{A}$ 方式を使用して正しいアドレッシングモードを生成します。
+セクション 4.1.1 で説明した平坦化プロセスがこれらのルールによって「オンザフライ」で実行されることに注意してください。
+\vskip\baselineskip
+
+ここでは、算術、データ構造、ケース分析、および \texttt{let(rec)} 式を省略します。
+それらはすべて後で追加されます。
 
 \subsubsection{更新}
 
