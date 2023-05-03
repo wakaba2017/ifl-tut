@@ -7361,12 +7361,552 @@ $\mathcal{A}$ 方式を使用して正しいアドレッシングモードを生
 \newpage
 
 \subsection{Mark 1: 最小限のTIM}
-\subsubsection{Overall structure}
-\subsubsection{Data type definitions}
-\subsubsection{Compiling program}
-\subsubsection{The evaluator}
-\subsubsection{Printing the results}
-\subsubsection{Garbage collection \dag}
+
+このセクションでは、演算、データ構造、または更新を使用しない、最小限で完全な TIM 実装を開発します。
+これらは、後続のセクションで追加されます。
+
+\subsubsection{全体構造}
+
+構造は、テンプレートインスタンス化インタープリタとほとんど同じです。
+\texttt{run}関数は、従来通り、\texttt{parse}、\texttt{compile}、\texttt{eval}、\texttt{showResults}の4つの関数で構成されています。
+解析のタイプは第1章で与えられます。 他の3つのタイプを以下に示します。
+
+\begin{verbatim}
+  runProg     :: [Char] -> [Char]
+  compile     :: CoreProgram -> TimState
+  eval        :: TimState -> [TimState]
+  showResults :: [TimState] -> [Char]
+
+  runProg = showResults . eval . compile . parse
+\end{verbatim}
+
+多くの場合、すべての中間状態を表示すると便利なため、\texttt{showFullResults}を使用して各状態を表示する\texttt{fullRun}も提供します。
+
+\begin{verbatim}
+  fullRun :: [Char] -> [Char]
+  fullRun = showFullResults . eval . compile . parse
+\end{verbatim}
+
+languageモジュールをインポートする必要があります。
+
+\subsubsection{データ型の定義}
+
+TIM 命令のデータ型は、これまでに紹介した命令に直接対応しています。
+
+\begin{verbatim}
+  data Instruction = Take Int
+                   | Enter TimAMode
+                   | Push TimAMode
+\end{verbatim}
+
+アドレッシングモードのタイプである \texttt{timAMode} は、\texttt{Push} と \texttt{Enter} の関係を強調するために、
+別個のデータタイプとして分離されています。
+
+\begin{verbatim}
+  data TimAMode = Arg Int
+                | Label [Char]
+                | Code [Instruction]
+                | IntConst Int
+\end{verbatim}
+
+TIMマシンの状態は、次の定義によって与えられます。
+
+\begin{verbatim}
+  type TimState = ([Instruction], -- The current instruction stream
+                   FramePtr,      -- Address of current frame
+                   TimStack,      -- Stack of arguments
+                   TimValueStack, -- Value stack (not used yet)
+                   TimDump,       -- Dump (not used yet)
+                   TimHeap,       -- Heap of frames
+                   CodeStore,     -- Labelled blocks of code
+                   TimStats)      -- Statistics
+\end{verbatim}
+
+値スタックとダンプは、この章の後半でのみ必要になりますが、それらのプレースホルダーをすぐに追加する方が便利です。
+\vskip\baselineskip
+
+これらの各コンポーネントの表現を順番に検討します。
+
+\begin{itemize}
+	\item \textbf{現在の命令ストリーム}は、命令のリストで表されます。
+	      実際のマシンでは、これはプログラムメモリと共にプログラムカウンタになります。
+	\item 通常、\textbf{フレームポインタ}はヒープ内のフレームのアドレスですが、他に 2 つの可能性があります。
+	      整数値を保持するために使用されるか、初期化されていない可能性があります。
+	      マシンは、これら3つの可能性のどれを期待するかを常に「認識」していますが、\texttt{framePtr}の代数データ型を使用してそれらを区別する実装が便利です。
+	      \begin{verbatim}
+          data FramePtr = FrameAddr Addr -- The address of a frame
+                        | FrameInt Int   -- An integer value
+                        | FrameNull      -- Uninitialised
+        \end{verbatim}
+	      これを行わないと、アドレスを数値として使用しようとすると、Mirandaは(正当に)型エラーを報告します。
+	      さらに、初期化されていない状態の \texttt{FrameNull}のコンストラクタがあるということは、
+	      初期化されていない値を有効なアドレスとして誤って使用しようとした場合に、インタープリタが検出することを意味します。
+  \item \textbf{スタック}には\textbf{クロージャ}が含まれており、それぞれがコード ポインタとフレーム ポインタを含むペアです。
+        スタックをリストとして表します。
+        \begin{verbatim}
+          type TimStack = [Closure]
+          type Closure = ([Instruction], FramePtr)
+        \end{verbatim}
+  \item 値スタックとダンプは最初からまったく使用されていないため、nullary コンストラクターが 1 つだけあるダミーの代数データ型でそれぞれを表します。
+        後で、これらの定義をより興味深いものに置き換えます。
+        \begin{verbatim}
+          data TimValueStack = DummyTimValueStack
+          data TimDump = DummyTimDump
+        \end{verbatim}
+  \item \textbf{ヒープ}には\textbf{フレーム}が含まれており、それぞれがクロージャーのタプルです。
+        フレームのデータ型は、独自の抽象データ型に値するほど重要です。
+        \begin{verbatim}
+          type TimHeap = Heap Frame
+
+          fAlloc  :: TimHeap -> [Closure] -> (TimHeap, FramePtr)
+          fGet    :: TimHeap -> FramePtr -> Int -> Closure
+          fUpdate :: TimHeap -> FramePtr -> Int -> Closure -> TimHeap
+          fList   :: Frame -> [Closure] -- Used when printing
+        \end{verbatim}
+        これらの操作により、フレームを構築し、コンポーネントを抽出して更新できます。
+        \texttt{fGet} と \texttt{fUpdate} のために、\texttt{fAlloc} に与えられるリストの最初の要素には \texttt{1} の番号が付けられます。
+        これは、リストに基づく簡単な実装です。
+        \begin{verbatim}
+          type Frame = [Closure]
+
+          fAlloc heap xs = (heap', FrameAddr addr)
+                           where
+                           (heap', addr) = hAlloc heap xs
+
+          fGet heap (FrameAddr addr) n = f !! (n-1)
+                                         where
+                                           f = hLookup heap addr
+
+          fUpdate heap (FrameAddr addr) n closure
+            = hUpdate heap addr new_frame
+              where
+                frame = hLookup heap addr
+                new_frame = take (n-1) frame ++ [closure] ++ drop n frame
+
+          fList f = f
+        \end{verbatim}
+  \item ラベルごとに、\textbf{コードストア}は対応するコンパイル済みコードを提供します。
+        \begin{verbatim}
+          type CodeStore = ASSOC Name [Instruction]
+        \end{verbatim}
+        この機会に、失敗した場合にエラー メッセージを生成するラベルのルックアップ関数を提供します。
+        \begin{verbatim}
+          codeLookup :: CodeStore -> Name -> [Instruction]
+          codeLookup cstore l
+            = aLookup cstore l (error ("Attempt to jump to unknown label "
+                                       ++ show l))
+        \end{verbatim}
+  \item いつものように、\textbf{統計}を簡単に追加できる抽象データ型にします。
+        \begin{verbatim}
+          statInitial :: TimStats
+          statIncSteps :: TimStats -> TimStats
+          statGetSteps :: TimStats -> Int
+        \end{verbatim}
+\end{itemize}
+
+ステップ数のみをカウントする最初の実装はかなり単純です。
+
+\begin{verbatim}
+  type TimStats = Int -- The number of steps
+  statInitial = 0
+  statIncSteps s = s+1
+  statGetSteps s = s
+\end{verbatim}
+
+最後に、ヒープとスタックのコードが必要です。
+
+\begin{verbatim}
+  -- :a util.lhs -- heap data type and other library functions
+\end{verbatim}
+
+\subsubsection{プログラムのコンパイル}
+
+\texttt{compile}は、与えられたプログラムから初期マシン状態を作成する、テンプレートインスタンス化のコンパイラと非常によく似た働きをします。
+主な違いは、コンパイル関数\texttt{compileSC}にあります。
+これは各スーパーコンビネータに適用されます。
+
+\begin{verbatim}
+  compile program
+    = ([Enter (Label "main")], -- Initial instructions
+       FrameNull,              -- Null frame pointer
+       initialArgStack,        -- Argument stack
+       initialValueStack,      -- Value stack
+       initialDump,            -- Dump
+       hInitial,               -- Empty heap
+       compiled_code,          -- Compiled code for supercombinators
+       statInitial)            -- Initial statistics
+      where
+        sc_defs = preludeDefs ++ program
+        compiled_sc_defs = map (compileSC initial_env) sc_defs
+        compiled_code = compiled_sc_defs ++ compiledPrimitives
+        initial_env = [(name, Label name) | (name, args, body) <- sc_defs] ++
+                      [(name, Label name) | (name, code) <- compiledPrimitives]
+\end{verbatim}
+
+今のところ、引数スタックは空に初期化されています。
+
+\begin{verbatim}
+  initialArgStack = []
+\end{verbatim}
+
+今のところ、値スタックとダンプはダミー値に初期化されています。
+後でこれらの定義を変更します。
+
+\begin{verbatim}
+  initialValueStack = DummyTimValueStack
+  initialDump = DummyTimDump
+\end{verbatim}
+
+コンパイルされたスーパーコンビネータ\texttt{compiled\_sc\_defs}は、
+\texttt{compileSC}を使用して、プログラム内の各スーパーコンビネータをコンパイルすることによって取得されます。
+\texttt{compileSC}に渡される初期環境は、各スーパーコンビネータに適したアドレス指定モードを提供します。
+コードストア、\texttt{compiled\_code}は、\texttt{compiled\_sc\_defs}と\texttt{compiledPrimitives}を組み合わせることによって取得されます。
+後者は、組み込みのプリミティブ用にコンパイルされたコードを含むことを目的としていますが、現時点では空です:
+
+\begin{verbatim}
+  compiledPrimitives = []
+\end{verbatim}
+
+テンプレートマシンやGマシンとは異なり、初期ヒープは空です。
+これらの場合に空でない初期ヒープの理由は、CAF(つまり、引数のないスーパーコンビネータ - セクション 2.1.6)の共有を保持するためでした。
+TIMマシンのこの初期バージョンでは、CAF用にコンパイルされたTIMコードが呼び出されるたびに実行されるため、CAFを評価する作業は共有されません。
+この問題については、後でセクション4.7で説明します。
+\vskip\baselineskip
+
+コンパイラの核心は、コンパイルスキーム$\mathcal{SC}$、$\mathcal{R}$、および$\mathcal{A}$を
+それぞれ関数\texttt{compileSC}、\texttt{compileR}、および\texttt{compileA}に直接変換することです。
+環境$\rho$は、名前をアドレッシングモードにバインドする連想リストによって表されます。
+Gマシンのコンパイラは、名前からスタックオフセットへのマッピングを使用していましたが、
+アドレッシングモードを使用することで得られる特別な柔軟性はかなり有用であることがわかりました。
+
+\begin{verbatim}
+  type TimCompilerEnv = [(Name, TimAMode)]
+\end{verbatim}
+
+これで\texttt{compileSC}を定義する準備が整いました:
+
+\begin{verbatim}
+  compileSC :: TimCompilerEnv -> CoreScDefn -> (Name, [Instruction])
+  compileSC env (name, args, body)
+    = (name, Take (length args) : instructions)
+      where
+        instructions = compileR body new_env
+        new_env = (zip2 args (map Arg [1..])) ++ env
+\end{verbatim}
+
+\texttt{compileR}は式と環境を受け取り、命令のリストを提供します。
+
+\begin{verbatim}
+  compileR :: CoreExpr -> TimCompilerEnv -> [Instruction]
+  compileR (EAp e1 e2) env = Push (compileA e2 env) : compileR e1 env
+  compileR (EVar v)    env = [Enter (compileA (EVar v) env)]
+  compileR (ENum n)    env = [Enter (compileA (ENum n) env)]
+  compileR e           env = error "compileR: can't do this yet"
+
+  compileA :: CoreExpr -> TimCompilerEnv -> TimAMode
+  compileA (EVar v) env = aLookup env v (error ("Unknown variable " ++ v))
+  compileA (ENum n) env = IntConst n
+  compileA e env = Code (compileR e env)
+\end{verbatim}
+
+\subsubsection{評価器}
+
+次に、評価器が実際にどのように機能するかを定義する必要があります。
+\texttt{eval}の定義は、テンプレートインスタンス化マシンとまったく同じです。
+
+\begin{verbatim}
+  eval state
+    = state : rest_states where
+                            rest_states | timFinal state = []
+                                        | otherwise      = eval next_state
+                            next_state = doAdmin (step state)
+
+  doAdmin state = applyToStats statIncSteps state
+\end{verbatim}
+
+\texttt{timFinal}関数は、状態が最終状態であることを示します。
+\texttt{Stop}命令を発明することもできますが、コードシーケンスが空の場合に終了したと言うのは簡単です。
+
+\begin{verbatim}
+  timFinal ([], frame, stack, vstack, dump, heap, cstore, stats) = True
+  timFinal state                                                 = False
+\end{verbatim}
+
+\texttt{applyToStats}関数は、状態の統計コンポーネントに関数を適用するだけです。
+
+\begin{verbatim}
+  applyToStats stats_fun (instr, frame, stack, vstack,
+                          dump, heap, cstore, stats)
+    = (instr, frame, stack, vstack, dump, heap, cstore, stats_fun stats)
+\end{verbatim}
+
+\textbf{ステップを進める}
+\vskip\baselineskip
+
+\texttt{step}は、単一の命令を受け取って実行するケース分析を行います。
+\texttt{Take}式は、対応する状態遷移規則(4.1)を単純に訳したものです。
+
+\begin{verbatim}
+  step ((Take n:instr), fptr, stack, vstack, dump, heap, cstore,stats)
+    | length stack >= n = (instr, fptr', drop n stack, vstack, dump, heap', cstore, stats)
+    | otherwise     = error "Too few args for Take instruction"
+    where (heap', fptr') = fAlloc heap (take n stack)
+\end{verbatim}
+
+\texttt{Enter}と\texttt{Push}の方程式は、\texttt{timAMode}をクロージャに変換する共通関数\texttt{amToClosure}を使用して、
+\texttt{Push}/\texttt{Enter}の関係を利用します。
+
+\begin{verbatim}
+  step ([Enter am], fptr, stack, vstack, dump, heap, cstore, stats)
+    = (instr', fptr', stack, vstack, dump, heap, cstore, stats)
+      where (instr',fptr') = amToClosure am fptr heap cstore
+
+  step ((Push am:instr), fptr, stack, vstack, dump, heap, cstore, stats)
+    = (instr, fptr, amToClosure am fptr heap cstore : stack,
+       vstack, dump, heap, cstore, stats)
+\end{verbatim}
+
+\texttt{amToClosure}は、最初の引数であるアドレッシングモードによってアドレス指定されたクロージャを提供します。
+
+\begin{verbatim}
+  amToClosure :: TimAMode -> FramePtr -> TimHeap -> CodeStore -> Closure
+  amToClosure (Arg n)      fptr heap cstore = fGet heap fptr n
+  amToClosure (Code il)    fptr heap cstore = (il, fptr)
+  amToClosure (Label l)    fptr heap cstore = (codeLookup cstore l, fptr)
+  amToClosure (IntConst n) fptr heap cstore = (intCode, FrameInt n)
+\end{verbatim}
+
+\subsubsection{結果の表示}
+
+テンプレートインスタンス化バージョンと同様に、結果を適切な方法で出力するには、かなり退屈な関数のコレクションが必要です。
+スーパーコンビネータの定義を出力すると便利な場合が多いため、最初の状態の定義を使用して、\texttt{showResults}を出力することから始めます。
+
+\begin{verbatim}
+  showFullResults states
+    = iDisplay (iConcat [
+        iStr "Supercombinator definitions", iNewline, iNewline,
+        showSCDefns first_state, iNewline, iNewline,
+        iStr "State transitions", iNewline,
+        iLayn (map showState states), iNewline, iNewline,
+        showStats (last states)
+      ])
+      where
+        (first_state:rest_states) = states
+\end{verbatim}
+
+\texttt{showResults}は、最後の状態といくつかの統計を表示するだけです。
+
+\begin{verbatim}
+  showResults states
+    = iDisplay (iConcat [
+        showState last_state, iNewline, iNewline, showStats last_state
+      ])
+      where last_state = last states
+\end{verbatim}
+
+残りの機能は簡単です。
+\texttt{showSCDefns}は、各スーパーコンビネータのコードを表示します。
+
+\begin{verbatim}
+  showSCDefns :: TimState -> Iseq
+  showSCDefns (instr, fptr, stack, vstack, dump, heap, cstore, stats)
+    = iInterleave iNewline (map showSC cstore)
+
+  showSC :: (Name, [Instruction]) -> Iseq
+  showSC (name, il)
+    = iConcat [
+        iStr "Code for ", iStr name, iStr ":", iNewline,
+        iStr " ", showInstructions Full il, iNewline, iNewline
+      ]
+\end{verbatim}
+
+\texttt{showState}は、TIMマシンの状態を表示します。
+
+\begin{verbatim}
+  showState :: TimState -> Iseq
+  showState (instr, fptr, stack, vstack, dump, heap, cstore, stats)
+    = iConcat [
+        iStr "Code: ", showInstructions Terse instr, iNewline,
+        showFrame heap fptr,
+        showStack stack,
+        showValueStack vstack,
+        showDump dump,
+        iNewline
+      ]
+\end{verbatim}
+
+showFrame は状態のフレーム コンポーネントを表示し、showClosure を使用してその内部の各クロージャーを表示します。
+
+\begin{verbatim}
+  showFrame :: TimHeap -> FramePtr -> Iseq
+  showFrame heap FrameNull = iStr "Null frame ptr" `iAppend` iNewline
+  showFrame heap (FrameAddr addr)
+    = iConcat [
+        iStr "Frame: <",
+        iIndent (iInterleave iNewline
+        (map showClosure (fList (hLookup heap addr)))),
+        iStr ">", iNewline
+      ]
+  showFrame heap (FrameInt n)
+    = iConcat [ iStr "Frame ptr (int): ", iNum n, iNewline ]
+\end{verbatim}
+
+\texttt{showStack}は引数スタックを表示し、\texttt{showClosure}を使用して各クロージャを表示します。
+
+\begin{verbatim}
+  showStack :: TimStack -> Iseq
+  showStack stack
+    = iConcat [ iStr "Arg stack: [",
+        iIndent (iInterleave iNewline (map showClosure stack)),
+        iStr "]", iNewline
+      ]
+\end{verbatim}
+
+現時点では、値スタックとダンプを表示する\texttt{showValueStack}と\texttt{showDump}は、
+状態のこれらのコンポーネントを使用していないため、現時点ではスタブです。
+
+\begin{verbatim}
+  showValueStack :: TimValueStack -> Iseq
+  showValueStack vstack = iNil
+
+  showDump :: TimDump -> Iseq
+  showDump dump = iNil
+\end{verbatim}
+
+\texttt{showClosure}はクロージャを表示し、\texttt{showFramePtr}を使用してフレームポインタを表示します。
+
+\begin{verbatim}
+  showClosure :: Closure -> Iseq
+  showClosure (i,f)
+    = iConcat [ iStr "(", showInstructions Terse i, iStr ", ",
+        showFramePtr f, iStr ")"
+      ]
+
+  showFramePtr :: FramePtr -> Iseq
+  showFramePtr FrameNull     = iStr "null"
+  showFramePtr (FrameAddr a) = iStr (show a)
+  showFramePtr (FrameInt n)  = iStr "int " `iAppend` iNum n
+\end{verbatim}
+
+\texttt{showStats}は、蓄積された統計を出力します。
+
+\begin{verbatim}
+  showStats :: TimState -> Iseq
+  showStats (instr, fptr, stack, vstack, dump, heap, code, stats)
+    = iConcat [ iStr "Steps taken = ", iNum (statGetSteps stats), iNewline,
+                iStr "No of frames allocated = ", iNum (hSize heap),
+                iNewline
+      ]
+\end{verbatim}
+
+\textbf{命令の表示}
+\vskip\baselineskip
+
+命令と命令シーケンスを表示する必要があります。
+一連の命令が1つの長い行として出力されると、かなり読みにくくなるため、それらをきれいに出力するコードを作成する価値があります。
+\vskip\baselineskip
+
+実際、命令シーケンスのコード全体(たとえば、スーパーコンビネータの定義を出力する場合)を出力できるようにするか、
+一部の省略形だけを出力できるようにしたいと考えています。
+後者の例は、スタックの内容を表示するときに発生します。
+各クロージャのコードの一部を確認することは役に立ちますが、すべてを確認する必要はありません。
+したがって、各関数に追加の引数\texttt{d}を与えて、どの程度完全に出力するかを伝えます。
+この引数の値は、\texttt{Full}、\texttt{Terse}、または\texttt{None}のいずれかです。
+
+\begin{verbatim}
+  data HowMuchToPrint = Full | Terse | None
+\end{verbatim}
+
+\texttt{showInstructions}は命令のリストを\texttt{iseq}に変換します。
+\texttt{d}が\texttt{None}の場合、省略記号のみが出力されます。
+\texttt{d}が\texttt{Terse}の場合、命令はすべて1行に出力され、ネストされた命令は\texttt{d}を\texttt{None}として出力されます。
+\texttt{d}が\texttt{Full}の場合、命令は1行に1つずつレイアウトされ、完全に出力されます。
+
+\begin{verbatim}
+  showInstructions :: HowMuchToPrint -> [Instruction] -> Iseq
+  showInstructions None il = iStr "{..}"
+  showInstructions Terse il
+    = iConcat [iStr "{", iIndent (iInterleave (iStr ", ") body), iStr "}"]
+      where
+        instrs = map (showInstruction None) il
+        body | length il <= nTerse = instrs
+             | otherwise           = (take nTerse instrs) ++ [iStr ".."]
+  showInstructions Full il
+    = iConcat [iStr "{ ", iIndent (iInterleave sep instrs), iStr " }"]
+      where
+        sep = iStr "," `iAppend` iNewline
+        instrs = map (showInstruction Full) il
+\end{verbatim}
+
+\texttt{showInstruction}は、単一の命令を\texttt{iseq}に変換します。
+
+\begin{verbatim}
+  showInstruction d (Take m)  = (iStr "Take ")  `iAppend` (iNum m)
+  showInstruction d (Enter x) = (iStr "Enter ") `iAppend` (showArg d x)
+  showInstruction d (Push x)  = (iStr "Push ")  `iAppend` (showArg d x)
+
+  showArg d (Arg m)      = (iStr "Arg ")      `iAppend` (iNum m)
+  showArg d (Code il)    = (iStr "Code ")     `iAppend` (showInstructions d il)
+  showArg d (Label s)    = (iStr "Label ")    `iAppend` (iStr s)
+  showArg d (IntConst n) = (iStr "IntConst ") `iAppend` (iNum n)
+\end{verbatim}
+
+\texttt{nTerse}は、シーケンスのいくつの命令を簡潔な形式で出力する必要があるかを示します。
+
+\begin{verbatim}
+  nTerse = 3
+\end{verbatim}
+
+\begin{description}
+	\item[演習 4.1] \texttt{main}の次の定義を使用してマシンを実行します。
+	      \begin{verbatim}
+          main = S K K 4
+        \end{verbatim}
+	      S K K は恒等関数であるため、main は 4 に減少し、マシンが停止します。
+	      もう少し手の込んだものにしてみてください。
+	      例えば
+	      \begin{verbatim}
+          id = S K K ;
+          id1 = id id ;
+          main = id1 4
+        \end{verbatim}
+	\item[演習 4.2] さらなる性能測定を追加します。
+	      例えば：
+	      \begin{itemize}
+		      \item 実行時間を測定し、\texttt{Take}を除く命令ごとに1つの時間単位をカウントします。
+		            \texttt{Take}は、フレームに含まれる要素と同じ数の時間単位をカウントする必要があります。
+		      \item 実行で割り当てられたヒープの合計量を出力して、ヒープ使用量を測定します。
+		            フレームのサイズを数えて、結果をテンプレートインスタンス化バージョンの結果と直接比較できるようにします。
+		      \item 最大スタック深さを測定します。
+	      \end{itemize}
+	\item[演習 4.3] $n = 0$の場合、\texttt{Take} $n$は何も役に立ちません。
+	      CAFの\texttt{Take}命令を完全に省略することで、\texttt{compileSC}の定義を調整して、この最適化を見つけます。
+\end{description}
+
+\subsubsection{ガベージコレクション \dag}
+
+ヒープベースのシステムと同様に、TIMにはガベージコレクタが必要ですが、少し洗練されたものも必要です。
+いつものように、ガベージコレクタはマシンの状態から開始して、すべてのライブデータを検出します。
+つまり、スタックとフレームポインタからです。
+スタック上の各クロージャはフレームを指しており、明確に保持する必要があります。
+しかし、そのフレームには、さらに別のフレームへのポインタが含まれています。
+問題が発生します: \textbf{特定のフレームが与えられた場合、その中のどのフレームポインタを再帰的に追跡する必要がありますか?}
+\vskip\baselineskip
+
+安全な答えは「それらすべてに従う」ことですが、これには必要以上のデータを保持するリスクがあります。
+たとえば、セクション4.1.4の\texttt{compose2}の例の\texttt{(g x x)}のクロージャには、
+\texttt{f}、\texttt{g}、および\texttt{x}を含むフレームへのポインタがありますが、\texttt{g}と\texttt{x}のクロージャのみが必要です。
+ナイーブなガベージコレクタは、\texttt{f}のクロージャからのフレームポインタもたどり、データを不必要に保持する可能性があります。
+この不要な保持は\textbf{スペースリーク}と呼ばれ、ガベージコレクションが他の場合よりも頻繁に発生する可能性があります。
+\vskip\baselineskip
+
+ただし、この特定のスペースリークは、かなり面倒ではありますが、解消するのは簡単です。
+各クロージャは、フレームポインタとペアになったコードポインタで構成されます。
+コードは、どのフレーム要素が必要になるかを「認識」しており、この情報をコードに記録して、ガベージコレクターが調査できるようにします。
+たとえば、コードポインタと呼んでいるものは、実際には、コードで使用されるスロット番号のリストとコード自体で構成されるペアを指している可能性があります。
+(実際の実装では、リストはビットマスクとしてエンコードされる場合があります。)
+有用なスロットのリストはどのように導出できますか?
+それは簡単です: コンパイルされている式の自由変数を見つけ、環境を使用してそれらをスロット番号にマップするだけです。
 \newpage
 
 \subsection{Mark 2: 算術演算の追加}
