@@ -7269,7 +7269,7 @@ Program ctr: f-code                 x | x-code| x-frm |
 今のところ、私たちのマシンは演算を行わないので、簡単な解決策は \texttt{intCode} を空のコードシーケンスにすることです。
 
 \begin{verbatim}
-  intCode = []
+  intCode = []  -- Mark1 TIM を写経する際は、これを忘れずに！
 \end{verbatim}
 
 整数クロージャが入力されると、マシンは空のコードシーケンスにジャンプし、実行が停止します。
@@ -7394,18 +7394,18 @@ languageモジュールをインポートする必要があります。
 TIM 命令のデータ型は、これまでに紹介した命令に直接対応しています。
 
 \begin{verbatim}
-  data Instruction = Take Int
+  data Instruction = Take  Int
                    | Enter TimAMode
-                   | Push TimAMode
+                   | Push  TimAMode
 \end{verbatim}
 
 アドレッシングモードのタイプである \texttt{timAMode} は、\texttt{Push} と \texttt{Enter} の関係を強調するために、
 別個のデータタイプとして分離されています。
 
 \begin{verbatim}
-  data TimAMode = Arg Int
-                | Label [Char]
-                | Code [Instruction]
+  data TimAMode = Arg      Int
+                | Label    [Char]
+                | Code     [Instruction]
                 | IntConst Int
 \end{verbatim}
 
@@ -7441,21 +7441,21 @@ TIMマシンの状態は、次の定義によって与えられます。
 	      これを行わないと、アドレスを数値として使用しようとすると、Mirandaは(正当に)型エラーを報告します。
 	      さらに、初期化されていない状態の \texttt{FrameNull}のコンストラクタがあるということは、
 	      初期化されていない値を有効なアドレスとして誤って使用しようとした場合に、インタープリタが検出することを意味します。
-  \item \textbf{スタック}には\textbf{クロージャ}が含まれており、それぞれがコード ポインタとフレーム ポインタを含むペアです。
-        スタックをリストとして表します。
-        \begin{verbatim}
+	\item \textbf{スタック}には\textbf{クロージャ}が含まれており、それぞれがコード ポインタとフレーム ポインタを含むペアです。
+	      スタックをリストとして表します。
+	      \begin{verbatim}
           type TimStack = [Closure]
           type Closure = ([Instruction], FramePtr)
         \end{verbatim}
-  \item 値スタックとダンプは最初からまったく使用されていないため、nullary コンストラクターが 1 つだけあるダミーの代数データ型でそれぞれを表します。
-        後で、これらの定義をより興味深いものに置き換えます。
-        \begin{verbatim}
+	\item 値スタックとダンプは最初からまったく使用されていないため、nullary コンストラクターが 1 つだけあるダミーの代数データ型でそれぞれを表します。
+	      後で、これらの定義をより興味深いものに置き換えます。
+	      \begin{verbatim}
           data TimValueStack = DummyTimValueStack
           data TimDump = DummyTimDump
         \end{verbatim}
-  \item \textbf{ヒープ}には\textbf{フレーム}が含まれており、それぞれがクロージャーのタプルです。
-        フレームのデータ型は、独自の抽象データ型に値するほど重要です。
-        \begin{verbatim}
+	\item \textbf{ヒープ}には\textbf{フレーム}が含まれており、それぞれがクロージャーのタプルです。
+	      フレームのデータ型は、独自の抽象データ型に値するほど重要です。
+	      \begin{verbatim}
           type TimHeap = Heap Frame
 
           fAlloc  :: TimHeap -> [Closure] -> (TimHeap, FramePtr)
@@ -7463,10 +7463,10 @@ TIMマシンの状態は、次の定義によって与えられます。
           fUpdate :: TimHeap -> FramePtr -> Int -> Closure -> TimHeap
           fList   :: Frame -> [Closure] -- Used when printing
         \end{verbatim}
-        これらの操作により、フレームを構築し、コンポーネントを抽出して更新できます。
-        \texttt{fGet} と \texttt{fUpdate} のために、\texttt{fAlloc} に与えられるリストの最初の要素には \texttt{1} の番号が付けられます。
-        これは、リストに基づく簡単な実装です。
-        \begin{verbatim}
+	      これらの操作により、フレームを構築し、コンポーネントを抽出して更新できます。
+	      \texttt{fGet} と \texttt{fUpdate} のために、\texttt{fAlloc} に与えられるリストの最初の要素には \texttt{1} の番号が付けられます。
+	      これは、リストに基づく簡単な実装です。
+	      \begin{verbatim}
           type Frame = [Closure]
 
           fAlloc heap xs = (heap', FrameAddr addr)
@@ -7485,19 +7485,19 @@ TIMマシンの状態は、次の定義によって与えられます。
 
           fList f = f
         \end{verbatim}
-  \item ラベルごとに、\textbf{コードストア}は対応するコンパイル済みコードを提供します。
-        \begin{verbatim}
+	\item ラベルごとに、\textbf{コードストア}は対応するコンパイル済みコードを提供します。
+	      \begin{verbatim}
           type CodeStore = ASSOC Name [Instruction]
         \end{verbatim}
-        この機会に、失敗した場合にエラー メッセージを生成するラベルのルックアップ関数を提供します。
-        \begin{verbatim}
+	      この機会に、失敗した場合にエラー メッセージを生成するラベルのルックアップ関数を提供します。
+	      \begin{verbatim}
           codeLookup :: CodeStore -> Name -> [Instruction]
           codeLookup cstore l
             = aLookup cstore l (error ("Attempt to jump to unknown label "
                                        ++ show l))
         \end{verbatim}
-  \item いつものように、\textbf{統計}を簡単に追加できる抽象データ型にします。
-        \begin{verbatim}
+	\item いつものように、\textbf{統計}を簡単に追加できる抽象データ型にします。
+	      \begin{verbatim}
           statInitial :: TimStats
           statIncSteps :: TimStats -> TimStats
           statGetSteps :: TimStats -> Int
@@ -7616,10 +7616,11 @@ Gマシンのコンパイラは、名前からスタックオフセットへの�
 
 \begin{verbatim}
   eval state
-    = state : rest_states where
-                            rest_states | timFinal state = []
-                                        | otherwise      = eval next_state
-                            next_state = doAdmin (step state)
+    = state : rest_states
+      where
+        rest_states | timFinal state = []
+                    | otherwise      = eval next_state
+        next_state = doAdmin (step state)
 
   doAdmin state = applyToStats statIncSteps state
 \end{verbatim}
@@ -7648,7 +7649,8 @@ Gマシンのコンパイラは、名前からスタックオフセットへの�
 
 \begin{verbatim}
   step ((Take n:instr), fptr, stack, vstack, dump, heap, cstore,stats)
-    | length stack >= n = (instr, fptr', drop n stack, vstack, dump, heap', cstore, stats)
+    | length stack >= n = (instr, fptr', drop n stack, vstack, dump,
+                           heap', cstore, stats)
     | otherwise     = error "Too few args for Take instruction"
     where (heap', fptr') = fAlloc heap (take n stack)
 \end{verbatim}
@@ -7910,9 +7912,136 @@ showFrame は状態のフレーム コンポーネントを表示し、showClosu
 \newpage
 
 \subsection{Mark 2: 算術演算の追加}
-\subsubsection{Overview: How arithmetic works}
-\subsubsection{Adding simple arithmetic to the implementation}
-\subsubsection{Compilation schemes for arithmetic}
+
+このセクションでは、マシンに算術演算を追加します。
+
+\subsubsection{概要: 算術演算の仕組み}
+
+オリジナルの Fairbairn と Wray の TIM マシンは、算術を行うためのかなり悪質なスキームを持っていました。
+彼らの主な動機は、マシンを\textbf{最小限}に抑えることでしたが、彼らのアプローチは非常に理解しにくく、
+効率的な実装を行うにはかなりの修正が必要です。
+\vskip\baselineskip
+
+代わりに、GマシンのVスタックとまったく同じようにTIMを変更します (セクション 3.9)。
+(評価され、ボックス化されていない)整数のスタックである\textbf{値スタック}を導入することにより、状態を変更します。
+値スタックの最上位要素で算術演算$op$を実行し、値スタックの最上位に結果を残す命令\texttt{Op} $op$ファミリーで命令セットを拡張します。
+たとえば、\texttt{Op Sub}命令は、値スタックの上位2つの要素を削除し、それらを減算して、結果を値スタックにプッシュします。
+\vskip\baselineskip
+
+\begin{tabular} {|c|l r l r r l l|} \hline
+	(4.10) &                   & \texttt{Op} \texttt{Sub} : $i$ & $f$ & $s$ & $n_1$ : $n_2$ : $v$ & $h$ & $c$ \\
+	       & $\Longrightarrow$ & $i$                            & $f$ & $s$ & $(n_1 - n_2)$ : $v$ & $h$ & $c$ \\ \hline
+\end{tabular}
+\vskip\baselineskip
+
+このようにして、\texttt{Op Add}、\texttt{Op Sub}、\texttt{Op Mult}、\texttt{Op Div}、\texttt{Op Neg}などの
+算術命令の完全なファミリを簡単に定義できます。
+\vskip\baselineskip
+
+次に、以下の関数\texttt{sub}を考えてみましょう。
+
+\begin{verbatim}
+  sub a b = a - b
+\end{verbatim}
+
+\texttt{sub}用にどのコードを生成する必要がありますか?
+次の手順を実行する必要があります。
+
+\begin{enumerate}
+	\item 引数をフレームに形成する通常の\texttt{Take 2}。
+	\item \texttt{b}を評価し、その値を値スタックに置きます。
+	\item 同様にして\texttt{a}を評価します。
+	\item \texttt{Op Sub}命令を使用して\texttt{a}の値から\texttt{b}の値を引き、その結果を値スタックの一番上に残します。
+	\item 「呼び出し元」に「戻る」。
+\end{enumerate}
+
+まず、\texttt{a}と\texttt{b}の評価を考えます。
+それらはクロージャによって表され、現在のフレームに保持されます。クロージャに対してできることは、それを入力することだけです。
+おそらく\texttt{a}を評価するには、\texttt{a}のクロージャを入力する必要がありますが、整数値のクロージャを入力するとはどういう意味でしょうか?
+これまで関数を入力しただけで、整数は関数ではありません。
+重要なアイデアは次のとおりです。
+
+\begin{quote}
+	整数不変: \textbf{整数値のクロージャが入力されると、整数の値が計算され、それが値スタックにプッシュされ、引数スタックの一番上のクロージャが入力されます。}
+\end{quote}
+
+引数スタックの一番上にあるクロージャは、整数の評価が完了したら次に何をすべきかを示しているため、\textbf{継続}と呼ばれます。
+継続は、整数の評価が完了したときに何をすべきかを示す命令シーケンスと、現在のフレームポインタ(整数の評価によって妨害された場合)で構成されます。
+つまり、継続は完全に通常のクロージャです。
+\vskip\baselineskip
+
+したがって、\texttt{sub}のコードは次のようになります。
+
+\begin{verbatim}
+  sub: Take 2
+       Push (Label L1)  -- Push the continuation
+       Enter (Arg 2)    -- Evaluate b
+
+  L1:  Push (Label L2)  -- Push another continuation
+       Enter (Arg 1)    -- Evaluate a
+
+  L2:  Op Sub           -- Compute a-b on value stack
+\end{verbatim}
+
+\texttt{Return}命令は何をすべきですか？
+\texttt{sub}によって返される値は整数であり、\texttt{Op Sub}命令の後、この整数は値スタックの一番上にあるため、
+\texttt{Return}がしなければならないことは、引数スタックの一番上にクロージャをポップして入力することだけです。
+\vskip\baselineskip
+
+\begin{tabular} {|c|l r l r r l l|} \hline
+	(4.11) &                   & [\texttt{Return}] & $f$  & ($i'$, $f'$) : $s$ & $v$ & $h$ & $c$ \\
+	       & $\Longrightarrow$ & $i'$              & $f'$ & $s$                & $v$ & $h$ & $c$ \\ \hline
+\end{tabular}
+\vskip\baselineskip
+
+ラベルを使用して、\texttt{sub}のコードを記述しました。
+これが唯一の方法ではありません。
+別の方法として、\texttt{Push Code}命令を使用する方法があります。
+これにより、面倒な新しいラベルを作成する必要がなくなります。
+このスタイルでは、\texttt{sub}のコードは次のようになります。
+
+\begin{verbatim}
+  sub: Take 2
+       Push (Code [ Push (Code [Op Sub, Return]),
+                    Enter (Arg 1)
+            ])
+       Enter (Arg 2)
+\end{verbatim}
+
+このように書かれていると、ラベルを使用するよりも何が起こっているかを確認するのが簡単ではないため、
+コードの断片を理解しやすくするために説明では引き続きラベルを使用しますが、
+コンパイラでは\texttt{Push Code}バージョンを使用します。
+\vskip\baselineskip
+
+ここで、整数定数の問題に戻る必要があります。
+\texttt{(sub 4 2)}という式を考えてみましょう。
+以下のコードにコンパイルされます
+
+\begin{verbatim}
+  Push (IntConst 2)
+  Push (IntConst 4)
+  Enter (Label "sub")
+\end{verbatim}
+
+\texttt{sub}のコードはすぐにクロージャ\texttt{(IntConst 2)}に入り、フレームポインタに整数\texttt{2}を配置して\texttt{intCode}にジャンプします。
+現在、\texttt{intCode}は空のコードシーケンスです(整数を入力するとマシンが停止します)が、これを変更する必要があります。
+\texttt{intCode}は今何をすべきか?
+答えは整数不変式によって与えられます: 整数を値スタックにプッシュして返す必要があるため、次のようになります。
+
+\begin{verbatim}
+  intCode = [PushV FramePtr, Return]
+\end{verbatim}
+
+\texttt{PushV FramePtr}は、現在フレームポインタとして偽装されている数値を値スタックの一番上にプッシュする新しい命令です。
+\vskip\baselineskip
+
+\begin{tabular} {|c|l r l r r l l|} \hline
+	(4.12) &                   & \texttt{PushV FramePtr} : $i$ & $n$ & $s$ & $v$       & $h$ & $c$ \\
+	       & $\Longrightarrow$ & $i$                           & $n$ & $s$ & $n$ : $v$ & $h$ & $c$ \\ \hline
+\end{tabular}
+
+\subsubsection{実装への単純な算術演算の追加}
+\subsubsection{算術演算のコンパイルスキーム}
 \newpage
 
 \subsection{Mark 3: \texttt{let(rec)}式}
