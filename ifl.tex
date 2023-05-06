@@ -33,7 +33,7 @@
 
 この本の主な内容は、コア言語と呼ばれる小さな関数型言語の一連の実装です。
 コア言語は可能な限り小さく設計されているため、実装は簡単ですが、効率を損なうことなく最新の非厳密な関数型言語をコア言語に変換できるほどrichです。
-これについては、第1章で詳しく説明します。この章では、コア言語用のパーサーとプリティプリンターも開発しています。
+これについては、第1章で詳しく説明します。この章では、コア言語用のパーサとプリティプリンタも開発しています。
 \vskip\baselineskip
 
 Appendix Bには、本書全体でテストプログラムとして使用するためのコア言語プログラムのセレクションが含まれています。
@@ -1094,7 +1094,7 @@ twoCharOps = ["==", "~=", ">=", "<=", "->"]
 
 	      \texttt{twoCharOps}の\texttt{member}をトークンとして認識するように\texttt{lex}を変更します。
 	      (標準関数メンバーが役立つ場合があります。)
-	\item[演習 1.11] 字句解析では空白が破棄されるため、パーサーは構文エラーの行番号を報告できません。
+	\item[演習 1.11] 字句解析では空白が破棄されるため、パーサは構文エラーの行番号を報告できません。
 	      この問題を解決する1つの方法は、各トークンに行番号を付けることです。
 	      つまり、タイプ\texttt{token}は次のようになります。
 
@@ -1123,15 +1123,15 @@ token == (num, [char])
 ここで、\textit{person}は文字で始まるトークンです。
 \vskip\baselineskip
 
-関数型プログラミングで非常に一般的な私たちの一般的なアプローチは、小さなパーサーを接着して大きなパーサーを構築しようとすることです。
-重要な質問は、パーサーのタイプはどうあるべきかということです。
+関数型プログラミングで非常に一般的な私たちの一般的なアプローチは、小さなパーサを接着して大きなパーサを構築しようとすることです。
+重要な質問は、パーサのタイプはどうあるべきかということです。
 これは、トークンのリストを引数として受け取る関数であり、最初は、解析された値を返すだけでよいように見えます。
 しかし、これは2つの理由から、十分に一般的ではありません。
 
 \begin{enumerate}
 	\item まず、トークンの残りのリストも返す必要があります。
-	      たとえば、入力から2つの項目を次々に解析する場合は、最初のパーサーを入力に適用できますが、
-	      最初のパーサーから返された残りの入力に2番目のパーサーを適用する必要があります。
+	      たとえば、入力から2つの項目を次々に解析する場合は、最初のパーサを入力に適用できますが、
+	      最初のパーサから返された残りの入力に2番目のパーサを適用する必要があります。
 	\item 次に、文法があいまいな場合があるため、入力を解析する方法は複数あります。
 	      または、入力が文法に準拠していない可能性があります。
 	      その場合、入力を正常に解析する方法はありません。
@@ -1139,7 +1139,7 @@ token == (num, [char])
 	      このリストは、入力を解析する方法がない場合は空であり、入力を解析する独自の方法がある場合は1つの要素を含みます。
 \end{enumerate}
 
-次のように、型シノニムを使用してパーサーの型を定義することにより、結論を要約できます。
+次のように、型シノニムを使用してパーサの型を定義することにより、結論を要約できます。
 
 \begin{verbatim}
 type Parser a = [Token] -> [(a, [Token])]
@@ -1150,7 +1150,7 @@ type Parser a = [Token] -> [(a, [Token])]
 
 \subsubsection{ツールを鋭利にする}
 
-これで、パーサーを開発するための基本的なツールが完成しました。
+これで、パーサを開発するための基本的なツールが完成しました。
 このセクションでは、さまざまな方法でそれらを開発します。
 \vskip\baselineskip
 文法では人の名前の後に感嘆符が必要なため、上記のpGreetingの定義は完全には正しくありません。
@@ -1207,7 +1207,7 @@ pGreetings = pZeroOrMore pGreeting
 pZeroOrMore p = (pOneOrMore p) `pAlt` (pEmpty [])
 \end{verbatim}
 
-ここで、\texttt{pEmpty}は常に成功するパーサーであり、入力から何も削除せず、最初の引数として指定された値を返します。
+ここで、\texttt{pEmpty}は常に成功するパーサであり、入力から何も削除せず、最初の引数として指定された値を返します。
 
 \begin{verbatim}
 pEmpty :: a -> Parser a
@@ -1267,12 +1267,12 @@ pOneOrMoreWithSep :: Parser a -> Parser b -> Parser [a]
 		      \end{tabular}
 	      \end{center}
 
-	      ここで、$\epsilon$は空の文字列(\texttt{pEmpty}パーサーに対応)です。
+	      ここで、$\epsilon$は空の文字列(\texttt{pEmpty}パーサに対応)です。
 \end{description}
 
 パーサ\texttt{pLit}と\texttt{pVar}は互いに非常に似ています。
 どちらも最初のトークンのプロパティをテストし、失敗するか(プロパティがない場合)、成功してトークン内の文字列を返します(トークンがある場合)。
-このアイデアを一般化するには、パーサー\texttt{pSat}('sat'は'satisfies'の略)を次のように記述します。
+このアイデアを一般化するには、パーサ\texttt{pSat}('sat'は'satisfies'の略)を次のように記述します。
 
 \begin{verbatim}
 pSat :: (String -> Bool) -> Parser String
@@ -1426,7 +1426,7 @@ pSc = pThen4 mk_sc pVar (pZeroOrMore pVar) (pLit "=") pExpr
 \[ expr \rightarrow aexpr_1 \ldots aexpr_n ~ (n \geq 1) \]
 これで、パーサ\texttt{(pOneOrMore pAexpr)}を使用できるようになりました。
 問題は、これがEApコンストラクターで作成された単一の式ではなく、式のリストを返すことです。
-pApplyを使用してこれを解決し、パーサーを提供します
+pApplyを使用してこれを解決し、パーサを提供します
 
 \begin{verbatim}
 (pOneOrMore pAexpr) $ pApply mk_ap_chain
@@ -1469,7 +1469,7 @@ pApplyを使用してこれを解決し、パーサーを提供します
 \texttt{|}および\texttt{＆}は右結合ですが、関係演算子は非結合です。
 非常に多くのルールを書き出さなければならないのはかなり面倒ですが、私たちはずっと意味していることを明確にしているだけです。
 しかし、ここで2番目の問題が発生します。
-これらのルールから直接実装されたパーサーはひどく非効率的です。
+これらのルールから直接実装されたパーサはひどく非効率的です。
 \textit{expr1}のプロダクションを考えてみましょう。
 ナイーブなパーサは\textit{expr2}を認識しようとし、次に垂直バー\texttt{|}を探します。
 検出されなかった場合(よくあることですが)、元の入力を手間をかけて再解析して、\textit{expr2}を再度検索します。
@@ -1505,14 +1505,14 @@ data PartialExpr = NoOp
                  | FoundOp Name CoreExpr
 \end{verbatim}
 
-これで、次のように\textit{expr1c}のパーサーを定義できます。
+これで、次のように\textit{expr1c}のパーサを定義できます。
 
 \begin{verbatim}
 pExpr1c :: Parser PartialExpr
 pExpr1c = (pThen FoundOp (pLit "|") pExpr1) `pAlt` (pEmpty NoOp)
 \end{verbatim}
 
-\textit{expr1}のパーサーは、\texttt{pExpr1}によって返される中間結果を分解します：
+\textit{expr1}のパーサは、\texttt{pExpr1}によって返される中間結果を分解します：
 
 \begin{verbatim}
 pExpr1 :: Parser CoreExpr
@@ -1529,16 +1529,16 @@ assembleOp e1 (FoundOp op e2) = EAp (EAp (EVar op) e1) e2
 
 \subsubsection{まとめ}
 
-パーサー構築関数のライブラリによって効率的に処理できる文法は、LL(1) 文法と呼ばれます。
-これは、従来の再帰降下パーサーによって処理できるものとまったく同じクラスです [Aho et al. 1986]。
+パーサ構築関数のライブラリによって効率的に処理できる文法は、LL(1) 文法と呼ばれます。
+これは、従来の再帰降下パーサによって処理できるものとまったく同じクラスです [Aho et al. 1986]。
 \vskip\baselineskip
 
-ライブラリを使用すると、非常に簡潔なパーサーを簡単に作成できます。
+ライブラリを使用すると、非常に簡潔なパーサを簡単に作成できます。
 ほとんどすべてのプログラムには何らかの入力言語があり、プログラムによって解析される必要があるため、これは重要で便利なプロパティです。
 \vskip\baselineskip
 
 気をつけなければならないことはたくさんありますが (左再帰、演算子の優先順位、共有)、
-実装されている言語に関係なく、再帰降下パーサーではまったく同じ問題が発生します。
+実装されている言語に関係なく、再帰降下パーサではまったく同じ問題が発生します。
 \newpage
 
 \begin{verbatim}
@@ -3953,7 +3953,7 @@ redexを新しくインスタンス化された本体に置き換え、\texttt{S
   runProg = showResults . eval . compile . parse
 \end{verbatim}
 
-アクセスする必要があるため、パーサーのデータ構造と関数が含まれています。
+アクセスする必要があるため、パーサのデータ構造と関数が含まれています。
 
 \begin{verbatim}
   -- :a language.lhs -- parser data types
@@ -8041,6 +8041,101 @@ showFrame は状態のフレーム コンポーネントを表示し、showClosu
 \end{tabular}
 
 \subsubsection{実装への単純な算術演算の追加}
+
+これで、実装を変更する準備が整いました。 各算術関数のコードを\texttt{compiledPrimitives}に追加することで、変更を最小限に抑えます。
+プログラムで(たとえば)\texttt{p-q}と書くと、パーサはそれを次のように変換することを思い出してください。
+
+\begin{verbatim}
+  EAp (EAp (EVar "-") (EVar "p")) (EVar "q")
+\end{verbatim}
+
+プリミティブ\texttt{-}に適したコードを作成し、このコードをコードストアに追加するだけです。
+コンパイラは、他のスーパーコンビネータと同じように\texttt{-}を扱います。
+最後に、必要な\texttt{-}のコードは、前のセクションで作成した\texttt{sub}とまったく同じであり、
+他の算術演算についても同様のコードを簡単に作成できます。
+\vskip\baselineskip
+
+したがって、必要な手順は次のとおりです。
+
+\begin{itemize}
+	\item 次の型定義と値スタックの初期化を追加します。
+	      \begin{verbatim}
+          type TimValueStack = [Int]
+          initialValueStack = []
+        \end{verbatim}
+	\item 新しい命令\texttt{PushV}、\texttt{Return}、および\texttt{Op}を\texttt{instruction}型に追加します。
+	      この機会に、\texttt{Cond}という命令を1つ追加します。これについてはまだ説明していませんが、後の演習の対象となります。
+	      TIMはもはや3命令マシンではありません！
+	      \begin{verbatim}
+          data Instruction = Take Int
+                           | Push TimAMode
+                           | PushV ValueAMode
+                           | Enter TimAMode
+                           | Return
+                           | Op Op
+                           | Cond [Instruction] [Instruction]
+          data Op = Add | Sub | Mult | Div | Neg
+                  | Gr | GrEq | Lt | LtEq | Eq | NotEq
+                deriving (Eq) -- KH
+        \end{verbatim}
+	      これまでのところ、\texttt{PushV}命令の引数は\texttt{FramePtr}のみですが、
+	      リテラル定数を値スタックにプッシュできるようにする2番目の形式をすぐに追加します。
+	      したがって、\texttt{valueAMode}の代数データ型を宣言する価値があります。
+	      \begin{verbatim}
+          data ValueAMode = FramePtr
+                          | IntVConst Int
+        \end{verbatim}
+	      この追加構造を処理するには、\texttt{showInstruction}関数を変更する必要があります。
+	\item \texttt{step}関数を変更して、追加の命令を実装します。
+	      これは、状態遷移規則をMirandaに翻訳する問題です。
+	\item \texttt{+}、\texttt{-}などの適切な定義を\texttt{compiledPrimitives}に追加します。
+	\item \texttt{intCode}が空でなくなったので、スタックを初期化して、
+	      \texttt{main}が戻るための適切な継続(戻りアドレス)を持たせる必要があります。
+	      これを行う方法は、\texttt{initialArgStack}を再定義することにより、
+	      \texttt{compile}にクロージャ\texttt{([], FrameNull)}でスタックを初期化させることです。
+	      \begin{verbatim}
+          initialArgStack = [([], FrameNull)]
+        \end{verbatim}
+	      この継続には空のコードシーケンスがあるため、マシンは結果を値スタックの上に置いて停止します。
+\end{itemize}
+
+\begin{description}
+	\item[演習 4.4] これらの変更をプロトタイプに実装します。
+	      簡単な例で試してみてください。
+	      例えば
+	      \begin{verbatim}
+          four = 2 * 2
+        our + four
+        \end{verbatim}
+	\item[演習 4.5] まだ条件式がなく、条件式がなければ再帰を使用できないため、まだ「興味深い」プログラムを実行できません。
+	      簡単な解決策は、新しい命令\texttt{Cond i1 i2}を追加することです。
+	      この命令は、値スタックの一番上から値を削除し、それがゼロかどうかをチェックし、
+	      ゼロである場合は命令シーケンス\texttt{i1}を続行し、そうでない場合は\texttt{i2}を続行します。
+	      その状態遷移規則は次のとおりです。
+	      \vskip\baselineskip
+	      \begin{tabular} {|c|l r l r r l l|} \hline
+		      (4.13) &                   & [\texttt{Cond} ~ $i_1$ ~ $i_2$]          & $f$ & $s$ & $0$ : $v$ & $h$ & $c$ \\
+		             & $\Longrightarrow$ & $i_1$                                    & $f$ & $s$ & $v$       & $h$ & $c$ \\ \hline
+		             &                   & [\texttt{Cond} ~ $i_1$ ~ $i_2$]          & $f$ & $s$ & $n$ : $v$ & $h$ & $c$ \\
+		      (4.13) & $\Longrightarrow$ & $i_2$                                    & $f$ & $s$ & $v$       & $h$ & $c$ \\
+		             &                   & \multicolumn {6} {l|} {ここで$n \neq 0$}                                     \\ \hline
+	      \end{tabular}
+	      \vskip\baselineskip
+	      最初のルールは、ゼロが値スタックの一番上にある場合に一致します。
+	      それ以外の場合は、2番目の規則が適用されます。
+	      次のように動作するプリミティブ\texttt{if}も追加する必要があります。
+	      \begin{verbatim}
+          if 0 t f = t
+          if n t f = f
+        \end{verbatim}
+	      \texttt{Cond}命令を使用して\texttt{if}のTIMコードを作成し、それを\texttt{compiledPrimitives}に追加する必要があります。
+	      最後に、階乗関数を使用して改善されたシステムをテストできます。
+	      \begin{verbatim}
+          factorial n = if n 1 (n * factorial (n-1))
+          main = factorial 3
+        \end{verbatim}
+\end{description}
+
 \subsubsection{算術演算のコンパイルスキーム}
 \newpage
 
