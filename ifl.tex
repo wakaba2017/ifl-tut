@@ -8137,6 +8137,124 @@ showFrame は状態のフレーム コンポーネントを表示し、showClosu
 \end{description}
 
 \subsubsection{算術演算のコンパイルスキーム}
+
+Gマシンの場合と同様に、現在行っているマシン用のコンパイルよりもはるかに優れた仕事を行うことができます。
+次のような関数を考えてみましょう
+
+\begin{verbatim}
+  f x y z = (x+y) * z
+\end{verbatim}
+
+現状では、これは次のように解析されます
+
+\begin{verbatim}
+  f x y z = * (+ x y) z
+\end{verbatim}
+
+\texttt{f}のコードがコンパイルされ、標準関数\texttt{*}および\texttt{+}が呼び出されます。
+しかし、これよりもはるかに良いことができます!
+たとえば、\texttt{(+ x y)}のクロージャを作成して\texttt{*}に渡す代わりに、次の手順を使用してインラインで操作を行うことができます。
+
+\begin{enumerate}
+	\item \texttt{x}を評価する
+	\item \texttt{y}を評価する
+	\item それらを加算する
+	\item \texttt{z}を評価する
+	\item 乗算する
+	\item 戻る
+\end{enumerate}
+
+クロージャを構築する必要はなく、ジャンプを行う必要もありません
+(\texttt{x}、\texttt{y}、\texttt{z}を評価するために必要なものを除く)。
+\vskip\baselineskip
+
+この改善を表現するために、値が整数である式を処理する新しいコンパイルスキーム、$\mathcal{B}$スキームを導入します。
+次のように定義されます: 値が整数である任意の式$e$と、任意のコード シーケンス$cont$に対して、
+
+\begin{quotation}
+	\textbf{$(\mathcal{B} \llbracket e \rrbracket ~ \rho ~ cont)$は、
+		現在のフレームが$\rho$で記述されているようにレイアウトされた状態で実行されると、
+		式$e$の値を値スタックにプッシュしてから、コードシーケンス$cont$を実行するコードシーケンスです。}
+\end{quotation}
+
+コンパイルスキームは\textbf{継続渡しスタイル}を使用します。
+このスタイルでは、$cont$引数が、値が計算された後に何をすべきかを示します。
+\vskip\baselineskip
+
+図4.2は、改訂された$\mathcal{R}$および$\mathcal{A}$スキームと共に、$\mathcal{B}$コンパイルスキームを示しています。
+$\mathcal{R}$が算術式である式を見つけると、それをコンパイルするために$\mathcal{B}$を呼び出します。
+$\mathcal{B}$には、継続を明示的にプッシュすることを回避する、定数および算術演算子の適用に関する特殊なケースがあります。
+特別に処理できない式に遭遇した場合は、継続をプッシュして$\mathcal{R}$を呼び出すだけです。
+\vskip\baselineskip
+
+\begin{tabular} {|l|} \hline
+	$\mathcal{R} \llbracket e \rrbracket ~ \rho$は、環境$\rho$の式$e$の値をスタック上の引数に適用するTIMコードです。 \\
+	\\
+	\begin{tabular}{r c l}
+		$\mathcal{R} \llbracket e \rrbracket ~ \rho$         & $=$ & $\mathcal{B} \llbracket e \rrbracket ~ \rho$ [\texttt{Return}]                                                           \\
+		                                                     &     & ここで、$e$は$e_1 + e_2$などの算術式、または数値です。                                                                   \\
+		$\mathcal{R} \llbracket e_1 ~ e_2 \rrbracket ~ \rho$ & $=$ & \texttt{Push} ($\mathcal{A} \llbracket e_2 \rrbracket ~ \rho$) \texttt{:} $\mathcal{R} \llbracket e_1 \rrbracket ~ \rho$ \\
+		$\mathcal{R} \llbracket a \rrbracket ~ \rho$         & $=$ & \texttt{Enter} ($\mathcal{A} \llbracket a \rrbracket ~ \rho$)                                                            \\
+		                                                     &     & ここで、$a$ は整数、変数、またはスーパーコンビネータです。                                                               \\
+	\end{tabular}
+	\\ \hline
+	$\mathcal{A} \llbracket e \rrbracket ~ \rho$は、環境$\rho$における式$e$のTIMアドレッシングモードです。           \\
+	\\
+	\begin{tabular}{r c l l}
+		$\mathcal{A} \llbracket x \rrbracket ~ \rho$ & $=$ & $\rho ~ x$                                                   & ここで、$x$ は $\rho$ によって束縛されます。 \\
+		$\mathcal{A} \llbracket n \rrbracket ~ \rho$ & $=$ & \texttt{IntConst} $n$                                        & ここで、$n$ は整数定数です。                 \\
+		$\mathcal{A} \llbracket e \rrbracket ~ \rho$ & $=$ & \texttt{Code} ($\mathcal{R} \llbracket e \rrbracket ~ \rho$) & その他                                       \\
+	\end{tabular}
+	\\ \hline
+	$\mathcal{B} \llbracket e \rrbracket ~ \rho$は、環境$\rho$で式$e$を評価して、                                    \\
+	その値(整数でなければならない)を値スタックの一番上に置き、                                                       \\
+	コード シーケンス$cont$を続行するTIMコードです。                                                                 \\
+	\\
+	\begin{tabular}{r c l l}
+		$\mathcal{B} \llbracket n \rrbracket ~ \rho ~ cont$                      & $=$                                                                    & $\mathcal{B} \llbracket e_2 \rrbracket ~ \rho ~ (\mathcal{B} \llbracket e_1 \rrbracket ~ \rho ~ (\texttt{Op Add :} ~ cont))$ &                         \\
+		                                                                         & \multicolumn {3} {l|} {$\ldots$および他の算術プリミティブの同様の規則}                                                                                                                                                          \\
+		$\mathcal{B} \llbracket ~ e_1 \texttt{+} ~ e_2 \rrbracket ~ \rho ~ cont$ & $=$                                                                    & $\texttt{PushV} ~ (\texttt{IntVConst} ~ n) ~ \texttt{:} ~ cont$                                                              & ここで、$n$は数値です。 \\
+		$\mathcal{B} \llbracket e \rrbracket ~ \rho$                             & $=$                                                                    & \texttt{Push} (\texttt{Code} $cont$) \texttt{:} $\mathcal{R} \llbracket e \rrbracket ~ \rho$                                 & その他                  \\
+	\end{tabular}
+	\\ \hline
+\end{tabular}
+\vskip\baselineskip
+
+必要な新しい命令が1つあります。これは、$\mathcal{B}$が定数をコンパイルするように要求されたときに使用されます。
+その時には、整数定数を値スタックにプッシュする命令\texttt{PushV} (\texttt{IntVConst} $n$)が必要です。
+その遷移規則は非常に単純です。
+\vskip\baselineskip
+
+\begin{tabular} {|c|l r l r r l l|} \hline
+	(4.14) &                   & \texttt{PushV} (\texttt{IntVCont} $n$) : $i$ & $f$ & $s$ & $v$       & $h$ & $c$ \\
+	       & $\Longrightarrow$ & $i$                                          & $f$ & $s$ & $n$ : $v$ & $h$ & $c$ \\ \hline
+\end{tabular}
+
+\begin{description}
+	\item[演習 4.6] 改善されたコンパイル スキームを実装します。
+	      実装のパフォーマンスを以前のパフォーマンスと比較します。
+	\item[演習 4.7] $\mathcal{R}$スキームに新しいルールを追加して、\texttt{if}の(完全な)アプリケーションに一致させます。
+	      \texttt{if}プリミティブを呼び出して取得するよりもはるかに優れたコードを生成できるはずです。
+	      変更を実装し、パフォーマンスの改善を測定します。
+  \item[演習 4.8] 次のように、より一般的な算術比較を処理するために条件を一般化するとします。
+        \begin{verbatim}
+          fib n = if (n < 2) 1 (fib (n-1) + fib (n-2))
+        \end{verbatim}
+        必要なのは、値スタックの上位2つの項目をポップし、それらを比較し、比較の結果に応じて値スタックに1または0をプッシュする新しい命令\texttt{Op Lt}です。
+        次に、\texttt{Cond}命令がこの結果を検査します。
+
+        このような比較命令のファミリを実装し、他の算術演算子とまったく同じ方法で、それらの特殊なケースを$\mathcal{B}$スキームに追加します。
+        あなたの改善をテストします。
+  \item[演習 4.9] 前の練習問題で、追加の比較モードを持つように\texttt{Cond}命令を変更しなかった理由を疑問に思ったかもしれません。
+        次に、このモードに従って値スタックの上位2つの項目を比較し、それに応じて動作します。
+        なぜこれをしなかったのですか？
+        ヒント: このようなプログラムはどうなるでしょうか?
+        \begin{verbatim}
+          multipleof3 x = ((x / 3) * 3) == x
+          f y = if (multipleof3 y) 0 1
+        \end{verbatim}
+\end{description}
+このセクションの内容は[Argo 1989]で説明されており、[Peyton Jones 1987]の第20章で説明されている改良されたGマシンコンパイルスキームに正確に対応しています。
 \newpage
 
 \subsection{Mark 3: \texttt{let(rec)}式}
