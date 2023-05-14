@@ -122,20 +122,20 @@ compiledPrimitives = []
 
 type TimCompilerEnv = [(Name, TimAMode)]
 
-compileSC :: TimCompilerEnv -> CoreScDefn -> (Name, [Instruction])
+compileSC :: TimCompilerEnv -> CoreScDefn -> (Name, [Instruction])  -- SCスキーム
 compileSC env (name, args, body)
   = (name, Take (length args) : instructions)
     where
       instructions = compileR body new_env
       new_env = (zip2 args (map Arg [1..])) ++ env
 
-compileR :: CoreExpr -> TimCompilerEnv -> [Instruction]
+compileR :: CoreExpr -> TimCompilerEnv -> [Instruction]  -- Rスキーム
 compileR (EAp e1 e2) env = Push (compileA e2 env) : compileR e1 env
 compileR (EVar v)    env = [Enter (compileA (EVar v) env)]
 compileR (ENum n)    env = [Enter (compileA (ENum n) env)]
 compileR e           env = error "compileR: can't do this yet"
 
-compileA :: CoreExpr -> TimCompilerEnv -> TimAMode
+compileA :: CoreExpr -> TimCompilerEnv -> TimAMode  -- Aスキーム
 compileA (EVar v) env = aLookup env v (error ("Unknown variable " ++ v))
 compileA (ENum n) env = IntConst n
 compileA e env = Code (compileR e env)
