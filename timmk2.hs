@@ -270,40 +270,26 @@ step ([Return], fptr, (instr', fptr') : stack, vstack, dump, heap, cstore, stats
   = (instr', fptr', stack, vstack, dump, heap, cstore, stats)
 step ((PushV FramePtr : instr), (FrameInt n), stack, vstack, dump, heap, cstore, stats)  -- 遷移規則 (4.12)
   = (instr, (FrameInt n), stack, n : vstack, dump, heap, cstore, stats)
-step ((Op Add : instr), fptr, stack, n1 : n2 : vstack, dump, heap, cstore, stats)  -- 遷移規則 (4.10)
-  = (instr, fptr, stack, (n1 + n2) : vstack, dump, heap, cstore, stats)
-step ((Op Sub : instr), fptr, stack, n1 : n2 : vstack, dump, heap, cstore, stats)  -- 遷移規則 (4.10)
-  = (instr, fptr, stack, (n1 - n2) : vstack, dump, heap, cstore, stats)
-step ((Op Mult : instr), fptr, stack, n1 : n2 : vstack, dump, heap, cstore, stats)  -- 遷移規則 (4.10)
-  = (instr, fptr, stack, (n1 * n2) : vstack, dump, heap, cstore, stats)
-step ((Op Div : instr), fptr, stack, n1 : n2 : vstack, dump, heap, cstore, stats)  -- 遷移規則 (4.10)
-  = (instr, fptr, stack, (n1 `div` n2) : vstack, dump, heap, cstore, stats)
 step ((Op Neg : instr), fptr, stack, n : vstack, dump, heap, cstore, stats)  -- 遷移規則 (4.10)
   = (instr, fptr, stack, -n : vstack, dump, heap, cstore, stats)
-step ((Op Gr : instr), fptr, stack, n1 : n2 : vstack, dump, heap, cstore, stats)  -- 遷移規則 (4.10)
+step ((Op op : instr), fptr, stack, n1 : n2 : vstack, dump, heap, cstore, stats)  -- 遷移規則 (4.10)
   = (instr, fptr, stack, result : vstack, dump, heap, cstore, stats)
-    where result | n1 > n2   = 1
-                 | otherwise = 0
-step ((Op GrEq : instr), fptr, stack, n1 : n2 : vstack, dump, heap, cstore, stats)  -- 遷移規則 (4.10)
-  = (instr, fptr, stack, result : vstack, dump, heap, cstore, stats)
-    where result | n1 >= n2  = 1
-                 | otherwise = 0
-step ((Op Lt : instr), fptr, stack, n1 : n2 : vstack, dump, heap, cstore, stats)  -- 遷移規則 (4.10)
-  = (instr, fptr, stack, result : vstack, dump, heap, cstore, stats)
-    where result | n1 < n2   = 1
-                 | otherwise = 0
-step ((Op LtEq : instr), fptr, stack, n1 : n2 : vstack, dump, heap, cstore, stats)  -- 遷移規則 (4.10)
-  = (instr, fptr, stack, result : vstack, dump, heap, cstore, stats)
-    where result | n1 <= n2  = 1
-                 | otherwise = 0
-step ((Op Eq : instr), fptr, stack, n1 : n2 : vstack, dump, heap, cstore, stats)  -- 遷移規則 (4.10)
-  = (instr, fptr, stack, result : vstack, dump, heap, cstore, stats)
-    where result | n1 == n2  = 1
-                 | otherwise = 0
-step ((Op NotEq : instr), fptr, stack, n1 : n2 : vstack, dump, heap, cstore, stats)  -- 遷移規則 (4.10)
-  = (instr, fptr, stack, result : vstack, dump, heap, cstore, stats)
-    where result | n1 /= n2  = 1
-                 | otherwise = 0
+    where
+      result = case op of
+               Add   -> n1 + n2
+               Sub   -> n1 - n2
+               Mult  -> n1 * n2
+               Div   -> n1 `div` n2
+               Gr    -> if n1 >  n2 then 0 else 1
+               GrEq  -> if n1 >= n2 then 0 else 1
+               Lt    -> if n1 <  n2 then 0 else 1
+               LtEq  -> if n1 <= n2 then 0 else 1
+               Eq    -> if n1 == n2 then 0 else 1
+               NotEq -> if n1 /= n2 then 0 else 1
+step ([Cond i1 i2], fptr, stack, 0 : vstack, dump, heap, cstore, stats)  -- 遷移規則 (4.13)
+  = (i1, fptr, stack, vstack, dump, heap, cstore, stats)
+step ([Cond i1 i2], fptr, stack, n : vstack, dump, heap, cstore, stats)  -- 遷移規則 (4.13)
+  = (i2, fptr, stack, vstack, dump, heap, cstore, stats)
 
 amToClosure :: TimAMode -> FramePtr -> TimHeap -> CodeStore -> Closure
 amToClosure (Arg n)      fptr heap cstore = fGet heap fptr n             -- 遷移規則 (4.2, 4.7)
