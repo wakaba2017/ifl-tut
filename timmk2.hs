@@ -208,6 +208,7 @@ compiledPrimitives  -- Mark2で変更
     , ("<=",     [Take 2, Push (Code [Push (Code [Op LtEq,  Return]), Enter (Arg 1)]), Enter (Arg 2)])
     , ("==",     [Take 2, Push (Code [Push (Code [Op Eq,    Return]), Enter (Arg 1)]), Enter (Arg 2)])
     , ("~=",     [Take 2, Push (Code [Push (Code [Op NotEq, Return]), Enter (Arg 1)]), Enter (Arg 2)])
+    , ("if",     [Take 3, Push (Code [Cond [Enter (Arg 2)] [Enter (Arg 3)]]), Enter (Arg 1)])
     ]
 
 type TimCompilerEnv = [(Name, TimAMode)]
@@ -286,10 +287,10 @@ step ((Op op : instr), fptr, stack, n1 : n2 : vstack, dump, heap, cstore, stats)
                LtEq  -> if n1 <= n2 then 0 else 1
                Eq    -> if n1 == n2 then 0 else 1
                NotEq -> if n1 /= n2 then 0 else 1
-step ([Cond i1 i2], fptr, stack, 0 : vstack, dump, heap, cstore, stats)  -- 遷移規則 (4.13)
-  = (i1, fptr, stack, vstack, dump, heap, cstore, stats)
 step ([Cond i1 i2], fptr, stack, n : vstack, dump, heap, cstore, stats)  -- 遷移規則 (4.13)
-  = (i2, fptr, stack, vstack, dump, heap, cstore, stats)
+  = (i, fptr, stack, vstack, dump, heap, cstore, stats)
+    where i | n == 0    = i1
+            | otherwise = i2
 
 amToClosure :: TimAMode -> FramePtr -> TimHeap -> CodeStore -> Closure
 amToClosure (Arg n)      fptr heap cstore = fGet heap fptr n             -- 遷移規則 (4.2, 4.7)
@@ -448,6 +449,10 @@ ex_4_1_2 = "id = S K K ; " ++
            "main = id1 4"
 test_program1 = "main = K 1 2"
 test_program2 = "main = K1 1 2"
+ex_4_5_1 = "main = if 0 1 2"
+ex_4_5_2 = "main = if 1 1 2"
+ex_4_5_3 = "factorial n = if n 1 (n * factorial (n-1)) ; " ++
+           "main = factorial 3"
 -- 超基本テスト --
 b_1_1_1 = "main = I 3"
 b_1_1_2 = "id = S K K ;" ++
