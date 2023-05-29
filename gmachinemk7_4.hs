@@ -320,17 +320,7 @@ unwind state
       heap = getHeap state
       newState (NNum n) = putCode i' (putStack (a : s') (putDump d state))  -- 遷移規則 (3.22)
         where ((i', s') : d) = getDump state
-      --newState (NAp a1 a2) = putCode [Unwind] (putStack (a1:a:as) state)  -- 遷移規則 (3.11)
-      {-
-        hLookup heap a1 の結果が、(NGlobal n' c')で、length (a:as) < n' が成り立つなら、[Unwind]の代わりに[Return]をputCodeしてもいいはず。
-      -}
-      newState (NAp a1 a2) = putCode newCommand (putStack (a1:a:as) state)  -- 遷移規則 (3.11)
-        where e1 = hLookup heap a1
-              newCommand = case e1 of
-                           (NGlobal n' _) -> if length (a:as) < n'
-                                             then [Return]
-                                             else [Unwind]
-                           _ -> [Unwind]
+      newState (NAp a1 a2) = putCode [Unwind] (putStack (a1:a:as) state)  -- 遷移規則 (3.11)
       newState (NGlobal n c)
         | length as < n = putCode i (putStack (ak : s) (putDump d state))  -- 遷移規則 (3.29)
         | otherwise     = putCode c (putStack as' state)  -- 遷移規則 (3.19)
@@ -655,14 +645,26 @@ boolean2 op state
                  | otherwise = 1
 
 -- Mark7で追加
+{-
+テキストでは
+遷移規則 (3.49)
+    (o, [Return], [a_0, …, a_k], <i, s> : d, v, h, m)
+==> (o,        i,       a_k : s,          d, v, h, m)
+となっているけれど、これは実は間違いで、
+本当は
+遷移規則 (3.49)
+    (o, [Return], [a_0, …, a_k], <i, s> : d, v, h, m)
+==> (o,        i,       a_0 : s,          d, v, h, m)
+なのでは？
+-}
 return' :: GmState -> GmState  -- 遷移規則 (3.49)
 return' state
-  = putCode i (putStack (ak : s) (putDump d state))
+  = putCode i (putStack (a : s) (putDump d state))
     where ((i, s) : d) = getDump state
-          ak           = last (getStack state)
- ----------------------
+          (a : _)      = getStack state
+----------------------
 -- 評価器 (ここまで) --
------------------------
+----------------------
 
 ---------------------------------------
 -- プログラムのコンパイル (ここから) --
@@ -701,6 +703,18 @@ compileR (EAp (EAp (EAp (EVar "if") e0) e1) e2) env
           e2' = compileR e2 env
 compileR (ECase e alts) env  -- Mark7で追加
   = compileE e env ++ [Casejump (compileAlts compileR' alts env)]
+compileR (ENum n) env  -- Mark7で追加 (Ex. 3.46)
+  = compileB (ENum n) env ++ [Mkint, Return]
+compileR (EAp (EVar "negate") e) env  -- Mark7で追加 (Ex. 3.46)
+  = compileB (EAp (EVar "negate") e) env ++ [Mkint, Return]
+compileR (EAp (EAp (EVar op) e0) e1) env  -- Mark7で追加 (Ex. 3.46)
+  = compile (EAp (EAp (EVar op) e0) e1) env ++ commands
+  where temp  = [(oprtr, instrctn) | (oprtr, instrctn) <- builtInDyadic, oprtr == op]
+        d = length env
+        compile  | length temp == 1 = compileB
+                 | otherwise        = compileE
+        commands | length temp == 1 = [Mkint, Return]
+                 | otherwise        = [Update d, Pop d, Unwind]
 --compileR e env = compileC e env ++ [Slide (length env + 1), Unwind]
 compileR e env = compileE e env ++ [Update d, Pop d, Unwind]
                  where d = length env
@@ -914,9 +928,9 @@ builtInDyadic
 -- プログラムのコンパイル (ここまで) --
 ---------------------------------------
 
----------------------------
+--------------------------
 -- 結果の表示 (ここから) --
----------------------------
+--------------------------
 showResults :: [GmState] -> [Char]
 showResults states
   = iDisplay (iConcat [iStr "Supercombinator definitions", iNewline,
@@ -1060,9 +1074,9 @@ showNode s a (NConstr t as)  -- Mark6で追加
 showStats :: GmState -> Iseq
 showStats s
   = iConcat [ iStr "Steps taken = ", iNum (statGetSteps (getStats s))]
----------------------------
+--------------------------
 -- 結果の表示 (ここまで) --
----------------------------
+--------------------------
 
 ---------------------------------
 -- テストプログラム (ここから) --
@@ -1265,9 +1279,49 @@ test_program_for_not4 = "main = not (1 == 1)"
 test_program_for_and_or_not = "main = not (1 == 3 & 1 == 1) | (1 == 2)"
 
 test_program_for_and_or_not' = "main = (1 == 3 & 1 == 1) | (1 == 2)"
+
+test_program_for_return1 = "main = 3"
+
+test_program_for_return2 = "n = 3 ; main = n"
+
+test_program_for_return3 = "main = negate 3"
+
+test_program_for_return4 = "f x = negate x ; main = f 3"
+
+test_program_for_return5 = "main = 1 + 2"
+
+test_program_for_return6 = "f x y = x + y ; main = f 1 2"
+
+test_program_for_return7 = "main = 1 == 1"
+
+test_program_for_return8 = "main = 1 == 2"
+
+test_program_for_return9 = "main = 1 ~= 1"
+
+test_program_for_return10 = "main = 1 ~= 2"
+
+test_program_for_return11 = "main = 1 < 2"
+
+test_program_for_return12 = "main = 2 < 1"
+
+test_program_for_return13 = "main = 1 <= 2"
+
+test_program_for_return14 = "main = 2 <= 1"
+
+test_program_for_return15 = "main = 2 <= 2"
+
+test_program_for_return16 = "main = 1 > 2"
+
+test_program_for_return17 = "main = 2 > 1"
+
+test_program_for_return18 = "main = 1 >= 2"
+
+test_program_for_return19 = "main = 2 >= 1"
+
+test_program_for_return20 = "main = 2 >= 2"
 ---------------------------------
 -- テストプログラム (ここまで) --
 ---------------------------------
 
 main :: IO()
-main = (putStrLn . runProg) b_3_2_1
+main = (putStrLn . runProg) b_3_2_3'
