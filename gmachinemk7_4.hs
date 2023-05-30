@@ -704,16 +704,14 @@ compileR (EAp (EAp (EAp (EVar "if") e0) e1) e2) env
 compileR (ECase e alts) env  -- Mark7で追加
   = compileE e env ++ [Casejump (compileAlts compileR' alts env)]
 compileR (ENum n) env  -- Mark7で追加 (Ex. 3.46)
-  = compileB (ENum n) env ++ [Mkint, Return]
+  = compileE (ENum n) env ++ [Return]
 compileR (EAp (EVar "negate") e) env  -- Mark7で追加 (Ex. 3.46)
-  = compileB (EAp (EVar "negate") e) env ++ [Mkint, Return]
+  = compileE (EAp (EVar "negate") e) env ++ [Return]
 compileR (EAp (EAp (EVar op) e0) e1) env  -- Mark7で追加 (Ex. 3.46)
-  = compile (EAp (EAp (EVar op) e0) e1) env ++ commands
+  = compileE (EAp (EAp (EVar op) e0) e1) env ++ commands
   where temp  = [(oprtr, instrctn) | (oprtr, instrctn) <- builtInDyadic, oprtr == op]
         d = length env
-        compile  | length temp == 1 = compileB
-                 | otherwise        = compileE
-        commands | length temp == 1 = [Mkint, Return]
+        commands | length temp == 1 = [Return]
                  | otherwise        = [Update d, Pop d, Unwind]
 --compileR e env = compileC e env ++ [Slide (length env + 1), Unwind]
 compileR e env = compileE e env ++ [Update d, Pop d, Unwind]
