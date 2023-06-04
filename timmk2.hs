@@ -459,6 +459,34 @@ b_1_1_2 = "id = S K K ;" ++
           "main = id 3"
 b_1_1_3 = "id = S K K ;" ++
           "main = twice twice twice id 3"
+-- 算術演算のテスト --
+-- 条件分岐なし --
+b_3_1_1 = "main = 4*5+(2-5)"
+b_3_1_2 = "inc x = x+1;" ++
+          "main = twice twice inc 4"
+b_3_1_3 = "cons a b cc cn = cc a b ;" ++
+          "nil cc cn = cn ;" ++
+          "length xs = xs length1 0 ;" ++
+          "length1 x xs = 1 + (length xs) ;" ++
+          "main = length (cons 3 (cons 3 (cons 3 nil)))"
+-- 条件分岐あり --
+b_3_2_1 = "fac n = if (n==0) 1 (n * fac (n-1)) ;" ++
+          "main = fac 5"
+b_3_2_2 = "gcd a b = if (a==b) " ++
+                          "a " ++
+                    "(if (a<b) (gcd b a) (gcd b (a-b))) ;" ++  -- 正常終了するためにはelse説を括弧で囲む必要あり
+          "main = gcd 6 10"
+b_3_2_3 = "nfib n = if (n==0) 0 " ++
+                   "(if (n==1) 1 " ++
+                   "(nfib (n-1) + nfib (n-2))) ;" ++
+          "main = nfib 8"
+b_3_2_3' = "nfib n = if (n<2) 1 " ++
+                    "(nfib (n-1) + nfib (n-2)) ;" ++
+           "main = nfib 10"
 --------------------------------
 -- テストプログラム (ここまで) --
 --------------------------------
+
+main :: IO()
+--main = (putStrLn . fullRun) b_3_2_3'
+main = (putStrLn . runProg) b_3_2_3'
