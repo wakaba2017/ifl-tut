@@ -49,7 +49,6 @@ data Instruction
    | Mkbool                    -- Mark7で追加
    | Mkint                     -- Mark7で追加
    | Get                       -- Mark7で追加
-   | And | Or | Not            -- Mark7で追加
   deriving Show  -- テキストにはないけれど追加
 instance Eq Instruction
   where
@@ -82,9 +81,6 @@ instance Eq Instruction
     Mkbool       == Mkbool       = True                  -- Mark7で追加
     Mkint        == Mkint        = True                  -- Mark7で追加
     Get          == Get          = True                  -- Mark7で追加
-    And          == And          = True                  -- Mark7で追加
-    Or           == Or           = True                  -- Mark7で追加
-    Not          == Not          = True                  -- Mark7で追加
     _            == _            = False
 
 -- Mark6で追加
@@ -249,9 +245,6 @@ dispatch (Pushbasic  n) = pushbasic n  -- Mark7で追加
 dispatch Mkbool         = mkbool       -- Mark7で追加
 dispatch Mkint          = mkint        -- Mark7で追加
 dispatch Get            = get          -- Mark7で追加
-dispatch And            = and'         -- Mark7で追加
-dispatch Or             = or'          -- Mark7で追加
-dispatch Not            = not'         -- Mark7で追加
 
 pushglobal :: Name -> GmState -> GmState  -- 遷移規則 (3.5, 3.36, 3.38)
 pushglobal f state
@@ -595,51 +588,6 @@ get state
       newState (NConstr t []) = putVStack (t : getVStack state) (putStack s state)  -- 遷移規則 (3.44)
       newState (NNum n)       = putVStack (n : getVStack state) (putStack s state)  -- 遷移規則 (3.45)
       newState _ = error "Get heap contents error"
-
--- Mark7で追加
-and' :: GmState -> GmState
-and' state
-  = boolean2 (&&) state
-
--- Mark7で追加
-or' :: GmState -> GmState
-or' state
-  = boolean2 (||) state
-
--- Mark7で追加
-not' :: GmState -> GmState
-not' state
-  = boolean1 (not) state
-
--- Mark7で追加
-boolean1 :: (Bool -> Bool)          -- boolean operator
-            -> (GmState -> GmState) -- state transition
-boolean1 op state
-  = putVStack (result : as) state
-    where (a : as) = getVStack state
-          a' = case a of
-               2 -> True
-               1 -> False
-               _ -> error "invalid boolean value in vstack"
-          result | op a' = 2
-                 | otherwise = 1
-
--- Mark4で追加、Mark7で変更
-boolean2 :: (Bool -> Bool -> Bool)  -- boolean operation
-            -> (GmState -> GmState) -- state transition
-boolean2 op state
-  = putVStack (result : as) state
-    where (a0 : a1 : as) = getVStack state
-          a0' = case a0 of
-                2 -> True
-                1 -> False
-                _ -> error "invalid boolean value in vstack"
-          a1' = case a1 of
-                2 -> True
-                1 -> False
-                _ -> error "invalid boolean value in vstack"
-          result | op a0' a1' = 2
-                 | otherwise = 1
 -----------------------
 -- 評価器 (ここまで) --
 -----------------------
@@ -715,6 +663,12 @@ compileE (ENum n) env = [Pushint n]
 compileE (ELet recursive defs e) args
   | recursive = compileLetrec compileE defs e args  -- recursive が True  の場合
   | otherwise = compileLet    compileE defs e args  -- recursive が False の場合
+compileE (EAp (EAp (EVar "&") e0) e1) env  -- Mark7で追加
+  = compileB (EAp (EAp (EAp (EVar "if") e0) e1) (EVar "False")) env ++ [Mkbool]
+compileE (EAp (EAp (EVar "|") e0) e1) env  -- Mark7で追加
+  = compileB (EAp (EAp (EAp (EVar "if") e0) (EVar "True")) e1) env ++ [Mkbool]
+compileE (EAp (EVar "not") e) env  -- Mark7で追加
+  = compileB (EAp (EAp (EAp (EVar "if") e) (EVar "False")) (EVar "True")) env ++ [Mkbool]
 compileE (EAp (EAp (EVar op) e0) e1) env
   | length temp == 1 = compileB (EAp (EAp (EVar op) e0) e1) env ++ temp'
   | otherwise        = compileC e1 env ++ compileC (EAp (EVar op) e0) env' ++ [Mkap]
@@ -724,8 +678,6 @@ compileE (EAp (EAp (EVar op) e0) e1) env
                 | otherwise = [Mkbool]
 compileE (EAp (EVar "negate") e) env
   = compileB (EAp (EVar "negate") e) env ++ [Mkint]
-compileE (EAp (EVar "not") e) env
-  = compileB (EAp (EVar "not") e) env ++ [Mkbool]
 compileE (EAp (EAp (EAp (EVar "if") e0) e1) e2) env
   = compileB e0 env ++ [Cond e1' e2']
     where e1' = compileE e1 env
@@ -781,6 +733,12 @@ compileB (EVar "False") env = [Pushbasic 1]
 compileB (ELet recursive defs e) args
   | recursive = compileLetrecB compileB defs e args  -- recursive が True  の場合
   | otherwise = compileLetB    compileB defs e args  -- recursive が False の場合
+compileB (EAp (EAp (EVar "&") e0) e1) env  -- Mark7で追加
+  = compileB (EAp (EAp (EAp (EVar "if") e0) e1) (EVar "False")) env
+compileB (EAp (EAp (EVar "|") e0) e1) env  -- Mark7で追加
+  = compileB (EAp (EAp (EAp (EVar "if") e0) (EVar "True")) e1) env
+compileB (EAp (EVar "not") e) env  -- Mark7で追加
+  = compileB (EAp (EAp (EAp (EVar "if") e) (EVar "False")) (EVar "True")) env
 compileB (EAp (EAp (EVar op) e0) e1) env
   | length temp == 1 = compileB e1 env ++ compileB e0 env ++ [snd (hd temp)]
   | otherwise        = compileC e1 env ++ compileC (EAp (EVar op) e0) env' ++ [Mkap]
@@ -788,8 +746,6 @@ compileB (EAp (EAp (EVar op) e0) e1) env
           temp  = [(oprtr, instrctn) | (oprtr, instrctn) <- builtInDyadic, oprtr == op]
 compileB (EAp (EVar "negate") e) env
   = compileB e env ++ [Neg]
-compileB (EAp (EVar "not") e) env
-  = compileB e env ++ [Not]
 compileB (EAp (EAp (EAp (EVar "if") e0) e1) e2) env
   = compileB e0 env ++ [Cond e1' e2']
     where e1' = compileB e1 env
@@ -875,10 +831,7 @@ primitives
      ("if", ["c","t","f"],
             (EAp (EAp (EAp (EVar "if") (EVar "c")) (EVar "t")) (EVar "f"))),
      ("True", [], (EConstr 2 0)),
-     ("False", [], (EConstr 1 0)),
-     ("&",  ["x","y"], (EAp (EAp (EVar "&") (EVar "x")) (EVar "y"))),
-     ("|",  ["x","y"], (EAp (EAp (EVar "|") (EVar "x")) (EVar "y"))),
-     ("not",  ["x"], (EAp (EAp (EVar "not") (EVar "x")) (EVar "y")))
+     ("False", [], (EConstr 1 0))
     ]
 
 -- Mark5で追加
@@ -887,9 +840,7 @@ builtInDyadic
   = [("+", Add), ("-", Sub), ("*", Mul), ("div", Div),
      ("==", Eq), ("~=", Ne),
      (">=", Ge), (">", Gt),
-     ("<=", Le), ("<", Lt),
-     ("&", And), ("|", Or)  -- Mark7で追加
-     ]
+     ("<=", Le), ("<", Lt)]
 ---------------------------------------
 -- プログラムのコンパイル (ここまで) --
 ---------------------------------------
@@ -960,9 +911,6 @@ showInstruction (Pushbasic  n) = (iStr "Pushbasic ") `iAppend` (iNum n)         
 showInstruction Mkbool         = iStr "Mkbool"                                         -- Mark7で追加
 showInstruction Mkint          = iStr "Mkint"                                          -- Mark7で追加
 showInstruction Get            = iStr "Get"                                            -- Mark7で追加
-showInstruction And            = iStr "And"                                            -- Mark7で追加
-showInstruction Or             = iStr "Or"                                             -- Mark7で追加
-showInstruction Not            = iStr "Not"                                            -- Mark7で追加
 
 -- Mark6で追加
 showOutput :: GmState -> Iseq
@@ -1217,9 +1165,9 @@ test_program_for_and3 = "main = True & False"
 
 test_program_for_and4 = "main = True & True"
 
-test_program_for_and5 = "main = (1 == 1) & (1 == 2)"
+test_program_for_and5 = "main = 1 == 1 & 1 == 2"
 
-test_program_for_and6 = "main = (1 == 1) & (1 == 1)"
+test_program_for_and6 = "main = 1 == 1 & 1 == 1"
 
 test_program_for_or1 = "main = False | False"
 
@@ -1229,21 +1177,31 @@ test_program_for_or3 = "main = True | False"
 
 test_program_for_or4 = "main = True | True"
 
-test_program_for_or5 = "main = (1 == 1) | (1 == 2)"
+test_program_for_or5 = "main = 1 == 1 | 1 == 2"
 
-test_program_for_or6 = "main = (1 == 3) | (1 == 2)"
+test_program_for_or6 = "main = 1 == 3 | 1 == 2"
 
 test_program_for_not1 = "main = not False"
 
 test_program_for_not2 = "main = not True"
 
-test_program_for_not3 = "main = not (1 == 3)"
+test_program_for_not3 = "main = not (1 == 3)"  -- 括弧が必要
 
-test_program_for_not4 = "main = not (1 == 1)"
+test_program_for_not4 = "main = not (1 == 1)"  -- 括弧が必要
 
-test_program_for_and_or_not = "main = not (1 == 3 & 1 == 1) | (1 == 2)"
+test_program_for_and_or_not1 = "main = not (1 == 3 & 1 == 1) | 1 == 2"  -- True
 
-test_program_for_and_or_not' = "main = (1 == 3 & 1 == 1) | (1 == 2)"
+test_program_for_and_or_not2 = "main = not (3 == 3 & 1 == 1) | 1 == 2"  -- False
+
+test_program_for_and_or_not3 = "main = not (1 == 3) & 1 == 1 | 1 == 2"  -- True
+
+test_program_for_and_or_not4 = "main = not (3 == 3) & 1 == 1 | 1 == 2"  -- False
+
+test_program_for_and_or_not5 = "main = not (1 == 3) & (1 == 1 | 1 == 2)"  -- True
+
+test_program_for_and_or_not6 = "main = 1 == 3 & 1 == 1 | 1 == 2"  -- False
+
+test_program_for_and_or_not7 = "main = not (1 == 3) & (1 == 1 | 1 == 2)"  -- True
 ---------------------------------
 -- テストプログラム (ここまで) --
 ---------------------------------
