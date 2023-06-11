@@ -3329,7 +3329,7 @@ type TiDump = Stack Num
 
 \begin{description}
 	\item[演習 2.30] \texttt{findRoots}、\texttt{markFrom}、\texttt{scanHeap}の観点から\texttt{gc}の定義を記述し、
-        \texttt{doAdmin}から適切に呼び出します。
+	      \texttt{doAdmin}から適切に呼び出します。
 	\item[演習 2.31] \texttt{findRoots}の定義を記述します。
 \end{description}
 
@@ -3516,7 +3516,7 @@ NMarked (Visits 1) (NAp b a2)　※bは、それまでのバックワードポ�
 マシンは、$f$がマークされたノードを指していることを検出すると、$b$が指しているノードを検査します。
 \texttt{hNull}の場合、マシンは終了します。
 (※フォワードポインタが指しているアドレスの中身が$\texttt{NMarked Done} ~ n$で
- バックワードポインタが\texttt{hNull}の場合ということ？)
+バックワードポインタが\texttt{hNull}の場合ということ？)
 それ以外の場合は、マークされた\texttt{NAp}ノードである必要があります。
 まず、状態情報が(\texttt{Visits 1})の場合、ノードが1回訪問されたとしましょう。
 したがって、\texttt{NAp}ノードの最初のサブグラフのマーク付けが完了し、2番目のサブグラフをマークする必要があります。
@@ -6902,18 +6902,18 @@ Mark7マシンについて特筆すべき点は、現在のVスタックをダ�
 	      \end{tabular}
 	      \vskip\baselineskip
 
-        ※※※
+	      ※※※
 
-        上記の遷移規則では、WHNFにあることが分かっているスタックの一番上のアイテムを捨ててしまうことになる。 \\
-        以下の様な遷移規則になるのでは？
+	      上記の遷移規則では、WHNFにあることが分かっているスタックの一番上のアイテムを捨ててしまうことになる。 \\
+	      以下の様な遷移規則になるのでは？
 	      \vskip\baselineskip
 
-        \begin{tabular} {|c|l l r r r r l l|} \hline
+	      \begin{tabular} {|c|l l r r r r l l|} \hline
 		      (3.49) &                   & $o$ & [\texttt{Return}] & [$a_0, \ldots, a_k$] & $\langle i, s \rangle$ : $d$ & $v$ & $h$ & $m$ \\
 		             & $\Longrightarrow$ & $o$ & $i$               & $a_0$ : $s$          & $d$                          & $v$ & $h$ & $m$ \\ \hline
 	      \end{tabular}
 
-        ※※※
+	      ※※※
 	      \vskip\baselineskip
 
 	      これは、スタックの一番上のアイテムがWHNFにあることが分かっているときに、$\mathcal{R}$スキームによって\texttt{Unwind}の代わりに使用されます。
@@ -7170,7 +7170,7 @@ Program ctr: f-code                 x | x-code| x-frm |
 \end{verbatim}
 
 ただし、ラベル\texttt{c1}を処理する必要があります。
-\texttt{(g x x)}のクロージャーが必要な場合は、\texttt{Enter}命令で入力されるため、プログラムカウンタは\texttt{c1}を指し、
+\texttt{(g x x)}のクロージャが必要な場合は、\texttt{Enter}命令で入力されるため、プログラムカウンタは\texttt{c1}を指し、
 \texttt{f}、\texttt{g}、および\texttt{x}を含む元のフレームへのフレームポインタ。
 この時点で必要なことは、\texttt{g}の引数、つまり\texttt{x}を準備し、\texttt{g}を入力することだけです。
 
@@ -7226,7 +7226,7 @@ Program ctr: f-code                 x | x-code| x-frm |
 
 \begin{quote}
 	\texttt{Push}/\texttt{Enter}の関係。
-	\texttt{Push} $arg$ 命令がクロージャー $(i, f )$ をスタックにプッシュする場合、
+	\texttt{Push} $arg$ 命令がクロージャ $(i, f )$ をスタックにプッシュする場合、
 	\texttt{Enter} $arg$ は $i$ をプログラムカウンタにロードし、$f$ を現在のフレームポインタにロードします。
 \end{quote}
 
@@ -7486,7 +7486,7 @@ TIMマシンの状態は、次の定義によって与えられます。
           data TimValueStack = DummyTimValueStack
           data TimDump = DummyTimDump
         \end{verbatim}
-	\item \textbf{ヒープ}には\textbf{フレーム}が含まれており、それぞれがクロージャーのタプルです。
+	\item \textbf{ヒープ}には\textbf{フレーム}が含まれており、それぞれがクロージャのタプルです。
 	      フレームのデータ型は、独自の抽象データ型に値するほど重要です。
 	      \begin{verbatim}
           type TimHeap = Heap Frame
@@ -7770,7 +7770,7 @@ Gマシンのコンパイラは、名前からスタックオフセットへの�
       ]
 \end{verbatim}
 
-showFrame は状態のフレーム コンポーネントを表示し、showClosure を使用してその内部の各クロージャーを表示します。
+showFrame は状態のフレーム コンポーネントを表示し、showClosure を使用してその内部の各クロージャを表示します。
 
 \begin{verbatim}
   showFrame :: TimHeap -> FramePtr -> Iseq
@@ -8244,10 +8244,10 @@ $\mathcal{B}$には、継続を明示的にプッシュすることを回避す�
 	コード シーケンス$cont$を続行するTIMコードです。                                                                 \\
 	\\
 	\begin{tabular}{r c l l}
-		$\mathcal{B} \llbracket n \rrbracket ~ \rho ~ cont$                      & $=$                                                                    & $\mathcal{B} \llbracket e_2 \rrbracket ~ \rho ~ (\mathcal{B} \llbracket e_1 \rrbracket ~ \rho ~ (\texttt{Op Add :} ~ cont))$ &                         \\
-		                                                                         & \multicolumn {3} {l|} {$\ldots$および他の算術プリミティブの同様の規則}                                                                                                                                                          \\
-		$\mathcal{B} \llbracket ~ e_1 \texttt{+} ~ e_2 \rrbracket ~ \rho ~ cont$ & $=$                                                                    & $\texttt{PushV} ~ (\texttt{IntVConst} ~ n) ~ \texttt{:} ~ cont$                                                              & ここで、$n$は数値です。 \\
-		$\mathcal{B} \llbracket e \rrbracket ~ \rho$                             & $=$                                                                    & \texttt{Push} (\texttt{Code} $cont$) \texttt{:} $\mathcal{R} \llbracket e \rrbracket ~ \rho$                                 & その他                  \\
+		$\mathcal{B} \llbracket e_1 \texttt{+} ~ e_2 \rrbracket ~ \rho ~ cont$ & $=$                                                                    & $\mathcal{B} \llbracket e_2 \rrbracket ~ \rho ~ (\mathcal{B} \llbracket e_1 \rrbracket ~ \rho ~ (\texttt{Op Add :} ~ cont))$ &                         \\
+		                                                                       & \multicolumn {3} {l|} {$\ldots$および他の算術プリミティブの同様の規則}                                                                                                                                                          \\
+		$\mathcal{B} \llbracket n \rrbracket ~ \rho ~ cont$                    & $=$                                                                    & $\texttt{PushV} ~ (\texttt{IntVConst} ~ n) ~ \texttt{:} ~ cont$                                                              & ここで、$n$は数値です。 \\
+		$\mathcal{B} \llbracket e \rrbracket ~ \rho$                           & $=$                                                                    & \texttt{Push} (\texttt{Code} $cont$) \texttt{:} $\mathcal{R} \llbracket e \rrbracket ~ \rho$                                 & その他                  \\
 	\end{tabular}
 	\\ \hline
 \end{tabular}
@@ -8304,7 +8304,7 @@ $\mathcal{B}$には、継続を明示的にプッシュすることを回避す�
 \subsubsection{\texttt{let}式}
 
 \texttt{let}式をコンパイルするとき、定義の右側の新しいクロージャを構築するコードを生成する必要があります。
-これらの新しいクロージャーはどこに配置する必要がありますか?
+これらの新しいクロージャはどこに配置する必要がありますか?
 \texttt{let(rec)}で束縛された名前を引数名と同じように扱うには、それらを現在のフレームに配置する必要があります
 \footnote{このセクションの資料のヒントは [Wakeling and Dix 1989] にありますが、完全には解明されていません。}。
 これには、ランタイム機構に2つの変更が必要です。
@@ -8374,6 +8374,59 @@ $\mathcal{B}$には、継続を明示的にプッシュすることを回避す�
 (この図とその後で、$is_1 ~ \texttt{++} ~ is_2$という表記を使用して、命令シーケンス$is_1$と$is_2$の連結を示します。)
 \vskip\baselineskip
 
+\begin{tabular} {|l|} \hline
+	$\mathcal{SC} \llbracket e \rrbracket ~ \rho$は、環境$\rho$でコンパイルされたスーパーコンビネータ定義$def$のTIMコードです。 \\
+	\\
+	\begin{tabular}{r c l}
+		$\mathcal{SC} \llbracket f ~ x_1 ~ \ldots ~ x_n ~ \texttt{=} ~ e \rrbracket ~ \rho$ & $=$ & \texttt{Take} $d'$ $n$ \texttt{:} $is$                                                                                            \\
+		                                                                                    &     & ここで                                                                                                                            \\
+		                                                                                    &     & $(d', ~ is) = \mathcal{R} \llbracket e \rrbracket ~ \rho[x_1 \mapsto \texttt{Arg} ~ 1, \ldots, x_n \mapsto \texttt{Arg} ~ n] ~ n$ \\
+		                                                                                    &     & です。
+	\end{tabular}
+	\\ \hline
+	$\mathcal{R} \llbracket e \rrbracket ~ \rho ~ d$は、ペア$(d', ~ is)$です。                                                  \\
+	$is$は、環境$\rho$内の式$e$の値をスタック上の引数に適用するTIMコードです。                                                  \\
+	このコードは、フレームの最初の $d$ スロットが占有されていると想定しており、                                                 \\
+	スロット $(d + 1 ... d')$ を使用します。                                                                                    \\
+	\\
+	\begin{tabular}{r c l}
+		$\mathcal{R} \llbracket e \rrbracket ~ \rho ~ d$         & $=$ & $\mathcal{B} \llbracket e \rrbracket ~ \rho ~ d$ [\texttt{Return}]                                                           \\
+		                                                         &     & ここで、$e$は$e_1 + e_2$などの算術式、または数値です。                                                                       \\
+		\multicolumn{3}{l}{$\mathcal{R} \llbracket \texttt{let} ~ x_1 ~ \texttt{=} ~ e_1\texttt{;} ~  \ldots \texttt{;} ~ x_n ~ \texttt{=} ~ e_n ~ \texttt{in} ~ e \rrbracket ~ \rho ~ d$}            \\
+		                                                         & $=$ & $(d', ~ \left[ \texttt{Move} ~ (d + 1) ~ am_1, \ldots, ~ \texttt{Move} ~ (d + m) ~ am_n \right]$ ~ \texttt{++} ~ is)         \\
+		                                                         &     & ここで                                                                                                                       \\
+		                                                         &     & $(d_1, ~ am_1) = \mathcal{A} \llbracket e_1 \rrbracket ~ \rho ~ (d + n)$                                                     \\
+		                                                         &     & $(d_2, ~ am_1) = \mathcal{A} \llbracket e_2 \rrbracket ~ \rho ~ d_1$                                                         \\
+		                                                         &     & $\ldots$                                                                                                                     \\
+		                                                         &     & $(d_n, am_n) = \mathcal{A} \llbracket e_n \rrbracket ~ \rho ~ d_{n - 1} ~ \texttt{++}$                                       \\
+		                                                         &     & $\mathcal{R} \llbracket e \rrbracket ~ \rho' ~ d_n$                                                                          \\
+		                                                         &     & $\rho' = \rho^{+n} \left[x_1 ~ \mapsto ~ \texttt{Arg} ~ (d + 1), ~ \ldots , ~ x_n ~ \mapsto ~ \texttt{Arg} ~ (d + n)\right]$ \\
+		                                                         &     & です。                                                                                                                       \\
+		$\mathcal{R} \llbracket e_1 ~ e_2 \rrbracket ~ \rho ~ d$ & $=$ & $(d_2, ~ \texttt{Push} ~ am \texttt{:} is)$                                                                                  \\
+		                                                         &     & ここで                                                                                                                       \\
+		                                                         &     & $(d_1, ~ am) = \mathcal{A} \llbracket e_2 \rrbracket ~ \rho ~ d$                                                             \\
+		                                                         &     & $(d_2, ~ is) = \mathcal{R} \llbracket e_1 \rrbracket ~ \rho ~ d_1$                                                           \\
+		                                                         &     & です。                                                                                                                       \\
+		$\mathcal{R} \llbracket a \rrbracket ~ \rho ~ d$         & $=$ & $(d', ~ \left[ \texttt{Enter} ~ am \right])$                                                                                 \\
+		                                                         &     & ここで、$a$ は整数、変数、またはスーパーコンビネータであり、                                                                 \\
+		                                                         &     & $(d', ~ am) = \mathcal{A} \llbracket a \rrbracket ~ \rho ~ d$) です。
+	\end{tabular}
+	\\ \hline
+	$\mathcal{A} \llbracket e \rrbracket ~ \rho$は、ペア$(d', ~ am)$です。                                                      \\
+	ここで、$am$は環境$\rho$における式$e$のTIMアドレッシングモードです。                                                        \\
+	このコードは、フレームの最初の $d$ スロットが占有されていると想定しており、                                                 \\
+	スロット $(d + 1 ... d')$ を使用します。                                                                                    \\
+	\\
+	\begin{tabular}{r c l l}
+		$\mathcal{A} \llbracket x \rrbracket ~ \rho ~ d$ & $=$ & $(d, ~ \rho ~ x)$                                                            & ここで、$x$ は $\rho$ によって束縛されます。 \\
+		$\mathcal{A} \llbracket n \rrbracket ~ \rho ~ d$ & $=$ & $(d, ~ \texttt{IntConst} ~ n)$                                               & ここで、$n$ は整数です。                     \\
+		$\mathcal{A} \llbracket e \rrbracket ~ \rho ~ d$ & $=$ & $(d', ~ \texttt{Code} ~ is)$                                                 & その他                                       \\
+		                                                 &     & ここで、$(d', ~ is) = \mathcal{R} \llbracket e \rrbracket ~ \rho ~ d$ です。
+	\end{tabular}
+	\\ \hline
+\end{tabular}
+\vskip\baselineskip
+
 $\mathcal{SC}$スキームでは、スーパーコンビネータ本体のコンパイルから返された最大フレームサイズ$d'$を使用して、
 実行する\texttt{Take}の大きさを決定する方法を確認できます。
 $\mathcal{R}$スキームの\texttt{let}式の場合、定義ごとに命令$\texttt{Move} ~ i ~ a$を生成します。
@@ -8385,24 +8438,125 @@ $\mathcal{R}$スキームの\texttt{let}式の場合、定義ごとに命令$\te
 	\item[演習 4.11] このセクションで説明する変更を実装します。
 	      新しい命令を\texttt{instruction}型に追加し、新しいケースを\texttt{step}と\texttt{showInstruction}に追加してそれらを処理し、
 	      新しいコンパイルスキームを実装します。
-  \item[演習 4.12] 以下のプログラムを検討します。
-        \begin{verbatim}
+	\item[演習 4.12] 以下のプログラムを検討します。
+	      \begin{verbatim}
           f x y z = let p = x+y in p+x+y+z
           main = f 1 2 3
         \end{verbatim}
-        \texttt{let}式がない場合は、次のように補助関数を使用して記述する必要があります。
-        \begin{verbatim}
+	      \texttt{let}式がない場合は、次のように補助関数を使用して記述する必要があります。
+	      \begin{verbatim}
           f' p x y z = p+x+y+z
           f x y z = f' (x+y) x y z
           main = f 1 2 3
         \end{verbatim}
-        これら2つのプログラムによって生成されたコードを比較し、消費されたストアと実行されたステップの違いを測定します。
-        \texttt{let}式を直接実装することで得られる主な節約は何ですか?
+	      これら2つのプログラムによって生成されたコードを比較し、消費されたストアと実行されたステップの違いを測定します。
+	      \texttt{let}式を直接実装することで得られる主な節約は何ですか?
 \end{description}
 
 \subsubsection{\texttt{letrec}式}
+
+\texttt{letrec} 式も処理するにはどうすればよいでしょうか?
+最初はとても簡単に思えます。
+$\mathcal{R}$ スキームの \texttt{letrec} ケースは、$am_i$ の定義で $\rho$ を $\rho'$ に置き換える必要があることを除いて、\texttt{let} ケースとまったく同じです。
+これは、$x_i$ がそれぞれの右辺のスコープ内にあるためです。
+
+\begin{description}
+	\item[演習 4.13] この追加のケースを\texttt{compileR}に実装し、プログラム上で試してみます。
+	      \begin{verbatim}
+    f x = letrec p = if (x==0) 1 q ;
+                 q = if (x==0) p 2
+          in p+q
+    main = f 1
+  \end{verbatim}
+	      生成されたコードを必ず理解し、テストしてください。
+\end{description}
+
+残念ながら、この実装には微妙なバグがあります。
+以下から生成されたコードを考えてみましょう。
+
+\begin{verbatim}
+  f x = letrec a = b ;
+               b = x
+        in a
+\end{verbatim}
+
+それは次のとおりです。
+
+\begin{verbatim}
+  [Take 3 1, Move 2 (Arg 3), Move 3 (Arg 1), Enter (Arg 2)]
+\end{verbatim}
+
+\texttt{b} のクロージャは、2 番目の \texttt{Move} によって割り当てられる前に、最初の \texttt{Move} によってコピーされます。
+\vskip\baselineskip
+
+ここから抜け出す方法は 2 つあります。
+まず最初に、これは愚かなプログラムであると宣言します。
+\texttt{b} のバインディングのスコープ内で \texttt{b} を \texttt{x} に置き換えるだけです。
+しかし、後で有益になり、上記のようなばかげたプログラムでも動作できるようにする、より興味深いアプローチがあります。
+代わりに、最初の \texttt{Move} に対して次のコードを生成するとします。
+
+\begin{verbatim}
+  Move 2 (Code [Enter (Arg 3)])
+\end{verbatim}
+
+これですべてがうまくいきます。
+\texttt{Enter (Arg 3)} が実行される前にスロット \texttt{3} が割り当てられます。
+実際、クロージャ \texttt{([Enter (Arg 3)], f)} はフレーム \texttt{f} のスロット \texttt{3} への\textbf{間接指定}と考えることができます。
+\vskip\baselineskip
+
+このコードは、$\mathcal{R}$ コンパイル スキームの \texttt{let(rec)} ケースを変更することで取得できます。
+これにより、\texttt{let(rec)} によってバインドされた変数ごとに環境内の間接アドレス指定モードが記録されます。
+図 4.3 を参照すると、必要な変更は $\mathcal{R}$ スキームの \texttt{let} のルールに対するもので、$\rho'$ の定義は次のようになります。
+
+\[
+	\rho' = \rho[x_1 \mapsto \mathcal{I} \llbracket d + 1 \rrbracket, \ldots, x_n \mapsto \mathcal{I} \llbracket d + n \rrbracket] \\
+	ここで \mathcal{I}\llbracket d \rrbracket = \texttt{Code} ~ [\texttt{Enter} ~ (\texttt{Arg} ~ d)]
+\]
+
+もちろん、これはかなり保守的です。
+多くの場合、その必要がない場合に間接参照を返しますが、結果として得られるコードは、効率は劣るものの、引き続き正常に動作します。
+
+\begin{description}
+	\item[演習 4.14] このアイデアを実装するために\texttt{compileR}を変更し、上記の例に対して正しいコードが生成されることを確認します。
+	      新しい環境で間接アドレス指定モードを生成するには、\texttt{compileR} を変更する際に、
+	      補助関数 \texttt{mkIndMode} ($\mathcal{I}$ スキームに対応) を使用します。
+
+	      \begin{verbatim}
+    mkIndMode :: Int -> TimAMode
+    mkIndMode n = Code [Enter (Arg n)]
+  \end{verbatim}
+\end{description}
+
 \subsubsection{フレームスロットの再利用 \dag}
+
+現在、スーパーコンビネータ定義の右側にあるすべての定義は、フレーム内に独自のプライベート スロットを取得します。
+場合によっては、異なる \texttt{let(rec)} 間でスロットを安全に共有できることがわかるかもしれません。
+たとえば、次の定義を考えてみましょう。
+
+\begin{verbatim}
+  f x = if x (let ... in ...) (let ... in ...)
+\end{verbatim}
+
+2 つの \texttt{let} 式のうち 1 つだけが評価できることは明らかなので、それらの定義に同じスロットを使用しても完全に安全です。
+\vskip\baselineskip
+
+同様に、式 $e_1 ~ \texttt{+} ~ e_2$ では、$e_1$ の評価中に使用された \texttt{let(rec)} スロットは、$e_2$ が評価されるまでに終了します
+(または、\texttt{+} がその引数を逆の順序で評価した場合はその逆になります)。
+$e_1$ 内の \texttt{let(rec)} バインドされた変数は、$e_2$ 内の変数とスロットを共有できます。
+
+\begin{description}
+	\item[演習 4.15] これを見つけて利用できるようにコンパイラを変更してください。
+\end{description}
+
 \subsubsection{ガベージ コレクション \dag}
+
+セクション 4.2.6 では、スペース リークを回避できるように、コード シーケンスによってどのフレーム スロットが使用されたかを記録することが望ましいと述べました。
+Take が割り当てた追加のフレーム スロットを初期化しない場合、ガベージ コレクターがそのコンテンツを処理する危険があります。
+これらの初期化されていないスロットは有効なポインターとして扱われ、予測できない結果が生じます。
+最も簡単な解決策はすべてのスロットを初期化することですが、これには非常にコストがかかります。
+セクション 4.2.6 の解決策を採用し、保持する必要があるスロットのリストを各コード シーケンスとともに記録する方が良いでしょう。
+初期化されていないスロットは、ガベージ コレクターによって参照されることはありません。
+
 \newpage
 
 \subsection{Mark 4: 更新}
