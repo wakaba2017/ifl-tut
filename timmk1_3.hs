@@ -376,6 +376,10 @@ test_program2 = "main = K1 1 2"
 b_1_1_1 = "main = I 3"
 b_1_1_2 = "id = S K K ;" ++
           "main = id 3"
+b_1_1_2' = "id = S K K ;" ++
+           "main = twice id 3"
+b_1_1_2'' = "id = S K K ;" ++
+            "main = twice twice id 3"
 b_1_1_3 = "id = S K K ;" ++
           "main = twice twice twice id 3"
 --------------------------------
