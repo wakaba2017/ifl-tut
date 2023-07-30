@@ -23,11 +23,13 @@ fullRun = showFullResults . eval . compile . parse
 data Instruction = Take  Int
                  | Enter TimAMode
                  | Push  TimAMode
+                 deriving Show  -- テキストにはないけれど追加
 
 data TimAMode = Arg      Int
               | Label    [Char]
               | Code     [Instruction]
               | IntConst Int
+              deriving Show  -- テキストにはないけれど追加
 
 type TimState = ([Instruction], -- The current instruction stream 
                                 -- (現在の命令ストリームは、命令のリストで表されます。)
@@ -236,7 +238,7 @@ eval state
       -- next_state = doAdmin (step state)
       (_, _, _, _, _, heap, _, _) = step state
       -- next_state = (statUpdMaxstkdpth . statUpdAllcdheap . statUpdExectime . doAdmin) (step state)
-      next_state' | hSize heap >= 5 = gc (step state)
+      next_state' | hSize heap >= 1 = gc (step state)
                   | otherwise       = step state
       next_state = (statUpdMaxstkdpth . statUpdAllcdheap . statUpdExectime . doAdmin) next_state'
 
@@ -393,7 +395,25 @@ showState (instr, fptr, stack, vstack, dump, heap, cstore, stats)
       showStack stack,
       showValueStack vstack,
       showDump dump,
+      showUsedHeapAddresses heap,  -- GCデバッグ用
+      showUsedHeapContents heap,  -- GCデバッグ用
       iNewline
+    ]
+
+showUsedHeapAddresses :: TimHeap -> Iseq  -- GCデバッグ用
+showUsedHeapAddresses heap
+  = iConcat [
+      iStr "Used Heap Address : [",
+      iIndent (iInterleave (iStr ",") (map iNum (hAddresses heap))),
+      iStr "]", iNewline
+    ]
+
+showUsedHeapContents :: TimHeap -> Iseq
+showUsedHeapContents heap
+  = iConcat [
+      iStr "Used Heap Contents : [",
+      iIndent (iInterleave iNewline (map (showFrame heap) (map FrameAddr (hAddresses heap)))),
+      iStr "]", iNewline
     ]
 
 showFrame :: TimHeap -> FramePtr -> Iseq
@@ -494,6 +514,28 @@ b_1_1_2'' = "id = S K K ;" ++
             "main = twice twice id 3"
 b_1_1_3 = "id = S K K ;" ++
           "main = twice twice twice id 3"
+test_program_for_gc = "compose2 f g x = f (g x x) ; " ++
+                      "main = compose2 I K 3"
+test_program_for_gc' = "compose2 f g x = f (g x x) ; " ++
+                       "id = I ; " ++
+                       "selarg1 = K ; " ++
+                       "main = compose2 id selarg1 3"
+test_program_for_gc'' = "compose2 f g x = f (g x x) ; " ++
+                        "id x = I x ; " ++
+                        "selarg1 x y = K x y ; " ++
+                        "main = compose2 id selarg1 3"
+test_program_for_gc''' = "compose2 f g x = f (g x x) ; " ++
+                         "func x = K1 1 x ; " ++
+                         "selarg1 x y = K x y ; " ++
+                         "main = compose2 func selarg1 3"
+test_program_for_gc'''' = "compose2 f g x = f (g x x) ; " ++
+                          "id = S K K ; " ++
+                          "selarg1 = K ; " ++
+                          "main = compose2 id selarg1 3"
+test_program_for_gc''''' = "compose2 f g x = f (g x x) ; " ++
+                           "func = K1 (S K K 3) ; " ++
+                           "selarg1 = K ; " ++
+                           "main = compose2 func selarg1 3"
 --------------------------------
 -- テストプログラム (ここまで) --
 --------------------------------
