@@ -384,8 +384,7 @@ showSC :: (Name, [Instruction]) -> Iseq
 showSC (name, il)
   = iConcat [
       iStr "Code for ", iStr name, iStr ":", iNewline,
-      -- iStr " ", showInstructions Full il, iNewline, iNewline
-      iStr " ", showInstructions Full il, iNewline,
+      iStr " ", showInstructions Full il, iNewline, -- iNewline
       iStr "Used slot number for ", iStr name, iStr ":", iNewline,
       iStr " ", showUsedSlotNumber il, iNewline,
       iNewline
@@ -500,16 +499,20 @@ showUsedSlotNumber :: [Instruction] -> Iseq
 showUsedSlotNumber []
   = iConcat [iStr "[", iStr "]"]
 showUsedSlotNumber il
-  = iConcat [iStr "[", usedSlotNumbers, iStr "]"]
+  = iConcat [iStr "[", (iInterleave (iStr ", ") (map iNum (getUsedSlotNumber il))), iStr "]"]
+
+getUsedSlotNumber :: [Instruction] -> [Int]
+getUsedSlotNumber []
+  = []
+getUsedSlotNumber (i : il)
+  = (getUsedSlotNumberSub i) ++ (getUsedSlotNumber il)
     where
-      usedSlotNumbers = iInterleave (iStr ", ") usedSlotNumList
-      usedSlotNumList = map showUsedSlotNumberSub il
-      showUsedSlotNumberSub i
+      getUsedSlotNumberSub i
         = case i of
-          Push (Arg n) -> iNum n
-          Enter (Arg n) -> iNum n
-          Push (Code il_) -> showUsedSlotNumber il_
-          _ -> iNil
+          Push (Arg n) -> [n]
+          Enter (Arg n) -> [n]
+          Push (Code il_) -> getUsedSlotNumber il_
+          _ -> []
 --------------------------
 -- 結果の表示 (ここまで) --
 --------------------------
