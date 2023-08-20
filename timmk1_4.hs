@@ -384,7 +384,11 @@ showSC :: (Name, [Instruction]) -> Iseq
 showSC (name, il)
   = iConcat [
       iStr "Code for ", iStr name, iStr ":", iNewline,
-      iStr " ", showInstructions Full il, iNewline, iNewline
+      -- iStr " ", showInstructions Full il, iNewline, iNewline
+      iStr " ", showInstructions Full il, iNewline,
+      iStr "Used slot number for ", iStr name, iStr ":", iNewline,
+      iStr " ", showUsedSlotNumber il, iNewline,
+      iNewline
     ]
 
 showState :: TimState -> Iseq
@@ -491,6 +495,21 @@ showArg d (Label s)    = (iStr "Label ")    `iAppend` (iStr s)
 showArg d (IntConst n) = (iStr "IntConst ") `iAppend` (iNum n)
 
 nTerse = 3
+
+showUsedSlotNumber :: [Instruction] -> Iseq
+showUsedSlotNumber []
+  = iConcat [iStr "[", iStr "]"]
+showUsedSlotNumber il
+  = iConcat [iStr "[", usedSlotNumbers, iStr "]"]
+    where
+      usedSlotNumbers = iInterleave (iStr ", ") usedSlotNumList
+      usedSlotNumList = map showUsedSlotNumberSub il
+      showUsedSlotNumberSub i
+        = case i of
+          Push (Arg n) -> iNum n
+          Enter (Arg n) -> iNum n
+          Push (Code il_) -> showUsedSlotNumber il_
+          _ -> iNil
 --------------------------
 -- 結果の表示 (ここまで) --
 --------------------------
