@@ -37,6 +37,7 @@ type TimState = ([Instruction], -- The current instruction stream
                                 -- (通常、フレームポインタはヒープ内のフレームのアドレスですが、
                                 --  整数値を保持するために使用されるか、
                                 --  初期化されていない可能性があります。)
+                 UsdSltNmbrs,   -- Used slot numbers
                  TimStack,      -- Stack of arguments
                                 -- (スタックにはクロージャが含まれており、
                                 --  それぞれがコードポインタとフレームポインタを含むペアです。
@@ -52,6 +53,8 @@ type TimState = ([Instruction], -- The current instruction stream
 data FramePtr = FrameAddr Addr -- The address of a frame
               | FrameInt Int   -- An integer value
               | FrameNull      -- Uninitialised
+
+type UsdSltNmbrs = [Int]
 
 type TimStack = [Closure]
 type Closure = ([Instruction], FramePtr)
@@ -134,8 +137,8 @@ statGetSteps (steps, exctime, totalheap, maxstkdepth)
   = steps
 
 statUpdExectime :: TimState -> TimState
-statUpdExectime (instr, frame, stack, vstack, dump, heap, cstore, (steps, exctime, totalheap, maxstkdepth))
-  = (instr, frame, stack, vstack, dump, heap, cstore, (steps, exctime', totalheap, maxstkdepth))
+statUpdExectime (instr, frame, usedslot, stack, vstack, dump, heap, cstore, (steps, exctime, totalheap, maxstkdepth))
+  = (instr, frame, usedslot, stack, vstack, dump, heap, cstore, (steps, exctime', totalheap, maxstkdepth))
     where
       curInstr | null instr = Take 0
                | otherwise  = head instr
@@ -148,8 +151,8 @@ statGetExectime (steps, exctime, totalheap, maxstkdepth)
   = exctime
 
 statUpdAllcdheap :: TimState -> TimState
-statUpdAllcdheap (instr, frame, stack, vstack, dump, heap, cstore, (steps, exctime, totalheap, maxstkdepth))
-  = (instr, frame, stack, vstack, dump, heap, cstore, (steps, exctime, totalheap', maxstkdepth))
+statUpdAllcdheap (instr, frame, usedslot, stack, vstack, dump, heap, cstore, (steps, exctime, totalheap, maxstkdepth))
+  = (instr, frame, usedslot, stack, vstack, dump, heap, cstore, (steps, exctime, totalheap', maxstkdepth))
     where
       totalheap' | curTotalHeap > totalheap = curTotalHeap
                  | otherwise                = totalheap
@@ -160,8 +163,8 @@ statGetAllcdheap (steps, exctime, totalheap, maxstkdepth)
   = totalheap
 
 statUpdMaxstkdpth :: TimState -> TimState
-statUpdMaxstkdpth (instr, frame, stack, vstack, dump, heap, cstore, (steps, exctime, totalheap, maxstkdepth))
-  = (instr, frame, stack, vstack, dump, heap, cstore, (steps, exctime, totalheap, maxstkdepth'))
+statUpdMaxstkdpth (instr, frame, usedslot, stack, vstack, dump, heap, cstore, (steps, exctime, totalheap, maxstkdepth))
+  = (instr, frame, usedslot, stack, vstack, dump, heap, cstore, (steps, exctime, totalheap, maxstkdepth'))
     where
       maxstkdepth' | curStackDepth > maxstkdepth = curStackDepth
                    | otherwise                   = maxstkdepth
@@ -182,6 +185,7 @@ statGetMaxstkdpth (steps, exctime, totalheap, maxstkdepth)
 compile program
   = ([Enter (Label "main")], -- Initial instructions
      FrameNull,              -- Null frame pointer
+     initialUsdSltNmbrs,     -- Used slot numbers
      initialArgStack,        -- Argument stack
      initialValueStack,      -- Value stack
      initialDump,            -- Dump
@@ -194,6 +198,8 @@ compile program
       compiled_code = compiled_sc_defs ++ compiledPrimitives
       initial_env = [(name, Label name) | (name, args, body) <- sc_defs] ++
                     [(name, Label name) | (name, code) <- compiledPrimitives]
+
+initialUsdSltNmbrs = []
 
 initialArgStack = []
 
@@ -236,7 +242,7 @@ eval state
       rest_states | timFinal state = []
                   | otherwise      = eval next_state
       -- next_state = doAdmin (step state)
-      (_, _, _, _, _, heap, _, _) = step state
+      (_, _, _, _, _, _, heap, _, _) = step state
       -- next_state = (statUpdMaxstkdpth . statUpdAllcdheap . statUpdExectime . doAdmin) (step state)
       next_state' | hSize heap >= 1 = gc (step state)
                   | otherwise       = step state
@@ -245,23 +251,29 @@ eval state
 doAdmin :: TimState -> TimState
 doAdmin state = applyToStats statIncSteps state
 
-timFinal ([], frame, stack, vstack, dump, heap, cstore, stats) = True
+timFinal ([], frame, usedslot, stack, vstack, dump, heap, cstore, stats) = True
 timFinal state                                                 = False
 
 applyToStats :: (TimStats -> TimStats) -> TimState -> TimState
-applyToStats stats_fun (instr, frame, stack, vstack,
+applyToStats stats_fun (instr, frame, usedslot, stack, vstack,
                         dump, heap, cstore, stats)
-  = (instr, frame, stack, vstack, dump, heap, cstore, stats_fun stats)
+  = (instr, frame, usedslot, stack, vstack, dump, heap, cstore, stats_fun stats)
 
-step ((Take n : instr), fptr, stack, vstack, dump, heap, cstore, stats)  -- 遷移規則 (4.1)
-  | length stack >= n = (instr, fptr', drop n stack, vstack, dump, heap', cstore, stats)
+step ((Take n : instr), fptr, usdsltnum, stack, vstack, dump, heap, cstore, stats)  -- 遷移規則 (4.1)
+  | length stack >= n = (instr, fptr', usdsltnum, drop n stack, vstack, dump, heap', cstore, stats)
   | otherwise         = error "Too few args for Take instruction"
   where (heap', fptr') = fAlloc heap (take n stack)
-step ([Enter am], fptr, stack, vstack, dump, heap, cstore, stats)  -- 遷移規則 (4.6, 4.7, 4.8, 4.9)
-  = (instr', fptr', stack, vstack, dump, heap, cstore, stats)
+step ([Enter am], fptr, usdsltnum, stack, vstack, dump, heap, cstore, stats)  -- 遷移規則 (4.6, 4.7, 4.8, 4.9)
+  = (instr', fptr', usdsltnum, stack, vstack, dump, heap, cstore, stats)
     where (instr',fptr') = amToClosure am fptr heap cstore
-step ((Push am:instr), fptr, stack, vstack, dump, heap, cstore, stats)  -- 遷移規則 (4.2, 4.3, 4.4, 4.5)
-  = (instr, fptr, amToClosure am fptr heap cstore : stack, vstack, dump, heap, cstore, stats)
+          usdsltnum = getUsedSlotNumber instr_
+          instr_ = case am of
+                   Arg n -> fst (fGet heap fptr n)
+                   Code il -> il
+                   Label l -> codeLookup cstore l
+                   _ -> []
+step ((Push am:instr), fptr, usdsltnum, stack, vstack, dump, heap, cstore, stats)  -- 遷移規則 (4.2, 4.3, 4.4, 4.5)
+  = (instr, fptr, usdsltnum, amToClosure am fptr heap cstore : stack, vstack, dump, heap, cstore, stats)
 
 amToClosure :: TimAMode -> FramePtr -> TimHeap -> CodeStore -> Closure
 amToClosure (Arg n)      fptr heap cstore = fGet heap fptr n             -- 遷移規則 (4.2, 4.7)
@@ -273,11 +285,12 @@ intCode = []  -- 今のところ、私たちのマシンは演算を行わない
               -- 簡単な解決策は \texttt{intCode} を空のコードシーケンスにすることです。
 
 gc :: TimState -> TimState
-gc (instr, fptr, stack, vstack, dump, heap, cstore, stats)
-  = (instr, fptr, stack, vstack, dump, newHeap, cstore, stats)
+gc (instr, fptr, usdsltnum, stack, vstack, dump, heap, cstore, stats)
+  = (instr, fptr, usdsltnum, stack, vstack, dump, newHeap, cstore, stats)
     where
       adrlst1 = findStackRoots stack heap
-      adrlst2 = findFrmPtrRoots fptr heap
+      -- adrlst2 = findFrmPtrRoots fptr heap
+      adrlst2 = findFrmPtrRoots_ fptr heap usdsltnum
       heap'   = mapAccuml' markFrom heap (adrlst1 ++ adrlst2)
       newHeap = mapAccuml' scanHeap heap' (hAddresses heap')
       mapAccuml' f acc []
@@ -324,6 +337,30 @@ findFrmPtrRoots (FrameAddr addr) heap
                                    _                      -> findStackRoots cs heap
               _                 -> []
 findFrmPtrRoots _ heap
+  = []
+
+findFrmPtrRoots_ :: FramePtr -> TimHeap -> [Int] -> [Addr]
+findFrmPtrRoots_ (FrameAddr addr) heap usdsltnum
+  = [addr] ++ addr_
+    where
+      usdsltnum_ = map ((*(-1)).(1+).(*(-1))) usdsltnum  -- 0始まりにするために、usdsltnum の各要素から1を引く。
+      frame = hLookup heap addr
+      usdslt
+        = case frame of
+          FClosure (c : cs) -> map ((c : cs) !!) usdsltnum_
+          _                 -> []
+      addr_ = case usdslt of
+              (c_ : cs_) -> case c_ of
+                            (is, FrameAddr addr__) -> (findFrmPtrRoots (FrameAddr addr__) heap) ++
+                                                      (findStackRoots cs_ heap)
+                            _                      -> findStackRoots cs_ heap
+              _          -> []
+      {-
+        frame が FClosure [Closure] だったら、[Closure] から、usdsltnum に含まれるスロット番号に対応する要素だけ抽出したリストを作る。
+        抽出したリストができたら、そのリストの要素(Closure)を1つずつ調べて、タプルの第2要素が FrameAddr addr__ だったら、
+        FrameAddr addr__ を findFrmPtrRoots に渡して、再帰的に参照フレームをたどってアドレスを抽出する。
+      -}
+findFrmPtrRoots_ _ heap usdsltnum
   = []
 
 markFrom :: TimHeap -> Addr -> TimHeap
@@ -377,7 +414,7 @@ showResults states
     where last_state = last states
 
 showSCDefns :: TimState -> Iseq
-showSCDefns (instr, fptr, stack, vstack, dump, heap, cstore, stats)
+showSCDefns (instr, fptr, usdsltnum, stack, vstack, dump, heap, cstore, stats)
   = iInterleave iNewline (map showSC cstore)
 
 showSC :: (Name, [Instruction]) -> Iseq
@@ -391,7 +428,7 @@ showSC (name, il)
     ]
 
 showState :: TimState -> Iseq
-showState (instr, fptr, stack, vstack, dump, heap, cstore, stats)
+showState (instr, fptr, usdsltnum, stack, vstack, dump, heap, cstore, stats)
   = iConcat [
       iStr "Code: ", showInstructions Terse instr, iNewline,
       showFrame heap fptr,
@@ -400,6 +437,7 @@ showState (instr, fptr, stack, vstack, dump, heap, cstore, stats)
       showDump dump,
       showUsedHeapAddresses heap,  -- GCデバッグ用
       showUsedHeapContents heap,  -- GCデバッグ用
+      showUsdSltNmbrs usdsltnum,
       iNewline
     ]
 
@@ -418,6 +456,12 @@ showUsedHeapContents heap
       iIndent (iInterleave iNewline (map (showFrame heap) (map FrameAddr (hAddresses heap)))),
       iStr "]", iNewline
     ]
+
+showUsdSltNmbrs :: [Int] -> Iseq
+showUsdSltNmbrs []
+  = iConcat [iStr "Used Slot Numbers : [", iStr "]"]
+showUsdSltNmbrs usdsltnum
+  = iConcat [iStr "Used Slot Numbers : [", (iInterleave (iStr ", ") (map iNum usdsltnum)), iStr "]"]
 
 showFrame :: TimHeap -> FramePtr -> Iseq
 showFrame heap FrameNull = iStr "Null frame ptr" `iAppend` iNewline
@@ -456,7 +500,7 @@ showFramePtr (FrameAddr a) = iStr (show a)
 showFramePtr (FrameInt n)  = iStr "int " `iAppend` iNum n
 
 showStats :: TimState -> Iseq
-showStats (instr, fptr, stack, vstack, dump, heap, code, stats)
+showStats (instr, fptr, usdsltnum, stack, vstack, dump, heap, code, stats)
   = iConcat [ iStr "Steps taken = ", iNum (statGetSteps stats), iNewline,
               iStr "No of frames allocated = ", iNum (hSize heap),
               iNewline
@@ -495,6 +539,12 @@ showArg d (IntConst n) = (iStr "IntConst ") `iAppend` (iNum n)
 
 nTerse = 3
 
+showCompiledCode :: String -> String
+showCompiledCode coreprg
+  = show codes
+    where
+      (_, _, _, _, _, _, _, codes, _) = compile $ parse coreprg
+
 showUsedSlotNumber :: [Instruction] -> Iseq
 showUsedSlotNumber []
   = iConcat [iStr "[", iStr "]"]
@@ -505,14 +555,17 @@ getUsedSlotNumber :: [Instruction] -> [Int]
 getUsedSlotNumber []
   = []
 getUsedSlotNumber (i : il)
-  = (getUsedSlotNumberSub i) ++ (getUsedSlotNumber il)
+  = uniqList tempList
     where
+      tempList = (getUsedSlotNumberSub i) ++ (getUsedSlotNumber il)
       getUsedSlotNumberSub i
         = case i of
           Push (Arg n) -> [n]
           Enter (Arg n) -> [n]
           Push (Code il_) -> getUsedSlotNumber il_
           _ -> []
+      uniqList []     = []
+      uniqList (x:xs) = (if x `elem` xs then [] else [x]) ++ (uniqList xs)
 --------------------------
 -- 結果の表示 (ここまで) --
 --------------------------
