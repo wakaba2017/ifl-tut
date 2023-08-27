@@ -23,11 +23,13 @@ fullRun = showFullResults . eval . compile . parse
 data Instruction = Take  Int
                  | Enter TimAMode
                  | Push  TimAMode
+                 deriving Show  -- テキストにはないけれど追加
 
 data TimAMode = Arg      Int
               | Label    [Char]
               | Code     [Instruction]
               | IntConst Int
+              deriving Show  -- テキストにはないけれど追加
 
 type TimState = ([Instruction], -- The current instruction stream
                  FramePtr,      -- Address of current frame
@@ -296,6 +298,12 @@ showArg d (Label s)    = (iStr "Label ")    `iAppend` (iStr s)
 showArg d (IntConst n) = (iStr "IntConst ") `iAppend` (iNum n)
 
 nTerse = 3
+
+showCompiledCode :: String -> String
+showCompiledCode coreprg
+  = show codes
+    where
+      (_, _, _, _, _, _, codes, _) = compile $ parse coreprg
 --------------------------
 -- 結果の表示 (ここまで) --
 --------------------------
