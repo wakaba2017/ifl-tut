@@ -8560,29 +8560,157 @@ Take が割り当てた追加のフレーム スロットを初期化しない�
 \newpage
 
 \subsection{Mark 4: 更新}
-\subsubsection{The basic technology}
-\subsubsection{Compiling \texttt{PushMarker} instruction}
-\subsubsection{Implementing the updating mechanism}
-\subsubsection{Problem with updating indirections}
-\subsubsection{Updating shared \texttt{let(rec)}-bound variables}
-\subsubsection{Eliminating indirection chains}
-\subsubsection{Updating partial applications}
+
+これまでのところ、共有 Redexes を繰り返し評価するため、グラフ削減ではなくツリー削減を実行してきました。
+これを修正する時期が来ました。
+TIM 更新を実行するさまざまな方法がどのように機能するかを正確に理解するのは少し難しいですが、少なくともプロトタイプの実装はあります。
+そのため、私たちの開発は非常に具体的なものになります。
+
+\subsubsection{基礎技術}
+
+標準的なテンプレートインスタンス化マシンとGマシンは、簡約のたびに更新を実行します。
+(Gマシンには末尾呼び出しがいくつか最適化されていますが、原理は同じです。)
+TIMはスパインのないマシンであるため、その更新手法はかなり異なったものになる必要があります。
+重要なアイデアは次のとおりです。
+
+\begin{quote}
+	G マシンとは異なり、簡約のたびに更新は実行されません。
+	代わりに、クロージャの評価が開始されるとき (つまり、クロージャに入ったとき)、次の手順が実行されます。
+
+	\begin{itemize}
+		\item 現在のスタックと、入力されているクロージャのアドレスは、マシン状態の新しいコンポーネントであるダンプにプッシュされます。
+		\item クロージャの評価が完了するとトリガーされる「マウストラップ」が設定されます。
+		\item クロージャの評価は、空のスタックから開始して通常どおりに実行されるようになりました。
+		\item マウストラップがトリガーされると、クロージャは通常の形式で更新され、古いスタックがダンプから復元されます。
+	\end{itemize}
+
+	「ネズミ捕り」は次のとおりです。
+	クロージャの評価は新しいスタック上で実行されるため、\texttt{Return} 命令が空のスタックを見つけるか、
+	スーパーコンビネータが適用される引数が少なすぎるため、評価は最終的に停止する必要があります。
+	この時点で、式は (頭部) 正規形に達しているため、更新を実行する必要があります。
+\end{quote}
+
+まず、値が整数型であるクロージャの更新に焦点を当てましょう。
+クロージャに入る直前に、新しい命令 \texttt{PushMarker} $x$ が実行されるようにします。
+これにより、ダンプに情報をプッシュすることで更新メカニズムがセットアップされます。
+具体的には、\texttt{PushMarker} $x$ はダンプにプッシュします
+\footnote{TIM に関する論文では、この操作は「更新マーカーのプッシュ」と呼ばれることがよくあります。
+	これは、「マーカー」の下にある引数を使用しようとすると更新がトリガーされるようにスタックが「マーク」されているためです。}。
+
+\begin{itemize}
+	\item 現在のスタック。
+	\item 現在のフレーム ポインター。更新するクロージャーを含むフレームを指します。
+	\item フレーム内で更新されるクロージャのインデックス $x$ 。
+\end{itemize}
+
+現在のスタックをダンプに保存したので、PushMarker は空のスタックを使用して続行します。
+その状態遷移ルールは次のとおりです。
+\vskip\baselineskip
+
+\begin{tabular} {|c|l r l r r r l l|} \hline
+	(4.15) &                   & \texttt{PushMarker} $x$ : $i$ & $f$ & $s$ & $v$ & $d$               & $h$ & $c$ \\
+	       & $\Longrightarrow$ & $i$                           & $f$ & []  & $v$ & $(f, x, s)$ : $d$ & $h$ & $c$ \\ \hline
+\end{tabular}
+\vskip\baselineskip
+
+しばらくすると、クロージャの評価が完了します。
+その値は整数であるため、その値は値スタックの最上位にあり、スタックの最上位の継続に戻ることを期待して \texttt{Return} 命令が実行されます。
+ただし、この時点ではスタックは空になります。
+これが更新のトリガーです。ダンプがポップされ、更新が実行され、復元されたスタックを使用して \texttt{Return} 命令が再実行されます。
+このアクションは、次の遷移ルールによって説明されます。
+\vskip\baselineskip
+
+\begin{tabular} {|c|l r l r r r l l|} \hline
+	(4.16) &                   & [\texttt{Return}]                                                                                                     & $f$  & []              & $n$ : $v$ & $(f_u, x, s)$ : $d$ & $h$  & $c$ \\
+	       & $\Longrightarrow$ & [\texttt{Return}]                                                                                                     & $f$  & $s$             & $n$ : $v$ & $d$                 & $h'$ & $c$ \\
+	       &                   & \multicolumn {7} {l|} {ここで$h' = h[f_u : \langle \ldots, d_{x-1}, (\texttt{intCode}, n), d_{x+1}, \ldots \rangle]$}                                                                         \\ \hline
+	(4.16) &                   & [\texttt{Return}]                                                                                                     & $f$  & $(i, f')$ : $s$ & $n$ : $v$ & $d$                 & $h$  & $c$ \\
+	       & $\Longrightarrow$ & $i$                                                                                                                   & $f'$ & $s$             & $v$       & $d$                 & $h$  & $c$ \\ \hline
+\end{tabular}
+\vskip\baselineskip
+
+最初のルールは、フレーム $f_u$ 内の $x$ 番目のクロージャの更新をクロージャ $(\texttt{intCode}, n)$ で記述します。
+これは、入力するとすぐに $n$ を値スタックにプッシュして戻ります (セクション 4.3.1 を参照)。
+さらに更新を実行する必要がある場合に備えて、\texttt{Return} 命令が再試行されることに注意してください。
+これは、ルールの右側のコード シーケンスが依然として [\texttt{Return}] であるという事実によって示されます。
+\vskip\baselineskip
+
+2 番目のルールは、ルール 4.11 を再度書き直したものです。
+実行する更新がない場合についても説明します。
+スタックの一番上の継続は、プログラム カウンターと現在のフレーム ポインターにロードされます。
+
+\subsubsection{\texttt{PushMarker}命令のコンパイル}
+\subsubsection{更新メカニズムの実装}
+\subsubsection{間接更新の問題}
+\subsubsection{\texttt{let(rec)}にバインドされた共有変数の更新}
+\subsubsection{間接チェーンの排除}
+\subsubsection{部分的な関数適用の更新}
 \newpage
 
 \subsection{Mark 5: 構造化データ}
-\subsubsection{The general approach}
-\subsubsection{Transition rules and compilation schemes for data structures}
-\subsubsection{Trying it out}
-\subsubsection{Printing a list}
-\subsubsection{Using data structures directly \dag}
+
+このセクションでは、代数データ型を TIM に追加する方法を学習します。
+セクション 2.8.3 で説明されている高階関数を使用すると、このセクションの内容をまったく使用せずにデータ構造を実装することができます。
+しかし、そうするのはむしろ非効率的です。
+代わりに、より一般的なデータ構造を処理できるように、算術演算に使用したアプローチを開発します。
+
+\subsubsection{一般的なアプローチ}
+\subsubsection{データ構造の遷移規則とコンパイル方式}
+\subsubsection{試してみる}
+\subsubsection{リストの表示}
+\subsubsection{データ構造を直接使用する \dag}
 \newpage
 
-\subsection{Mark 6: Constant applicative forms and the code store \dag}
-\subsubsection{Implementing CAFs}
-\subsubsection{Modeling code store more faithfully}
+\subsection{Mark 6: CAFとコードストア \dag}
+
+前に述べたように (セクション 4.2.3)、コード ストアを名前とコード シーケンスの関連付けリストとして表すという決定は、CAF が更新されないことを意味します。
+代わりに、呼び出されるたびにコードが実行されるため、作業が重複する可能性があります。
+この余分な作業は避けたいのですが、TIM の解決策は以前の実装ほど簡単ではありません。
+\vskip\baselineskip
+
+テンプレート インスタンス化マシンと G マシンの場合、解決策は各スーパーコンビネーターを表すためにヒープ内にノードを割り当てることでした。
+CAF が呼び出されるとき、redex のルートはスーパーコンビネータ ノード自体であるため、ノードはリダクションの結果 (つまり、スーパーコンビネータ定義の右側のインスタンス) で更新されます。
+その後スーパーコンビネータを使用すると、元のスーパーコンビネータではなく、この更新されたノードが表示されます。
+問題は、TIM にはヒープ ノードがまったくないことです。
+ノードに対応するのはフレーム内のクロージャです。
+したがって、私たちがしなければならないことは、初期ヒープに、各スーパーコンビネータのクロージャを含む単一の巨大なフレーム、つまり\textbf{グローバルフレーム}を割り当てることです。
+\vskip\baselineskip
+
+コード ストアは、スーパーコンビネータ名をフレーム内のオフセットにマッピングする関連付けリスト $g$ とともに、グローバル フレームのアドレス $f_G$ によって表されます。
+\texttt{Label} アドレッシング モードは、この関連リストを使用してオフセットを見つけ、スーパーコンビネータのクロージャをグローバル フレームからフェッチします。
+\texttt{Push Label} の新しい遷移規則は、これらのアイデアを正式なものとします。
+\vskip\baselineskip
+
+(4.21) \\
+\begin{tabular} {|l r l r l l|} \hline
+	                  & \texttt{Push} (\texttt{Label} $l$) : $i$ & $f$ & $s$                  & $h$[$f_G$ : $\langle (i_1, f_1), \ldots, (i_n, f_n) \rangle$] & ($f_G$, $g$[$l$ : $k$]) \\
+	$\Longrightarrow$ & $i$                                      & $f$ & ($i_k$, $f_k$) : $s$ & $h$                                                           & ($f_G$, $g$)            \\ \hline
+\end{tabular}
+\vskip\baselineskip
+
+\texttt{Enter Label} のルールは、\texttt{Push}/\texttt{Enter} 関係から直接に従います。
+セクション 4.5.5 の \texttt{let(rec)} バインド変数のコンテキストで説明したように、グローバル フレーム内の各クロージャは自己更新クロージャです。
+\texttt{let(rec)} でバインドされた変数と同様に、スーパーコンビネータをスタックにプッシュするときは、(非更新の) 間接指定を使用する必要があります (セクション 4.5.5)。
+
+\subsubsection{CAF の実装}
+\subsubsection{コードストアをより忠実にモデリングする}
 \newpage
 
 \subsection{まとめ}
+
+最終的な TIM コンパイル スキームを図 4.7 と 4.8 にまとめます。
+明らかな疑問は、「TIM は G マシンより優れているのか、それとも劣っているのか?」ということです。
+答えるのは難しいです。
+私たちのプロトタイプは、設計の選択を検討するのには非常に役立ちますが、本格的なパフォーマンスの比較には全く役に立ちません。
+たとえば、G マシン Mkap と比較した Take 命令の相対コストをどのように確立できるでしょうか?
+実際に比較できる唯一の尺度は、この 2 つのヒープ消費量です。
+\vskip\baselineskip
+
+それでも、この章で行ったように、別の評価モデルを検討することは、TIM の側面と G マシンの側面を組み合わせた他の設計手段を示唆するため、非常に啓発的です。
+そうする試みの 1 つが Spineless Tagless G マシンです [Peyton Jones and Salkild 1989, Peyton Jones 1991]。
+これは TIM のスパインレスと更新メカニズムを採用していますが、そのスタックは (G マシンと同様に) ヒープ オブジェクトへのポインタで構成されています。
+(TIM のような) コードとフレームのペアではありません。
+
 \newpage
 
 \begin{verbatim}
