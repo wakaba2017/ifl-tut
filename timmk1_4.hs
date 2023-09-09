@@ -53,6 +53,7 @@ type TimState = ([Instruction], -- The current instruction stream
 data FramePtr = FrameAddr Addr -- The address of a frame
               | FrameInt Int   -- An integer value
               | FrameNull      -- Uninitialised
+              deriving Show  -- テキストにはないけれど追加
 
 type UsdSltNmbrs = [Int]
 
@@ -212,6 +213,7 @@ type TimCompilerEnv = [(Name, TimAMode)]
 
 compileSC :: TimCompilerEnv -> CoreScDefn -> (Name, [Instruction])  -- SCスキーム
 compileSC env (name, args, body)
+  -- = (name, Take (length args) : instructions)
   | lenArgs == 0 = (name, instructions)
   | otherwise    = (name, Take lenArgs : instructions)
     where
@@ -263,10 +265,14 @@ step ((Take n : instr), fptr, usdsltnum, stack, vstack, dump, heap, cstore, stat
   | length stack >= n = (instr, fptr', usdsltnum, drop n stack, vstack, dump, heap', cstore, stats)
   | otherwise         = error "Too few args for Take instruction"
   where (heap', fptr') = fAlloc heap (take n stack)
+        usdsltnum = getUsedSlotNumber instr
 step ([Enter am], fptr, usdsltnum, stack, vstack, dump, heap, cstore, stats)  -- 遷移規則 (4.6, 4.7, 4.8, 4.9)
-  = (instr', fptr', usdsltnum, stack, vstack, dump, heap, cstore, stats)
+  = (instr', fptr', usdsltnum_, stack, vstack, dump, heap, cstore, stats)
     where (instr',fptr') = amToClosure am fptr heap cstore
-          usdsltnum = getUsedSlotNumber instr_
+          usdsltnum_ = case instr_ of
+                      [] -> usdsltnum
+                      Take _ : _ -> usdsltnum
+                      _ -> getUsedSlotNumber instr_
           instr_ = case am of
                    Arg n -> fst (fGet heap fptr n)
                    Code il -> il
@@ -289,7 +295,6 @@ gc (instr, fptr, usdsltnum, stack, vstack, dump, heap, cstore, stats)
   = (instr, fptr, usdsltnum, stack, vstack, dump, newHeap, cstore, stats)
     where
       adrlst1 = findStackRoots stack heap
-      -- adrlst2 = findFrmPtrRoots fptr heap
       adrlst2 = findFrmPtrRoots_ fptr heap usdsltnum
       heap'   = mapAccuml' markFrom heap (adrlst1 ++ adrlst2)
       newHeap = mapAccuml' scanHeap heap' (hAddresses heap')
@@ -343,7 +348,7 @@ findFrmPtrRoots_ :: FramePtr -> TimHeap -> [Int] -> [Addr]
 findFrmPtrRoots_ (FrameAddr addr) heap usdsltnum
   = [addr] ++ addr_
     where
-      usdsltnum_ = map ((*(-1)).(1+).(*(-1))) usdsltnum  -- 0始まりにするために、usdsltnum の各要素から1を引く。
+      usdsltnum_ = map (\x -> x - 1) usdsltnum  -- 0始まりにするために、usdsltnum の各要素から1を引く。
       frame = hLookup heap addr
       usdslt
         = case frame of
@@ -435,12 +440,16 @@ showState (instr, fptr, usdsltnum, stack, vstack, dump, heap, cstore, stats)
       showStack stack,
       showValueStack vstack,
       showDump dump,
+      {-
       showUsedHeapAddresses heap,  -- GCデバッグ用
       showUsedHeapContents heap,  -- GCデバッグ用
+      -}
+      showUsedHeap heap, iNewline,  -- GCデバッグ用
       showUsdSltNmbrs usdsltnum,
       iNewline
     ]
 
+{-
 showUsedHeapAddresses :: TimHeap -> Iseq  -- GCデバッグ用
 showUsedHeapAddresses heap
   = iConcat [
@@ -448,11 +457,17 @@ showUsedHeapAddresses heap
       iIndent (iInterleave (iStr ",") (map iNum (hAddresses heap))),
       iStr "]", iNewline
     ]
+-}
 
+{-
 showUsedHeapContents :: TimHeap -> Iseq
 showUsedHeapContents heap
+-}
+showUsedHeap :: TimHeap -> Iseq
+showUsedHeap heap
   = iConcat [
-      iStr "Used Heap Contents : [",
+      -- iStr "Used Heap Contents : [",
+      iStr "Used Heap : [",
       iIndent (iInterleave iNewline (map (showFrame heap) (map FrameAddr (hAddresses heap)))),
       iStr "]", iNewline
     ]
@@ -467,6 +482,7 @@ showFrame :: TimHeap -> FramePtr -> Iseq
 showFrame heap FrameNull = iStr "Null frame ptr" `iAppend` iNewline
 showFrame heap (FrameAddr addr)
   = iConcat [
+      iStr "addr: ", iNum addr, iStr ", ",  -- for debug
       iStr "Frame: <",
       iIndent (iInterleave iNewline
       (map showClosure (fList (hLookup heap addr)))),
@@ -614,3 +630,6 @@ test_program_for_gc''''' = "compose2 f g x = f (g x x) ; " ++
 --------------------------------
 -- テストプログラム (ここまで) --
 --------------------------------
+
+main :: IO()
+main = (putStrLn . fullRun) b_1_1_3
