@@ -8322,7 +8322,10 @@ $\mathcal{B}$には、継続を明示的にプッシュすることを回避す�
 たとえば、次の定義です。
 
 \begin{verbatim}
-  f x = let y = f 3 in g x y
+  f x = let
+          y = f 3
+        in
+          g x y
 \end{verbatim}
 
 これは次のコードにコンパイルされます。
@@ -8339,9 +8342,10 @@ $\mathcal{B}$には、継続を明示的にプッシュすることを回避す�
 もう少し複雑な例を次に示します。
 
 \begin{verbatim}
-  f x = let y = f 3
+  f x = let
+          y = f 3
         in
-        g (let z = 4 in h z) y
+          g (let z = 4 in h z) y
 \end{verbatim}
 
 これは次のコードを生成します：
@@ -8378,9 +8382,9 @@ $\mathcal{B}$には、継続を明示的にプッシュすることを回避す�
 	$\mathcal{SC} \llbracket e \rrbracket ~ \rho$は、環境$\rho$でコンパイルされたスーパーコンビネータ定義$def$のTIMコードです。 \\
 	\\
 	\begin{tabular}{r c l}
-		$\mathcal{SC} \llbracket f ~ x_1 ~ \ldots ~ x_n ~ \texttt{=} ~ e \rrbracket ~ \rho$ & $=$ & \texttt{Take} $d'$ $n$ \texttt{:} $is$                                                                                            \\
-		                                                                                    &     & ここで                                                                                                                            \\
-		                                                                                    &     & $(d', ~ is) = \mathcal{R} \llbracket e \rrbracket ~ \rho[x_1 \mapsto \texttt{Arg} ~ 1, \ldots, x_n \mapsto \texttt{Arg} ~ n] ~ n$ \\
+		$\mathcal{SC} \llbracket f ~ x_1 ~ \ldots ~ x_n ~ \texttt{=} ~ e \rrbracket ~ \rho$ & $=$ & \texttt{Take} $d'$ $n$ \texttt{:} $is$                                                                                                \\
+		                                                                                    &     & ここで                                                                                                                                \\
+		                                                                                    &     & $(d', ~ is) = \mathcal{R} \llbracket e \rrbracket ~ \rho[x_1 \mapsto \texttt{Arg} ~ 1, ~ \ldots, ~ x_n \mapsto \texttt{Arg} ~ n] ~ n$ \\
 		                                                                                    &     & です。
 	\end{tabular}
 	\\ \hline
@@ -8393,7 +8397,7 @@ $\mathcal{B}$には、継続を明示的にプッシュすることを回避す�
 		$\mathcal{R} \llbracket e \rrbracket ~ \rho ~ d$         & $=$ & $\mathcal{B} \llbracket e \rrbracket ~ \rho ~ d$ [\texttt{Return}]                                                           \\
 		                                                         &     & ここで、$e$は$e_1 + e_2$などの算術式、または数値です。                                                                       \\
 		\multicolumn{3}{l}{$\mathcal{R} \llbracket \texttt{let} ~ x_1 ~ \texttt{=} ~ e_1\texttt{;} ~  \ldots \texttt{;} ~ x_n ~ \texttt{=} ~ e_n ~ \texttt{in} ~ e \rrbracket ~ \rho ~ d$}            \\
-		                                                         & $=$ & $(d', ~ \left[ \texttt{Move} ~ (d + 1) ~ am_1, \ldots, ~ \texttt{Move} ~ (d + m) ~ am_n \right]$ ~ \texttt{++} ~ is)         \\
+		                                                         & $=$ & $(d', ~ \left[ \texttt{Move} ~ (d + 1) ~ am_1, ~ \ldots, ~ \texttt{Move} ~ (d + m) ~ am_n \right]$ ~ \texttt{++} ~ is)       \\
 		                                                         &     & ここで                                                                                                                       \\
 		                                                         &     & $(d_1, ~ am_1) = \mathcal{A} \llbracket e_1 \rrbracket ~ \rho ~ (d + n)$                                                     \\
 		                                                         &     & $(d_2, ~ am_1) = \mathcal{A} \llbracket e_2 \rrbracket ~ \rho ~ d_1$                                                         \\
@@ -8409,7 +8413,7 @@ $\mathcal{B}$には、継続を明示的にプッシュすることを回避す�
 		                                                         &     & です。                                                                                                                       \\
 		$\mathcal{R} \llbracket a \rrbracket ~ \rho ~ d$         & $=$ & $(d', ~ \left[ \texttt{Enter} ~ am \right])$                                                                                 \\
 		                                                         &     & ここで、$a$ は整数、変数、またはスーパーコンビネータであり、                                                                 \\
-		                                                         &     & $(d', ~ am) = \mathcal{A} \llbracket a \rrbracket ~ \rho ~ d$) です。
+		                                                         &     & $(d', ~ am) = \mathcal{A} \llbracket a \rrbracket ~ \rho ~ d$ です。
 	\end{tabular}
 	\\ \hline
 	$\mathcal{A} \llbracket e \rrbracket ~ \rho$は、ペア$(d', ~ am)$です。                                                      \\
@@ -8508,10 +8512,12 @@ $\mathcal{R}$ スキームの \texttt{letrec} ケースは、$am_i$ の定義で
 これにより、\texttt{let(rec)} によってバインドされた変数ごとに環境内の間接アドレス指定モードが記録されます。
 図 4.3 を参照すると、必要な変更は $\mathcal{R}$ スキームの \texttt{let} のルールに対するもので、$\rho'$ の定義は次のようになります。
 
-\[
-	\rho' = \rho[x_1 \mapsto \mathcal{I} \llbracket d + 1 \rrbracket, \ldots, x_n \mapsto \mathcal{I} \llbracket d + n \rrbracket] \\
-	ここで \mathcal{I}\llbracket d \rrbracket = \texttt{Code} ~ [\texttt{Enter} ~ (\texttt{Arg} ~ d)]
-\]
+\begin{center}
+	\begin{tabular}{r c l}
+		$\rho'$ & $=$ & $\rho[x_1 \mapsto \mathcal{I} \llbracket d + 1 \rrbracket, ~ \ldots, ~ x_n \mapsto \mathcal{I} \llbracket d + n \rrbracket]$ \\
+		        &     & ここで $\mathcal{I}\llbracket d \rrbracket = \texttt{Code} ~ [\texttt{Enter} ~ (\texttt{Arg} ~ d)]$
+	\end{tabular}
+\end{center}
 
 もちろん、これはかなり保守的です。
 多くの場合、その必要がない場合に間接参照を返しますが、結果として得られるコードは、効率は劣るものの、引き続き正常に動作します。
@@ -8707,8 +8713,8 @@ CAF が呼び出されるとき、redex のルートはスーパーコンビネ�
 \vskip\baselineskip
 
 それでも、この章で行ったように、別の評価モデルを検討することは、TIM の側面と G マシンの側面を組み合わせた他の設計手段を示唆するため、非常に啓発的です。
-そうする試みの 1 つが Spineless Tagless G マシンです [Peyton Jones and Salkild 1989, Peyton Jones 1991]。
-これは TIM のスパインレスと更新メカニズムを採用していますが、そのスタックは (G マシンと同様に) ヒープ オブジェクトへのポインタで構成されています。
+そうする試みの 1 つが スパインレス タグレス G マシンです [Peyton Jones and Salkild 1989, Peyton Jones 1991]。
+これは TIM のスパインレスと更新メカニズムを採用していますが、そのスタックは (G マシンと同様に) ヒープオブジェクトへのポインタで構成されています。
 (TIM のような) コードとフレームのペアではありません。
 
 \newpage
@@ -8756,7 +8762,23 @@ CAF が呼び出されるとき、redex のルートはスーパーコンビネ�
 \subsubsection{Locking and unlocking}
 \newpage
 
-\subsection{Conclusions}
+\subsection{結論}
+
+この章では、原則として、遅延関数型言語の共有メモリ実装は簡単であることを示しました。
+もちろん、Mark 1 マシンで最初に使用した単純なスキームの最適化を慎重に検討することで得られる利益があることもわかりました。
+すべての並列マシンにおいて、グラフは通信および同期媒体として機能します。
+また、Mark 2 および Mark 3 マシンでは、ヒープ内のロックされたノードにアクセスしようとすると、個々のプロセスがブロックされます。
+\vskip\baselineskip
+
+それでは、遅延関数型言語の並列実装における現在の課題はどこにあるのでしょうか?
+本書に含まれる並列処理のメカニズムでは、プロセスの削除は処理されません。
+投機的な並列処理を使用する場合は、現実的な実装でこの問題に対処する必要があります。
+一方、非投機的並列処理を見つけることは多くの場合困難であり、大規模なプログラムではこれが困難になる場合もあります。
+この目的のために抽象的な解釈を使用する試みがなされており、その結果は有望に見えますが、暫定的なものとみなされるべきです。
+
+私たちがカバーしていない最後の領域の 1 つは、分散メモリ並列マシンの領域です。
+繰り返しますが、原理的には共有メモリ マシンに似ていますが、実際の機能はまったく異なります。
+デッドロックを回避するようにメッセージの受け渡しを調整するのは、一種の黒魔術です。
 \newpage
 
 \section{ラムダリフティング}
@@ -8832,7 +8854,36 @@ CAF が呼び出されるとき、redex のルートはスーパーコンビネ�
 \subsubsection{A dependency analysis}
 \newpage
 
-\subsection{Conclusions}
+\subsection{結論}
+
+完全な遅延評価に対する私たちのアプローチを、同様の問題を扱ったBirdの非常に優れた論文 [Bird 1987] と比較するのは興味深いことです。
+Bird の目的は、初期仕様を連続的に変換することによって、効率的な完全遅延ラムダ リフターを正式に開発することです。
+結果として得られるアルゴリズムはかなり複雑で、直接書き出すのは難しいため、正式な開発の努力は十分に正当化されます。
+\vskip\baselineskip
+
+対照的に、私たちはアルゴリズムを多数の非常に単純なフェーズの構成として表現しており、各フェーズは簡単に指定して直接書き出すことができます。
+結果として得られるプログラムは、式を何度も走査するため、定数因数の非効率性を伴います。
+これは、連続するパスを 1 つの関数に折りたたんで、中間データ構造を排除することで簡単に削除できます。
+Bird の変換とは異なり、これは簡単なプロセスです。
+\vskip\baselineskip
+
+私たちのアプローチにはモジュール式であるという大きな利点があります。
+例えば：
+
+\begin{itemize}
+  \item いくつかの場合 (\texttt{freeVars}、\texttt{rename}、\texttt{collectSCs} など) に既存の関数を再利用することができました。
+  \item マルチパスアプローチは、各パスに明確な単純な目的があることを意味し、変更が容易になります。
+  たとえば、完全な遅延氷菓が導入される場所についてより選択的になるように、\texttt{identifyMFEs} アルゴリズムを変更しました (セクション 6.7.3)。
+  \item 主要フェーズをさまざまに組み合わせて使用し、さまざまな変換を「スナップ」することができます。
+  たとえば、トップレベルで適切な関数を構成するだけで、依存関係分析と完全な遅延処理を実行するかどうか、およびどのラムダ リフターを使用するかを選択できます。
+\end{itemize}
+
+私たちのアプローチの主な欠点は、Hughes が提案した 1 つの最適化、つまりパラメータをスーパーコンビネータに順序付けして MFE の数を減らすことができないことです。
+その理由は、最適化ではラムダ リフティングを MFE 識別のプロセスに組み込むことが絶対に必要である一方で、これらのアクティビティを慎重に分離しているためです。
+私たちにとって幸いなことに、この最適化によって作成されたより大きな MFE は常に部分的なアプリケーションであり、
+作業が共有されないため、おそらく MFE として識別されるべきではありません (セクション 6.7.3)。
+それでも、事態はそれほど偶然に起こったわけではないかもしれません。
+関心事の分離により、ある種の変革がかなり困難になっているのは確かです。
 \newpage
 
 \section{A ユーティリティモジュール}
