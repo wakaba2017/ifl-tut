@@ -8244,10 +8244,10 @@ $\mathcal{B}$には、継続を明示的にプッシュすることを回避す�
 	コード シーケンス$cont$を続行するTIMコードです。                                                                 \\
 	\\
 	\begin{tabular}{r c l l}
-		$\mathcal{B} \llbracket e_1 \texttt{+} ~ e_2 \rrbracket ~ \rho ~ cont$ & $=$                                                                    & $\mathcal{B} \llbracket e_2 \rrbracket ~ \rho ~ (\mathcal{B} \llbracket e_1 \rrbracket ~ \rho ~ (\texttt{Op Add :} ~ cont))$ &                         \\
-		                                                                       & \multicolumn {3} {l|} {$\ldots$および他の算術プリミティブの同様の規則}                                                                                                                                                          \\
-		$\mathcal{B} \llbracket n \rrbracket ~ \rho ~ cont$                    & $=$                                                                    & $\texttt{PushV} ~ (\texttt{IntVConst} ~ n) ~ \texttt{:} ~ cont$                                                              & ここで、$n$は数値です。 \\
-		$\mathcal{B} \llbracket e \rrbracket ~ \rho$                           & $=$                                                                    & \texttt{Push} (\texttt{Code} $cont$) \texttt{:} $\mathcal{R} \llbracket e \rrbracket ~ \rho$                                 & その他                  \\
+		$\mathcal{B} \llbracket e_1 \texttt{+} ~ e_2 \rrbracket ~ \rho ~ cont$ & $=$                                                                   & $\mathcal{B} \llbracket e_2 \rrbracket ~ \rho ~ (\mathcal{B} \llbracket e_1 \rrbracket ~ \rho ~ (\texttt{Op Add :} ~ cont))$ &                         \\
+		                                                                       & \multicolumn {3} {l} {$\ldots$および他の算術プリミティブの同様の規則}                                                                                                                                                          \\
+		$\mathcal{B} \llbracket n \rrbracket ~ \rho ~ cont$                    & $=$                                                                   & $\texttt{PushV} ~ (\texttt{IntVConst} ~ n) ~ \texttt{:} ~ cont$                                                              & ここで、$n$は数値です。 \\
+		$\mathcal{B} \llbracket e \rrbracket ~ \rho$                           & $=$                                                                   & \texttt{Push} (\texttt{Code} $cont$) \texttt{:} $\mathcal{R} \llbracket e \rrbracket ~ \rho$                                 & その他                  \\
 	\end{tabular}
 	\\ \hline
 \end{tabular}
@@ -8389,37 +8389,37 @@ $\mathcal{B}$には、継続を明示的にプッシュすることを回避す�
 	\end{tabular}
 	\\ \hline
 	$\mathcal{R} \llbracket e \rrbracket ~ \rho ~ d$は、ペア$(d', ~ is)$です。                                                  \\
-	$is$は、環境$\rho$内の式$e$の値をスタック上の引数に適用するTIMコードです。                                                  \\
+	ここで、$is$は、環境$\rho$内の式$e$の値をスタック上の引数に適用するTIMコードです。                                          \\
 	このコードは、フレームの最初の $d$ スロットが占有されていると想定しており、                                                 \\
-	スロット $(d + 1 ... d')$ を使用します。                                                                                    \\
+	スロット $(d + 1 ~ ... ~ d')$ を使用します。                                                                                \\
 	\\
 	\begin{tabular}{r c l}
-		$\mathcal{R} \llbracket e \rrbracket ~ \rho ~ d$         & $=$ & $\mathcal{B} \llbracket e \rrbracket ~ \rho ~ d$ [\texttt{Return}]                                                           \\
-		                                                         &     & ここで、$e$は$e_1 + e_2$などの算術式、または数値です。                                                                       \\
-		\multicolumn{3}{l}{$\mathcal{R} \llbracket \texttt{let} ~ x_1 ~ \texttt{=} ~ e_1\texttt{;} ~  \ldots \texttt{;} ~ x_n ~ \texttt{=} ~ e_n ~ \texttt{in} ~ e \rrbracket ~ \rho ~ d$}            \\
-		                                                         & $=$ & $(d', ~ \left[ \texttt{Move} ~ (d + 1) ~ am_1, ~ \ldots, ~ \texttt{Move} ~ (d + m) ~ am_n \right]$ ~ \texttt{++} ~ is)       \\
-		                                                         &     & ここで                                                                                                                       \\
-		                                                         &     & $(d_1, ~ am_1) = \mathcal{A} \llbracket e_1 \rrbracket ~ \rho ~ (d + n)$                                                     \\
-		                                                         &     & $(d_2, ~ am_1) = \mathcal{A} \llbracket e_2 \rrbracket ~ \rho ~ d_1$                                                         \\
-		                                                         &     & $\ldots$                                                                                                                     \\
-		                                                         &     & $(d_n, am_n) = \mathcal{A} \llbracket e_n \rrbracket ~ \rho ~ d_{n - 1} ~ \texttt{++}$                                       \\
-		                                                         &     & $\mathcal{R} \llbracket e \rrbracket ~ \rho' ~ d_n$                                                                          \\
-		                                                         &     & $\rho' = \rho^{+n} \left[x_1 ~ \mapsto ~ \texttt{Arg} ~ (d + 1), ~ \ldots , ~ x_n ~ \mapsto ~ \texttt{Arg} ~ (d + n)\right]$ \\
-		                                                         &     & です。                                                                                                                       \\
-		$\mathcal{R} \llbracket e_1 ~ e_2 \rrbracket ~ \rho ~ d$ & $=$ & $(d_2, ~ \texttt{Push} ~ am \texttt{:} is)$                                                                                  \\
-		                                                         &     & ここで                                                                                                                       \\
-		                                                         &     & $(d_1, ~ am) = \mathcal{A} \llbracket e_2 \rrbracket ~ \rho ~ d$                                                             \\
-		                                                         &     & $(d_2, ~ is) = \mathcal{R} \llbracket e_1 \rrbracket ~ \rho ~ d_1$                                                           \\
-		                                                         &     & です。                                                                                                                       \\
-		$\mathcal{R} \llbracket a \rrbracket ~ \rho ~ d$         & $=$ & $(d', ~ \left[ \texttt{Enter} ~ am \right])$                                                                                 \\
-		                                                         &     & ここで、$a$ は整数、変数、またはスーパーコンビネータであり、                                                                 \\
+		$\mathcal{R} \llbracket e \rrbracket ~ \rho ~ d$         & $=$ & $\mathcal{B} \llbracket e \rrbracket ~ \rho ~ d$ [\texttt{Return}]                                                      \\
+		                                                         &     & ここで、$e$は$e_1 + e_2$などの算術式、または数値です。                                                                  \\
+		\multicolumn{3}{l}{$\mathcal{R} \llbracket \texttt{let} ~ x_1 ~ \texttt{=} ~ e_1\texttt{;} ~  \ldots \texttt{;} ~ x_n ~ \texttt{=} ~ e_n ~ \texttt{in} ~ e \rrbracket ~ \rho ~ d$}       \\
+		                                                         & $=$ & $(d', ~ \left[ \texttt{Move} ~ (d + 1) ~ am_1, ~ \ldots, ~ \texttt{Move} ~ (d + m) ~ am_n \right]$ ~ \texttt{++} ~ is)  \\
+		                                                         &     & ここで                                                                                                                  \\
+		                                                         &     & $(d_1, ~ am_1) = \mathcal{A} \llbracket e_1 \rrbracket ~ \rho ~ (d + n)$                                                \\
+		                                                         &     & $(d_2, ~ am_2) = \mathcal{A} \llbracket e_2 \rrbracket ~ \rho ~ d_1$                                                    \\
+		                                                         &     & $\ldots$                                                                                                                \\
+		                                                         &     & $(d_n, ~ am_n) = \mathcal{A} \llbracket e_n \rrbracket ~ \rho ~ d_{n - 1}$                                              \\
+		                                                         &     & $\rho' = \rho \left[x_1 ~ \mapsto ~ \texttt{Arg} ~ (d + 1), ~ \ldots , ~ x_n ~ \mapsto ~ \texttt{Arg} ~ (d + n)\right]$ \\
+		                                                         &     & $(d', ~ is) = \mathcal{R} \llbracket e \rrbracket ~ \rho' ~ d_n$                                                        \\
+		                                                         &     & です。                                                                                                                  \\
+		$\mathcal{R} \llbracket e_1 ~ e_2 \rrbracket ~ \rho ~ d$ & $=$ & $(d_2, ~ \texttt{Push} ~ am \texttt{:} is)$                                                                             \\
+		                                                         &     & ここで                                                                                                                  \\
+		                                                         &     & $(d_1, ~ am) = \mathcal{A} \llbracket e_2 \rrbracket ~ \rho ~ d$                                                        \\
+		                                                         &     & $(d_2, ~ is) = \mathcal{R} \llbracket e_1 \rrbracket ~ \rho ~ d_1$                                                      \\
+		                                                         &     & です。                                                                                                                  \\
+		$\mathcal{R} \llbracket a \rrbracket ~ \rho ~ d$         & $=$ & $(d', ~ \left[ \texttt{Enter} ~ am \right])$                                                                            \\
+		                                                         &     & ここで、$a$ は整数、変数、またはスーパーコンビネータであり、                                                            \\
 		                                                         &     & $(d', ~ am) = \mathcal{A} \llbracket a \rrbracket ~ \rho ~ d$ です。
 	\end{tabular}
 	\\ \hline
 	$\mathcal{A} \llbracket e \rrbracket ~ \rho$は、ペア$(d', ~ am)$です。                                                      \\
 	ここで、$am$は環境$\rho$における式$e$のTIMアドレッシングモードです。                                                        \\
 	このコードは、フレームの最初の $d$ スロットが占有されていると想定しており、                                                 \\
-	スロット $(d + 1 ... d')$ を使用します。                                                                                    \\
+	スロット $(d + 1 ~ ... ~ d')$ を使用します。                                                                                \\
 	\\
 	\begin{tabular}{r c l l}
 		$\mathcal{A} \llbracket x \rrbracket ~ \rho ~ d$ & $=$ & $(d, ~ \rho ~ x)$                                                            & ここで、$x$ は $\rho$ によって束縛されます。 \\
@@ -8646,7 +8646,138 @@ TIMはスパインのないマシンであるため、その更新手法はか�
 スタックの一番上の継続は、プログラム カウンターと現在のフレーム ポインターにロードされます。
 
 \subsubsection{\texttt{PushMarker}命令のコンパイル}
+
+このように、\texttt{PushMarker} 命令と \texttt{Return} 命令の実行は非常に簡単ですが、難しい問題は、コンパイラが \texttt{PushMarker} 命令をどこに配置するかということです。
+これに答えるには、更新作業全体の動機を思い出す必要があります。評価後に Redex をその値で上書きすることで、各 Redex が 1 回だけ評価されるようにするためです。
+TIM では、「redex」はクロージャです。
+重要な洞察は次のとおりです。
+
+\begin{quote}
+	クロージャをコピーするときは非常に注意する必要があります。2 つのコピーが存在すると、それらの評価を共有することはできないからです。
+\end{quote}
+
+たとえば、次の関数定義を考えてみましょう。
+
+\begin{verbatim}
+  g x = h x x
+  h p q = q - p
+\end{verbatim}
+
+現時点では、\texttt{g} に対して次のコードを生成します。
+
+\begin{verbatim}
+  [ Take 1 1, Push (Arg 1), Push (Arg 1), Enter (Label "h") ]
+\end{verbatim}
+
+2 つの \texttt{Push Arg} 命令はそれぞれ同じクロージャのコピーを取得し、その後 \texttt{h} はそれぞれを独立して評価します。
+\vskip\baselineskip
+
+私たちが本当にやりたいことは、\texttt{x} のクロージャの\textbf{コピー}ではなく、それ\textbf{へのポインタ}をプッシュすることです。
+セクション 4.4.2 の\textbf{間接}クロージャのアイデアを思い出してください。
+これは、\texttt{Push (Arg 1)} を \texttt{Push (Code [Enter (Arg 1)])} に置き換えることによって簡単に実行できます。
+\vskip\baselineskip
+
+これで半分まで進みました。 クロージャを複製していませんが、まだ更新していません。
+でも今は簡単です！
+必要なのは、\texttt{Enter (Arg 1)} 命令の前に \texttt{PushMarker 1} を置くことだけです。次のようになります。
+
+\begin{verbatim}
+  Push (Code [PushMarker 1, Enter (Arg 1)])
+\end{verbatim}
+
+つまり、共有クロージャに入る直前に、評価が完了したときに共有クロージャが更新されるようにする更新メカニズムをセットアップします。
+\vskip\baselineskip
+
+アドレッシング モード \texttt{(Code [PushMarker \textit{n}, Enter (Arg \textit{n})])} は、フレームの $n$ 番目のクロージャへの\textbf{間接更新}と呼ばれます。
+これは、更新を実行させる間接であるためです。
+引数を (スタックにプッシュするのではなく) 入力する場合にも、まったく同じ考慮事項が適用されます。
+引数自体ではなく、引数への間接更新を入力する必要があります。
+\texttt{Enter (Arg 1)} は \texttt{Enter (Code [PushMarker 1, Enter (Arg 1)])} に置き換える必要があります。
+\vskip\baselineskip
+
+コンパイルスキームの変更は簡単です。
+$\mathcal{SC}$ スキームと $\mathcal{R}$ スキームのみが影響を受けますが、両方とも同じように影響を受けます。
+つまり、環境を構築する場合、各変数を更新間接アドレス指定モードにバインドする必要があります。
+たとえば、$\mathcal{R}$ スキームの \texttt{let(rec)} の場合、$\rho'$ に次の定義を使用します (図 4.3 を参照)。
+
+\begin{center}
+	\begin{tabular}{r c l}
+		$\rho'$ & $=$ & $\rho[x_1 \mapsto \mathcal{J} \llbracket d + 1 \rrbracket, ~ \ldots, ~ x_n \mapsto \mathcal{J} \llbracket d + n \rrbracket]$   \\
+		        &     & ここで $\mathcal{J}\llbracket d \rrbracket = \texttt{Code} ~ [\texttt{PushMarker} ~ d, ~ \texttt{Enter} ~ (\texttt{Arg} ~ d)]$
+	\end{tabular}
+\end{center}
+
 \subsubsection{更新メカニズムの実装}
+
+新しい更新メカニズムを実装するには、次の変更を加える必要があります。
+
+\begin{itemize}
+	\item ダンプの型定義を指定します。
+	      これは単なるトリプルのスタックであり、リストとして表され、空に初期化されます。
+	      \begin{verbatim}
+          type TimDump = [(FramePtr, -- The frame to be updated
+                           Int,      -- Index of slot to be updated
+                           TimStack) -- Old stack
+                         ]
+          initialDump = []
+        \end{verbatim}
+	\item \texttt{PushMarker} 命令を \texttt{instruction} 型に追加し、命令を表示するために適切な変更を加えます。
+	\item \texttt{step} に \texttt{PushMarker} 命令用の定義を追加し、\texttt{Return} 命令用の定義を変更します。
+	\item 各変数を更新間接アドレッシング モードにバインドする環境を構築するには、\texttt{compileSC} と、\texttt{compileR} の \texttt{ELet} 命令用定義を変更します。
+	      関数 \texttt{mkUpdIndMode} を使用して $\mathcal{J}$ スキームを実装します。
+	      \begin{verbatim}
+          mkUpdIndMode :: Int -> TimAMode
+          mkUpdIndMode n = Code [PushMarker n, Enter (Arg n)]
+        \end{verbatim}
+\end{itemize}
+
+\begin{description}
+	\item[演習 4.16] 説明に従って更新メカニズムを実装します。
+	      いくつかのテスト プログラムで新しいシステムを実行すると、\texttt{PushMarker} が更新情報をダンプに追加し、\texttt{Return} が更新を実行するのを確認できるはずです。
+	      考えられるテスト プログラムの 1 つを次に示します。
+	      \begin{verbatim}
+          f x = x + x
+          main = f (1+2)
+        \end{verbatim}
+	      \texttt{(1+2)} の評価は 1 回だけ行う必要があります。
+	\item[演習 4.17] ここでは、実行できる簡単な最適化を示します。
+	      次のような関数の場合:
+        \begin{verbatim}
+          compose f g x = f (g x)
+        \end{verbatim}
+        \texttt{compose} のコードは次のようになっていることがわかります。
+        \begin{verbatim}
+          compose: Take 3 3
+                   Push (Code [...])
+                   Enter (Code [PushMarker 1, Enter (Arg 1)])
+        \end{verbatim}
+        ここで、\texttt{[...]} は \texttt{(g x)} のコードです。
+        最後の命令は、\texttt{f} の間接更新に入ります。
+        しかし、
+        \begin{center}
+          \texttt{Enter (Code \textit{i})} が \textit{i} と同等であること
+        \end{center}
+        は事実です。(これはルール 4.8 から直ちに導かれます。)
+        したがって、\texttt{compose} の同等のコードは次のようになります。
+        \begin{verbatim}
+          compose: Take 3 3
+                   Push (Code [...])
+                   PushMarker 1
+                   Enter (Arg 1)
+        \end{verbatim}
+        この最適化を実装します。
+        これを行う最も良い方法は、コンパイラ内の \texttt{[Enter \textit{e}]} 形式のすべての式を \texttt{(mkEnter \textit{e})} に置き換えることです。
+        ここで、\texttt{mkEnter} は次のように定義されます。
+        \begin{verbatim}
+          mkEnter :: TimAMode -> [Instruction]
+          mkEnter (Code i) = i
+          mkEnter other_am = [Enter other_am]
+        \end{verbatim}
+        \texttt{mkEnter} は \texttt{Enter} コンストラクタの「アクティブ」形式で、\texttt{Enter} 命令を生成する前に特殊なケースをチェックします。
+\end{description}
+
+このスキームには他にも多くの改善点があり、それについては次のセクションで検討します。
+
 \subsubsection{間接更新の問題}
 \subsubsection{\texttt{let(rec)}にバインドされた共有変数の更新}
 \subsubsection{間接チェーンの排除}
@@ -8871,11 +9002,11 @@ Bird の変換とは異なり、これは簡単なプロセスです。
 例えば：
 
 \begin{itemize}
-  \item いくつかの場合 (\texttt{freeVars}、\texttt{rename}、\texttt{collectSCs} など) に既存の関数を再利用することができました。
-  \item マルチパスアプローチは、各パスに明確な単純な目的があることを意味し、変更が容易になります。
-  たとえば、完全な遅延氷菓が導入される場所についてより選択的になるように、\texttt{identifyMFEs} アルゴリズムを変更しました (セクション 6.7.3)。
-  \item 主要フェーズをさまざまに組み合わせて使用し、さまざまな変換を「スナップ」することができます。
-  たとえば、トップレベルで適切な関数を構成するだけで、依存関係分析と完全な遅延処理を実行するかどうか、およびどのラムダ リフターを使用するかを選択できます。
+	\item いくつかの場合 (\texttt{freeVars}、\texttt{rename}、\texttt{collectSCs} など) に既存の関数を再利用することができました。
+	\item マルチパスアプローチは、各パスに明確な単純な目的があることを意味し、変更が容易になります。
+	      たとえば、完全な遅延評価が導入される場所についてより選択的になるように、\texttt{identifyMFEs} アルゴリズムを変更しました (セクション 6.7.3)。
+	\item 主要フェーズをさまざまに組み合わせて使用し、さまざまな変換を「スナップ」することができます。
+	      たとえば、トップレベルで適切な関数を構成するだけで、依存関係分析と完全な遅延処理を実行するかどうか、およびどのラムダ リフターを使用するかを選択できます。
 \end{itemize}
 
 私たちのアプローチの主な欠点は、Hughes が提案した 1 つの最適化、つまりパラメータをスーパーコンビネータに順序付けして MFE の数を減らすことができないことです。
