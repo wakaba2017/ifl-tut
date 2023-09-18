@@ -230,12 +230,14 @@ compileSC env (name, args, body)
       lenArgs = length args
 
 compileR :: CoreExpr -> TimCompilerEnv -> Int -> (Int, [Instruction])  -- Rスキーム  Mark3で変更
-compileR (ELet False defs e) env d  -- Mark3で追加
-  = (d_, mvinstrs ++ is)  -- recursive が False の場合
+compileR (ELet recursion defs e) env d  -- Mark3で追加
+  = (d_, mvinstrs ++ is)
     where
       defs1 = map fst defs
       defs2 = map snd defs
-      subFunc1 dd ee = compileA ee env dd
+      subFunc1 dd ee
+        | recursion == True = compileA ee env_ dd  -- letrec の場合
+        | otherwise         = compileA ee env  dd  -- let    の場合
       (dn, ams) = mapAccuml subFunc1 (d + length defs) defs2
       env_ = (zip2 defs1 (map Arg [(d+1)..])) ++ env
       (d_, is) = compileR e env_ dn
@@ -594,6 +596,10 @@ ex_4_12_2 = "f' p x y z = p+x+y+z ; " ++
 ex_4_12_2 = "f_ p x y z = (p+x)+(y+z) ; " ++  -- パーサの実装が不十分！括弧で囲んで明示的に2項演算の形にしないとパースできない模様。
             "f x y z = f_ (x+y) x y z ; " ++  -- パーサの実装が不十分！コア言語プログラムの変数名や関数名に「'」があるとパースできない模様。
             "main = f 1 2 3"
+ex_4_13 = "f x = letrec p = if (x==0) 1 q ; " ++
+                       "q = if (x==0) p 2 " ++
+                "in p+q ; " ++
+          "main = f 1"
 --------------------------------
 -- テストプログラム (ここまで) --
 --------------------------------
