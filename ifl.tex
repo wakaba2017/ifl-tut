@@ -8742,38 +8742,38 @@ $\mathcal{SC}$ スキームと $\mathcal{R}$ スキームのみが影響を受�
 	      \texttt{(1+2)} の評価は 1 回だけ行う必要があります。
 	\item[演習 4.17] ここでは、実行できる簡単な最適化を示します。
 	      次のような関数の場合:
-        \begin{verbatim}
+	      \begin{verbatim}
           compose f g x = f (g x)
         \end{verbatim}
-        \texttt{compose} のコードは次のようになっていることがわかります。
-        \begin{verbatim}
+	      \texttt{compose} のコードは次のようになっていることがわかります。
+	      \begin{verbatim}
           compose: Take 3 3
                    Push (Code [...])
                    Enter (Code [PushMarker 1, Enter (Arg 1)])
         \end{verbatim}
-        ここで、\texttt{[...]} は \texttt{(g x)} のコードです。
-        最後の命令は、\texttt{f} の間接更新に入ります。
-        しかし、
-        \begin{center}
-          \texttt{Enter (Code \textit{i})} が \textit{i} と同等であること
-        \end{center}
-        は事実です。(これはルール 4.8 から直ちに導かれます。)
-        したがって、\texttt{compose} の同等のコードは次のようになります。
-        \begin{verbatim}
+	      ここで、\texttt{[...]} は \texttt{(g x)} のコードです。
+	      最後の命令は、\texttt{f} の間接更新に入ります。
+	      しかし、
+	      \begin{center}
+		      \texttt{Enter (Code \textit{i})} が \textit{i} と同等であること
+	      \end{center}
+	      は事実です。(これはルール 4.8 から直ちに導かれます。)
+	      したがって、\texttt{compose} の同等のコードは次のようになります。
+	      \begin{verbatim}
           compose: Take 3 3
                    Push (Code [...])
                    PushMarker 1
                    Enter (Arg 1)
         \end{verbatim}
-        この最適化を実装します。
-        これを行う最も良い方法は、コンパイラ内の \texttt{[Enter \textit{e}]} 形式のすべての式を \texttt{(mkEnter \textit{e})} に置き換えることです。
-        ここで、\texttt{mkEnter} は次のように定義されます。
-        \begin{verbatim}
+	      この最適化を実装します。
+	      これを行う最も良い方法は、コンパイラ内の \texttt{[Enter \textit{e}]} 形式のすべての式を \texttt{(mkEnter \textit{e})} に置き換えることです。
+	      ここで、\texttt{mkEnter} は次のように定義されます。
+	      \begin{verbatim}
           mkEnter :: TimAMode -> [Instruction]
           mkEnter (Code i) = i
           mkEnter other_am = [Enter other_am]
         \end{verbatim}
-        \texttt{mkEnter} は \texttt{Enter} コンストラクタの「アクティブ」形式で、\texttt{Enter} 命令を生成する前に特殊なケースをチェックします。
+	      \texttt{mkEnter} は \texttt{Enter} コンストラクタの「アクティブ」形式で、\texttt{Enter} 命令を生成する前に特殊なケースをチェックします。
 \end{description}
 
 このスキームには他にも多くの改善点があり、それについては次のセクションで検討します。
@@ -8832,6 +8832,82 @@ $\mathcal{SC}$ スキームと $\mathcal{R}$ スキームのみが影響を受�
 これは、スーパーコンビネータの引数についても、より良い解決策への道を示しています。
 
 \subsubsection{\texttt{let(rec)}にバインドされた共有変数の更新}
+
+これまで、 \texttt{let(rec)} でバインドされた変数は、常に間接更新アドレス指定モードを使用することにより、スーパーコンビネータの引数とまったく同じ方法で更新されると仮定してきました。
+たとえば、次のスーパーコンビネータ定義を考えてみましょう。
+
+\begin{verbatim}
+  f x = let y = ...
+        in
+        g y y
+\end{verbatim}
+
+ここで、「\texttt{...}」は \texttt{y} の任意の右辺を表します。
+\texttt{y} を \texttt{x} と同じように扱って、\texttt{f} に対して次のコードを生成します。
+
+\begin{verbatim}
+  f:    Take 2 1                                  -- Frame with room for y
+        Move 2 (Code [...code for y...])          -- Closure for y
+        Push (Code [PushMarker 2, Enter (Arg 2)]) -- Indirection to y
+        Push (Code [PushMarker 2, Enter (Arg 2)]) -- Indirection to y
+        Enter (Label "g")
+\end{verbatim}
+
+ここで、「\texttt{...code for y...}」は、\texttt{y} の右辺から生成されたコードを表します。
+このコードには、前に概説した同一更新の問題があります。
+\vskip\baselineskip
+
+しかし、はるかに優れたソリューションがすぐに利用可能です。
+代わりに \texttt{f} に対して次のコードを生成するとします。
+
+\begin{verbatim}
+  f:    Take 2 1 -- Frame with room for y
+        Move 2 (Code (PushMarker 2 :
+                      [...code for y...])) -- Closure for y
+        Push (Code [Enter (Arg 2)]) -- Non-updating indirection to y
+        Push (Code [Enter (Arg 2)]) -- Indirection to y
+        Enter (Label "g")
+\end{verbatim}
+
+\texttt{PushMarker} 命令は、\texttt{y} の\textbf{使用}からその\textbf{定義}に移行しました。
+\texttt{Move} 命令によって構築された \texttt{y} のクロージャは、\textbf{自己更新クロージャ}になりました。
+つまり、入力すると、それ自体を更新する更新メカニズムがセットアップされます。
+一度この問題が発生すると、\texttt{PushMarker} 命令を含むコードへのポインタが上書きされるため、二度と同じ問題が発生することはありません。
+\vskip\baselineskip
+
+一般に、考え方は次のとおりです。
+
+\begin{itemize}
+	\item コードを \texttt{PushMarker} 命令で始めることにより、\texttt{let(rec)} バインディングの右側に自己更新クロージャを使用します。
+	\item \texttt{let(rec)} でバインドされた変数をスタックにプッシュする場合は、通常の (非更新) 間接アドレス指定モードを使用します。
+	      クロージャが更新されるまでコピーすると重複した作業が発生するため、クロージャのコピーを取得するのではなく、間接指定を使用する必要があります。
+\end{itemize}
+
+このアイデアを実装するには次の変更が必要です。
+
+\begin{itemize}
+	\item \texttt{let(rec)} でバインドされた変数に対して\textbf{非更新}間接参照を生成するように $\mathcal{R}$ スキームを変更します。
+	      つまり、 $\mathcal{J}$ ではなく $\mathcal{I}$ スキームを使用して新しい環境を構築します。
+	      (現時点では、$\mathcal{SC}$ は supercom-binator 引数に対して $\mathcal{J}$ を使用して\textbf{更新}間接を生成し続ける必要があります。)
+\end{itemize}
+
+\texttt{let(rec)} 式の $\mathcal{R}$ スキームを変更して、すべての右辺のコードの先頭に \texttt{PushMarker} 命令を生成します。
+これは、新しいコンパイル スキームである U スキーム (図 4.4 を参照) を作成することで最も簡単に実行できます。
+これは、$\mathcal{R}$ スキームの \texttt{let(rec)} の場合に定義の右辺をコンパイルするために使用されます。
+$\mathcal{U}$ には、現在のフレームのどのスロットを更新する必要があるかを示す追加の引数が必要であり、この引数を使用して適切な \texttt{PushMarker} 命令を生成します。
+図 4.4 には、$\mathcal{R}$ スキームの修正された \texttt{let} 定義式も示されています。
+\texttt{letrec} の場合の変更もまったく同様です。
+
+\begin{description}
+	\item[演習 4.18] このアイデアを試して、どれだけのステップが節約されるかという点でその効果を測定してください。
+	\item[演習 4.19] 次の表現を考えてみる
+	      \begin{verbatim}
+          let x = 3 in x+x
+        \end{verbatim}
+	      この場合、\texttt{let} 式の右側はすでに正規形式になっているため、$\mathcal{U}$ スキームで \texttt{PushMarker} 命令を生成する意味はありません。
+	      むしろ、この場合、$\mathcal{U}$ は単純に \texttt{IntConst} アドレッシング モードを返すことができます。
+\end{description}
+
 \subsubsection{間接チェーンの排除}
 \subsubsection{部分的な関数適用の更新}
 \newpage
