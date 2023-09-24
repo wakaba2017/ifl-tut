@@ -32,22 +32,13 @@ data TimAMode = Arg      Int
               deriving Show  -- テキストにはないけれど追加
 
 type TimState = ([Instruction], -- The current instruction stream 
-                                -- (現在の命令ストリームは、命令のリストで表されます。)
                  FramePtr,      -- Address of current frame
-                                -- (通常、フレームポインタはヒープ内のフレームのアドレスですが、
-                                --  整数値を保持するために使用されるか、
-                                --  初期化されていない可能性があります。)
                  UsdSltNmbrs,   -- Used slot numbers
                  TimStack,      -- Stack of arguments
-                                -- (スタックにはクロージャが含まれており、
-                                --  それぞれがコードポインタとフレームポインタを含むペアです。
-                                --  スタックをリストとして表します。)
                  TimValueStack, -- Value stack (not used yet)
                  TimDump,       -- Dump (not used yet)
                  TimHeap,       -- Heap of frames
-                                -- (ヒープにはフレームが含まれており、それぞれがクロージャのタプルです。)
                  CodeStore,     -- Labelled blocks of code
-                                -- (ラベルごとに、コードストアは対応するコンパイル済みコードを提供します。)
                  TimStats)      -- Statistics
 
 data FramePtr = FrameAddr Addr -- The address of a frame
@@ -124,6 +115,7 @@ type TimStats
     Int, -- The number of steps
     Int, -- Execution time
     Int, -- Total amount of heap allocated in the run
+    Int, -- Total amount of closure allocated in the run
     Int  -- Maximum stack depth
    )
 {-
@@ -131,15 +123,15 @@ statInitial    = 0
 statIncSteps s = s+1
 statGetSteps s = s
 -}
-statInitial    = (0, 0, 0, 0)
-statIncSteps (steps, exctime, totalheap, maxstkdepth)
-  = (steps + 1, exctime, totalheap, maxstkdepth)
-statGetSteps (steps, exctime, totalheap, maxstkdepth)
+statInitial    = (0, 0, 0, 0, 0)
+statIncSteps (steps, exctime, totalheap, totalclosure, maxstkdepth)
+  = (steps + 1, exctime, totalheap, totalclosure, maxstkdepth)
+statGetSteps (steps, exctime, totalheap, totalclosure, maxstkdepth)
   = steps
 
 statUpdExectime :: TimState -> TimState
-statUpdExectime (instr, frame, usedslot, stack, vstack, dump, heap, cstore, (steps, exctime, totalheap, maxstkdepth))
-  = (instr, frame, usedslot, stack, vstack, dump, heap, cstore, (steps, exctime', totalheap, maxstkdepth))
+statUpdExectime (instr, frame, usedslot, stack, vstack, dump, heap, cstore, (steps, exctime, totalheap, totalclosure, maxstkdepth))
+  = (instr, frame, usedslot, stack, vstack, dump, heap, cstore, (steps, exctime', totalheap, totalclosure, maxstkdepth))
     where
       curInstr | null instr = Take 0
                | otherwise  = head instr
@@ -148,31 +140,45 @@ statUpdExectime (instr, frame, usedslot, stack, vstack, dump, heap, cstore, (ste
                  _      -> exctime + 1
 
 statGetExectime :: TimStats -> Int
-statGetExectime (steps, exctime, totalheap, maxstkdepth)
+statGetExectime (steps, exctime, totalheap, totalclosure, maxstkdepth)
   = exctime
 
 statUpdAllcdheap :: TimState -> TimState
-statUpdAllcdheap (instr, frame, usedslot, stack, vstack, dump, heap, cstore, (steps, exctime, totalheap, maxstkdepth))
-  = (instr, frame, usedslot, stack, vstack, dump, heap, cstore, (steps, exctime, totalheap', maxstkdepth))
+statUpdAllcdheap (instr, frame, usedslot, stack, vstack, dump, heap, cstore, (steps, exctime, totalheap, totalclosure, maxstkdepth))
+  = (instr, frame, usedslot, stack, vstack, dump, heap, cstore, (steps, exctime, totalheap', totalclosure, maxstkdepth))
     where
       totalheap' | curTotalHeap > totalheap = curTotalHeap
                  | otherwise                = totalheap
       curTotalHeap = hSize heap
 
 statGetAllcdheap :: TimStats -> Int
-statGetAllcdheap (steps, exctime, totalheap, maxstkdepth)
+statGetAllcdheap (steps, exctime, totalheap, totalclosure, maxstkdepth)
   = totalheap
 
+statUpdAllcdclosure :: TimState -> TimState
+statUpdAllcdclosure (instr, frame, usedslot, stack, vstack, dump, heap, cstore, (steps, exctime, totalheap, totalclosure, maxstkdepth))
+  = (instr, frame, usedslot, stack, vstack, dump, heap, cstore, (steps, exctime, totalheap, totalclosure_, maxstkdepth))
+    where
+      tempList = map (hLookup heap) (hAddresses heap)
+      subFunc (FClosure fcl) = length fcl
+      curTotalclosure = sum $ map subFunc tempList
+      totalclosure_ | curTotalclosure > totalclosure = curTotalclosure
+                    | otherwise                      = totalclosure
+
+statGetAllcdclosure :: TimStats -> Int
+statGetAllcdclosure (steps, exctime, totalheap, totalclosure, maxstkdepth)
+  = totalclosure
+
 statUpdMaxstkdpth :: TimState -> TimState
-statUpdMaxstkdpth (instr, frame, usedslot, stack, vstack, dump, heap, cstore, (steps, exctime, totalheap, maxstkdepth))
-  = (instr, frame, usedslot, stack, vstack, dump, heap, cstore, (steps, exctime, totalheap, maxstkdepth'))
+statUpdMaxstkdpth (instr, frame, usedslot, stack, vstack, dump, heap, cstore, (steps, exctime, totalheap, totalclosure, maxstkdepth))
+  = (instr, frame, usedslot, stack, vstack, dump, heap, cstore, (steps, exctime, totalheap, totalclosure, maxstkdepth'))
     where
       maxstkdepth' | curStackDepth > maxstkdepth = curStackDepth
                    | otherwise                   = maxstkdepth
       curStackDepth = length stack
 
 statGetMaxstkdpth :: TimStats -> Int
-statGetMaxstkdpth (steps, exctime, totalheap, maxstkdepth)
+statGetMaxstkdpth (steps, exctime, totalheap, totalclosure, maxstkdepth)
   = maxstkdepth
 
 -- :a util.lhs -- heap data type and other library functions
@@ -248,7 +254,7 @@ eval state
       -- next_state = (statUpdMaxstkdpth . statUpdAllcdheap . statUpdExectime . doAdmin) (step state)
       next_state' | hSize heap >= 1 = gc (step state)
                   | otherwise       = step state
-      next_state = (statUpdMaxstkdpth . statUpdAllcdheap . statUpdExectime . doAdmin) next_state'
+      next_state = (statUpdMaxstkdpth . statUpdAllcdclosure . statUpdAllcdheap . statUpdExectime . doAdmin) next_state'
 
 doAdmin :: TimState -> TimState
 doAdmin state = applyToStats statIncSteps state
@@ -523,6 +529,8 @@ showStats (instr, fptr, usdsltnum, stack, vstack, dump, heap, code, stats)
             , iStr "Execution time = ", iNum (statGetExectime stats),
               iNewline
             , iStr "Total amount of heap allocated in the run = ", iNum (statGetAllcdheap stats),
+              iNewline
+            , iStr "Total amount of closure allocated in the run = ", iNum (statGetAllcdclosure stats),
               iNewline
             , iStr "Maximum stack depth = ", iNum (statGetMaxstkdpth stats),
               iNewline
