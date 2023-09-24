@@ -246,9 +246,10 @@ compileR (ELet recursion defs e) env d  -- Mark3で追加
       subFunc2 n am = (n + 1, Move n am)
       (_, mvinstrs) = mapAccuml subFunc2 (d + 1) ams
 compileR (EAp (EAp (EAp (EVar "if") e0) e1) e2) env d  -- Mark3で変更
-  = compileB e0 env d [Cond e1' e2']  -- Mark3で変更
-    where (_, e1') = compileR e1 env d  -- Mark3で変更
-          (_, e2') = compileR e2 env d  -- Mark3で変更
+  = compileB e0 env d3 [Cond e1_ e2_]  -- Mark3で変更
+    where (d1, e1_) = compileR e1 env d  -- Mark3で変更
+          (d2, e2_) = compileR e2 env d  -- Mark3で変更
+          d3 = max d1 d2
 compileR (EAp (EAp (EVar op) e1) e2) env d  -- Mark3で変更
   | op `elem` op_list = compileB (EAp (EAp (EVar op) e1) e2) env d [Return]  -- Mark3で変更
   | otherwise         = (d3, Push am1 : Push am2 : is)  -- Mark3で変更
@@ -367,12 +368,11 @@ step ([Cond i1 i2], fptr, stack, n : vstack, dump, heap, cstore, stats)  -- 遷�
 step ((Move i a : instr), fptr, stack, vstack, dump, heap, cstore, stats)  -- 遷移規則 (4.x)  Mark3で追加
   = (instr, fptr, stack, vstack, dump, newHeap, cstore, stats)
     where
-      newHeap = fUpdate heap fptr i (amToClosure a fptr heap cstore)
-      {-
-        現在のフレームポインタが指すフレームをヒープから取得する。
-        取得したフレームの i 番目のクロージャの命令列を、a が示す命令列に置き換える。
-        a が示す命令列を取得するには、amToClosure を使って命令列を含むクロージャを取得する。
-      -}
+      curFrameSize = case fptr of
+                     FrameAddr addr -> length $ hLookup heap addr
+                     _ -> 0
+      newHeap | i <= curFrameSize = fUpdate heap fptr i (amToClosure a fptr heap cstore)
+              | otherwise = error ("Move instruction argument slot number " ++ show i ++ " exceeds frame size " ++ show curFrameSize)
 
 amToClosure :: TimAMode -> FramePtr -> TimHeap -> CodeStore -> Closure
 amToClosure (Arg n)      fptr heap cstore = fGet heap fptr n             -- 遷移規則 (4.2, 4.7)
@@ -610,6 +610,11 @@ ex_4_13' = "f x = letrec a = b ; " ++
                         "b = x " ++
                   "in a ; " ++
            "main = f 10"
+ex_4_15_1 = "f x = if x (let x = 1 in x) (let y = 2 in y) ; " ++
+            "main = f 0"
+ex_4_15_2 = "f x = if x (let x = 1 in x) (let y = 2 in y) ; " ++
+            "main = f 1"
+ex_4_15_3 = "main = (let x = 1 in x) + (let y = 2 in y)"
 --------------------------------
 -- テストプログラム (ここまで) --
 --------------------------------
