@@ -137,7 +137,9 @@ statUpdAllcdclosure :: TimState -> TimState
 statUpdAllcdclosure (instr, frame, stack, vstack, dump, heap, cstore, (steps, exctime, totalheap, totalclosure, maxstkdepth))
   = (instr, frame, stack, vstack, dump, heap, cstore, (steps, exctime, totalheap, totalclosure_, maxstkdepth))
     where
-      totalclosure_ = sum $ map (length . (hLookup heap)) (hAddresses heap)
+      curTotalclosure = sum $ map (length . (hLookup heap)) (hAddresses heap)
+      totalclosure_ | curTotalclosure > totalclosure = curTotalclosure
+                    | otherwise                      = totalclosure
 
 statGetAllcdclosure :: TimStats -> Int
 statGetAllcdclosure (steps, exctime, totalheap, totalclosure, maxstkdepth)
