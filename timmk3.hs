@@ -69,6 +69,7 @@ type TimState = ([Instruction], -- The current instruction stream
 data FramePtr = FrameAddr Addr -- The address of a frame
               | FrameInt Int   -- An integer value
               | FrameNull      -- Uninitialised
+              deriving Show  -- テキストにはないけれど追加
 
 type TimStack = [Closure]
 type Closure = ([Instruction], FramePtr)
@@ -119,6 +120,7 @@ type TimStats
     Int, -- The number of steps
     Int, -- Execution time
     Int, -- Total amount of heap allocated in the run
+    Int, -- Total amount of closure allocated in the run
     Int  -- Maximum stack depth
    )
 {-
@@ -126,15 +128,15 @@ statInitial    = 0
 statIncSteps s = s+1
 statGetSteps s = s
 -}
-statInitial    = (0, 0, 0, 0)
-statIncSteps (steps, exctime, totalheap, maxstkdepth)
-  = (steps + 1, exctime, totalheap, maxstkdepth)
-statGetSteps (steps, exctime, totalheap, maxstkdepth)
+statInitial    = (0, 0, 0, 0, 0)
+statIncSteps (steps, exctime, totalheap, totalclosure, maxstkdepth)
+  = (steps + 1, exctime, totalheap, totalclosure, maxstkdepth)
+statGetSteps (steps, exctime, totalheap, totalclosure, maxstkdepth)
   = steps
 
 statUpdExectime :: TimState -> TimState
-statUpdExectime (instr, frame, stack, vstack, dump, heap, cstore, (steps, exctime, totalheap, maxstkdepth))
-  = (instr, frame, stack, vstack, dump, heap, cstore, (steps, exctime', totalheap, maxstkdepth))
+statUpdExectime (instr, frame, stack, vstack, dump, heap, cstore, (steps, exctime, totalheap, totalclosure, maxstkdepth))
+  = (instr, frame, stack, vstack, dump, heap, cstore, (steps, exctime', totalheap, totalclosure, maxstkdepth))
     where
       curInstr | null instr = Take 0 0  -- Mark3で変更
                | otherwise  = head instr
@@ -143,31 +145,43 @@ statUpdExectime (instr, frame, stack, vstack, dump, heap, cstore, (steps, exctim
                  _      -> exctime + 1
 
 statGetExectime :: TimStats -> Int
-statGetExectime (steps, exctime, totalheap, maxstkdepth)
+statGetExectime (steps, exctime, totalheap, totalclosure, maxstkdepth)
   = exctime
 
 statUpdAllcdheap :: TimState -> TimState
-statUpdAllcdheap (instr, frame, stack, vstack, dump, heap, cstore, (steps, exctime, totalheap, maxstkdepth))
-  = (instr, frame, stack, vstack, dump, heap, cstore, (steps, exctime, totalheap', maxstkdepth))
+statUpdAllcdheap (instr, frame, stack, vstack, dump, heap, cstore, (steps, exctime, totalheap, totalclosure, maxstkdepth))
+  = (instr, frame, stack, vstack, dump, heap, cstore, (steps, exctime, totalheap', totalclosure, maxstkdepth))
     where
       totalheap' | curTotalHeap > totalheap = curTotalHeap
                  | otherwise                = totalheap
       curTotalHeap = hSize heap
 
 statGetAllcdheap :: TimStats -> Int
-statGetAllcdheap (steps, exctime, totalheap, maxstkdepth)
+statGetAllcdheap (steps, exctime, totalheap, totalclosure, maxstkdepth)
   = totalheap
 
+statUpdAllcdclosure :: TimState -> TimState
+statUpdAllcdclosure (instr, frame, stack, vstack, dump, heap, cstore, (steps, exctime, totalheap, totalclosure, maxstkdepth))
+  = (instr, frame, stack, vstack, dump, heap, cstore, (steps, exctime, totalheap, totalclosure_, maxstkdepth))
+    where
+      curTotalclosure = sum $ map (length . (hLookup heap)) (hAddresses heap)
+      totalclosure_ | curTotalclosure > totalclosure = curTotalclosure
+                    | otherwise                      = totalclosure
+
+statGetAllcdclosure :: TimStats -> Int
+statGetAllcdclosure (steps, exctime, totalheap, totalclosure, maxstkdepth)
+  = totalclosure
+
 statUpdMaxstkdpth :: TimState -> TimState
-statUpdMaxstkdpth (instr, frame, stack, vstack, dump, heap, cstore, (steps, exctime, totalheap, maxstkdepth))
-  = (instr, frame, stack, vstack, dump, heap, cstore, (steps, exctime, totalheap, maxstkdepth'))
+statUpdMaxstkdpth (instr, frame, stack, vstack, dump, heap, cstore, (steps, exctime, totalheap, totalclosure, maxstkdepth))
+  = (instr, frame, stack, vstack, dump, heap, cstore, (steps, exctime, totalheap, totalclosure, maxstkdepth'))
     where
       maxstkdepth' | curStackDepth > maxstkdepth = curStackDepth
                    | otherwise                   = maxstkdepth
       curStackDepth = length stack
 
 statGetMaxstkdpth :: TimStats -> Int
-statGetMaxstkdpth (steps, exctime, totalheap, maxstkdepth)
+statGetMaxstkdpth (steps, exctime, totalheap, totalclosure, maxstkdepth)
   = maxstkdepth
 
 -- :a util.lhs -- heap data type and other library functions
@@ -222,7 +236,8 @@ type TimCompilerEnv = [(Name, TimAMode)]
 
 compileSC :: TimCompilerEnv -> CoreScDefn -> (Name, [Instruction])  -- SCスキーム
 compileSC env (name, args, body)
-  | lenArgs == 0 = (name, instructions)
+--  | lenArgs == 0 = (name, instructions)
+  | lenRqdSlts == 0 = (name, instructions)
   | otherwise    = (name, Take lenRqdSlts lenArgs : instructions)  -- Mark3で変更
     where
       (lenRqdSlts, instructions) = compileR body new_env lenArgs  -- Mark3で変更
@@ -316,7 +331,7 @@ eval state
       rest_states | timFinal state = []
                   | otherwise      = eval next_state
       -- next_state = doAdmin (step state)
-      next_state = (statUpdMaxstkdpth . statUpdAllcdheap . statUpdExectime . doAdmin) (step state)
+      next_state = (statUpdMaxstkdpth . statUpdAllcdclosure . statUpdAllcdheap . statUpdExectime . doAdmin) (step state)
 
 doAdmin :: TimState -> TimState
 doAdmin state = applyToStats statIncSteps state
@@ -432,7 +447,6 @@ showState (instr, fptr, stack, vstack, dump, heap, cstore, stats)
 showUsedHeap :: TimHeap -> Iseq
 showUsedHeap heap
   = iConcat [
-      -- iStr "Used Heap Contents : [",
       iStr "Used Heap : [",
       iIndent (iInterleave iNewline (map (showFrame heap) (map FrameAddr (hAddresses heap)))),
       iStr "]", iNewline
@@ -488,6 +502,8 @@ showStats (instr, fptr, stack, vstack, dump, heap, code, stats)
             , iStr "Execution time = ", iNum (statGetExectime stats),
               iNewline
             , iStr "Total amount of heap allocated in the run = ", iNum (statGetAllcdheap stats),
+              iNewline
+            , iStr "Total amount of closure allocated in the run = ", iNum (statGetAllcdclosure stats),
               iNewline
             , iStr "Maximum stack depth = ", iNum (statGetMaxstkdpth stats),
               iNewline
@@ -565,6 +581,10 @@ ex_4_9' = "multipleof3 x = ((x / 3) * 3) == x ; " ++
 b_1_1_1 = "main = I 3"
 b_1_1_2 = "id = S K K ;" ++
           "main = id 3"
+b_1_1_2' = "id = S K K ;" ++
+           "main = twice id 3"
+b_1_1_2'' = "id = S K K ;" ++
+            "main = twice twice id 3"
 b_1_1_3 = "id = S K K ;" ++
           "main = twice twice twice id 3"
 -- 算術演算のテスト --
@@ -615,6 +635,10 @@ ex_4_15_1 = "f x = if x (let x = 1 in x) (let y = 2 in y) ; " ++
 ex_4_15_2 = "f x = if x (let x = 1 in x) (let y = 2 in y) ; " ++
             "main = f 1"
 ex_4_15_3 = "main = (let x = 1 in x) + (let y = 2 in y)"
+test_program_for_let1 = "main = let x = 1 " ++
+                               "in " ++
+                               "  let y = 2 " ++
+                               "  in x + 2"
 --------------------------------
 -- テストプログラム (ここまで) --
 --------------------------------
