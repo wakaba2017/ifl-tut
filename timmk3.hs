@@ -263,7 +263,8 @@ compileR (ELet recursion defs e) env d  -- Mark3で追加
 compileR (EAp (EAp (EAp (EVar "if") e0) e1) e2) env d  -- Mark3で変更
   = compileB e0 env d3 [Cond e1_ e2_]  -- Mark3で変更
     where (d1, e1_) = compileR e1 env d  -- Mark3で変更
-          (d2, e2_) = compileR e2 env d  -- Mark3で変更
+          (d2, e2_) = compileR e2 env d  -- Mark3で変更 (これだと、then節とelse節が必要とするスロットが、共通に領域確保される。)
+          -- (d2, e2_) = compileR e2 env d1  -- Mark3で変更 (これだと、then節とelse節が必要とするスロットが、個別に領域確保される。)
           d3 = max d1 d2
 compileR (EAp (EAp (EVar op) e1) e2) env d  -- Mark3で変更
   | op `elem` op_list = compileB (EAp (EAp (EVar op) e1) e2) env d [Return]  -- Mark3で変更
@@ -306,7 +307,9 @@ compileB (EAp (EAp (EVar op) e1) e2) env d cont  -- Mark3で変更
           "==" -> Op Eq
           "~=" -> Op NotEq
       (d1, is1) = compileB e1 env d (i : cont)  -- Mark3で変更
-      (d2, is2) = compileB e2 env d1 is1  -- Mark3で変更
+      -- (d2, is2) = compileB e2 env d1 is1  -- Mark3で変更
+      (d2, is2) = compileB e2 env d is1  -- Mark3で変更
+      d3 = max d1 d2
 compileB (EAp (EVar "negate") e) env d cont  -- Mark3で変更
   = compileB e env d (Op Neg : cont)  -- Mark3で変更
 compileB (ENum n) env d cont  -- Mark3で変更
