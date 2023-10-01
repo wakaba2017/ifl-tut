@@ -295,13 +295,23 @@ showState (instr, fptr, stack, vstack, dump, heap, cstore, stats)
       showStack stack,
       showValueStack vstack,
       showDump dump,
+      showUsedHeap heap,  -- デバッグ用
       iNewline
+    ]
+
+showUsedHeap :: TimHeap -> Iseq
+showUsedHeap heap
+  = iConcat [
+      iStr "Used Heap : [",
+      iIndent (iInterleave iNewline (map (showFrame heap) (map FrameAddr (hAddresses heap)))),
+      iStr "]", iNewline
     ]
 
 showFrame :: TimHeap -> FramePtr -> Iseq
 showFrame heap FrameNull = iStr "Null frame ptr" `iAppend` iNewline
 showFrame heap (FrameAddr addr)
   = iConcat [
+      iStr "addr: ", iNum addr, iStr ", ",  -- for debug
       iStr "Frame: <",
       iIndent (iInterleave iNewline
       (map showClosure (fList (hLookup heap addr)))),
