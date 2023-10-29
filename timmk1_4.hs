@@ -44,7 +44,7 @@ type TimState = ([Instruction], -- The current instruction stream
 data FramePtr = FrameAddr Addr -- The address of a frame
               | FrameInt Int   -- An integer value
               | FrameNull      -- Uninitialised
-              deriving Show  -- テキストにはないけれど追加
+              deriving (Eq, Show)  -- テキストにはないけれど追加
 
 type UsdSltNmbrs = [Int]
 
@@ -336,21 +336,22 @@ findStackRoots ((_, FrameAddr addr) : as) heap
 findStackRoots ((_, _) : as) heap
   = findStackRoots as heap
 
-findFrmPtrRoots :: FramePtr -> TimHeap -> [Addr]
+findFrmPtrRoots :: FramePtr -> TimHeap -> [Addr]  -- スタックに積まれているクロージャのフレームポインタをたどる関数(全スロットをたどる)
 findFrmPtrRoots (FrameAddr addr) heap
   = [addr] ++ addr'
     where
       frame = hLookup heap addr
       addr' = case frame of
-              FClosure (c : cs) -> case c of
-                                   (is, FrameAddr addr'') -> (findFrmPtrRoots (FrameAddr addr'') heap) ++
-                                                             (findStackRoots cs heap)
-                                   _                      -> findStackRoots cs heap
+              FClosure cs -> tempFunc $ map (\x -> findFrmPtrRoots (snd x) heap) tempList
+                             where
+                               tempList = [(is, fptr_) | (is, fptr_) <- cs, fptr_ /= FrameAddr addr]
+                               tempFunc [] = []
+                               tempFunc (x : xs) = x ++ tempFunc xs
               _                 -> []
 findFrmPtrRoots _ heap
   = []
 
-findFrmPtrRoots_ :: FramePtr -> TimHeap -> [Int] -> [Addr]
+findFrmPtrRoots_ :: FramePtr -> TimHeap -> [Int] -> [Addr] -- フレームポインタが指すフレームに含まれるクロージャのフレームポインタをたどる関数(使用するスロットだけをたどる)
 findFrmPtrRoots_ (FrameAddr addr) heap usdsltnum
   = [addr] ++ addr_
     where
@@ -358,7 +359,9 @@ findFrmPtrRoots_ (FrameAddr addr) heap usdsltnum
       frame = hLookup heap addr
       usdslt
         = case frame of
-          FClosure (c : cs) -> map ((c : cs) !!) usdsltnum_
+          FClosure (c : cs) -> [(is, fptr_) | (is, fptr_) <- tempList, fptr_ /= FrameAddr addr]
+                               where
+                                 tempList = map ((c : cs) !!) usdsltnum_
           _                 -> []
       addr_ = case usdslt of
               (c_ : cs_) -> case c_ of
@@ -400,6 +403,22 @@ scanHeap heap addr
       FMarked _ だったら、FMarkedを外す。
       FMarked _ でなかったら、hFreeで領域を解放する。
   -}
+
+getUsedSlotNumber :: [Instruction] -> [Int]
+getUsedSlotNumber []
+  = []
+getUsedSlotNumber (i : il)
+  = uniqList tempList
+    where
+      tempList = (getUsedSlotNumberSub i) ++ (getUsedSlotNumber il)
+      getUsedSlotNumberSub i
+        = case i of
+          Push (Arg n) -> [n]
+          Enter (Arg n) -> [n]
+          Push (Code il_) -> getUsedSlotNumber il_
+          _ -> []
+      uniqList []     = []
+      uniqList (x:xs) = (if x `elem` xs then [] else [x]) ++ (uniqList xs)
 ----------------------
 -- 評価器 (ここまで) --
 ----------------------
@@ -574,22 +593,6 @@ showUsedSlotNumber []
   = iConcat [iStr "[", iStr "]"]
 showUsedSlotNumber il
   = iConcat [iStr "[", (iInterleave (iStr ", ") (map iNum (getUsedSlotNumber il))), iStr "]"]
-
-getUsedSlotNumber :: [Instruction] -> [Int]
-getUsedSlotNumber []
-  = []
-getUsedSlotNumber (i : il)
-  = uniqList tempList
-    where
-      tempList = (getUsedSlotNumberSub i) ++ (getUsedSlotNumber il)
-      getUsedSlotNumberSub i
-        = case i of
-          Push (Arg n) -> [n]
-          Enter (Arg n) -> [n]
-          Push (Code il_) -> getUsedSlotNumber il_
-          _ -> []
-      uniqList []     = []
-      uniqList (x:xs) = (if x `elem` xs then [] else [x]) ++ (uniqList xs)
 --------------------------
 -- 結果の表示 (ここまで) --
 --------------------------
