@@ -59,6 +59,7 @@ data ValueAMode = FramePtr
 
 type TimState = ([Instruction], -- The current instruction stream
                  FramePtr,      -- Address of current frame
+                 UsdSltNmbrs,   -- Used slot numbers
                  TimStack,      -- Stack of arguments
                  TimValueStack, -- Value stack (Mark2から使用開始)
                  TimDump,       -- Dump (not used yet)
@@ -69,7 +70,9 @@ type TimState = ([Instruction], -- The current instruction stream
 data FramePtr = FrameAddr Addr -- The address of a frame
               | FrameInt Int   -- An integer value
               | FrameNull      -- Uninitialised
-              deriving Show  -- テキストにはないけれど追加
+              deriving (Eq, Show)  -- テキストにはないけれど追加
+
+type UsdSltNmbrs = [Int]
 
 type TimStack = [Closure]
 type Closure = ([Instruction], FramePtr)
@@ -84,24 +87,43 @@ fGet    :: TimHeap -> FramePtr -> Int -> Closure
 fUpdate :: TimHeap -> FramePtr -> Int -> Closure -> TimHeap
 fList   :: Frame -> [Closure] -- Used when printing
 
+{-
 type Frame = [Closure]
+-}
+data Frame = FClosure [Closure]
+           | FMarked Frame
 
 fAlloc heap xs = (heap', FrameAddr addr)
                  where
+                 {-
                  (heap', addr) = hAlloc heap xs
+                 -}
+                 (heap', addr) = hAlloc heap (FClosure xs)
 
 fGet heap (FrameAddr addr) n = f !! (n-1)
                                where
+                                 {-
                                  f = hLookup heap addr
+                                 -}
+                                 FClosure f = hLookup heap addr
 fGet heap _                n = ([], FrameNull)
 
 fUpdate heap (FrameAddr addr) n closure
+  {-
   = hUpdate heap addr new_frame
+  -}
+  = hUpdate heap addr (FClosure new_frame)
     where
+      {-
       frame = hLookup heap addr
+      -}
+      FClosure frame = hLookup heap addr
       new_frame = take (n-1) frame ++ [closure] ++ drop n frame
 
+{-
 fList f = f
+-}
+fList (FClosure f) = f
 
 type CodeStore = ASSOC Name [Instruction]
 
@@ -135,13 +157,13 @@ statGetSteps (steps, exctime, totalheap, totalclosure, maxstkdepth)
   = steps
 
 statUpdExectime :: TimState -> TimState
-statUpdExectime (instr, frame, stack, vstack, dump, heap, cstore, (steps, exctime, totalheap, totalclosure, maxstkdepth))
-  = (instr, frame, stack, vstack, dump, heap, cstore, (steps, exctime', totalheap, totalclosure, maxstkdepth))
+statUpdExectime (instr, frame, usedslot, stack, vstack, dump, heap, cstore, (steps, exctime, totalheap, totalclosure, maxstkdepth))
+  = (instr, frame, usedslot, stack, vstack, dump, heap, cstore, (steps, exctime', totalheap, totalclosure, maxstkdepth))
     where
       curInstr | null instr = Take 0 0  -- Mark3で変更
                | otherwise  = head instr
       exctime' = case curInstr of
-                 Take t n -> exctime + t  -- Mark3で変更
+                 Take t n -> exctime + n  -- Mark3で変更
                  _      -> exctime + 1
 
 statGetExectime :: TimStats -> Int
@@ -149,8 +171,8 @@ statGetExectime (steps, exctime, totalheap, totalclosure, maxstkdepth)
   = exctime
 
 statUpdAllcdheap :: TimState -> TimState
-statUpdAllcdheap (instr, frame, stack, vstack, dump, heap, cstore, (steps, exctime, totalheap, totalclosure, maxstkdepth))
-  = (instr, frame, stack, vstack, dump, heap, cstore, (steps, exctime, totalheap', totalclosure, maxstkdepth))
+statUpdAllcdheap (instr, frame, usedslot, stack, vstack, dump, heap, cstore, (steps, exctime, totalheap, totalclosure, maxstkdepth))
+  = (instr, frame, usedslot, stack, vstack, dump, heap, cstore, (steps, exctime, totalheap', totalclosure, maxstkdepth))
     where
       totalheap' | curTotalHeap > totalheap = curTotalHeap
                  | otherwise                = totalheap
@@ -161,10 +183,12 @@ statGetAllcdheap (steps, exctime, totalheap, totalclosure, maxstkdepth)
   = totalheap
 
 statUpdAllcdclosure :: TimState -> TimState
-statUpdAllcdclosure (instr, frame, stack, vstack, dump, heap, cstore, (steps, exctime, totalheap, totalclosure, maxstkdepth))
-  = (instr, frame, stack, vstack, dump, heap, cstore, (steps, exctime, totalheap, totalclosure_, maxstkdepth))
+statUpdAllcdclosure (instr, frame, usedslot, stack, vstack, dump, heap, cstore, (steps, exctime, totalheap, totalclosure, maxstkdepth))
+  = (instr, frame, usedslot, stack, vstack, dump, heap, cstore, (steps, exctime, totalheap, totalclosure_, maxstkdepth))
     where
-      curTotalclosure = sum $ map (length . (hLookup heap)) (hAddresses heap)
+      tempList = map (hLookup heap) (hAddresses heap)
+      subFunc (FClosure fcl) = length fcl
+      curTotalclosure = sum $ map subFunc tempList
       totalclosure_ | curTotalclosure > totalclosure = curTotalclosure
                     | otherwise                      = totalclosure
 
@@ -173,8 +197,8 @@ statGetAllcdclosure (steps, exctime, totalheap, totalclosure, maxstkdepth)
   = totalclosure
 
 statUpdMaxstkdpth :: TimState -> TimState
-statUpdMaxstkdpth (instr, frame, stack, vstack, dump, heap, cstore, (steps, exctime, totalheap, totalclosure, maxstkdepth))
-  = (instr, frame, stack, vstack, dump, heap, cstore, (steps, exctime, totalheap, totalclosure, maxstkdepth'))
+statUpdMaxstkdpth (instr, frame, usedslot, stack, vstack, dump, heap, cstore, (steps, exctime, totalheap, totalclosure, maxstkdepth))
+  = (instr, frame, usedslot, stack, vstack, dump, heap, cstore, (steps, exctime, totalheap, totalclosure, maxstkdepth'))
     where
       maxstkdepth' | curStackDepth > maxstkdepth = curStackDepth
                    | otherwise                   = maxstkdepth
@@ -195,6 +219,7 @@ statGetMaxstkdpth (steps, exctime, totalheap, totalclosure, maxstkdepth)
 compile program
   = ([Enter (Label "main")], -- Initial instructions
      FrameNull,              -- Null frame pointer
+     initialUsdSltNmbrs,     -- Used slot numbers
      initialArgStack,        -- Argument stack
      initialValueStack,      -- Value stack
      initialDump,            -- Dump
@@ -207,6 +232,8 @@ compile program
       compiled_code = compiled_sc_defs ++ compiledPrimitives
       initial_env = [(name, Label name) | (name, args, body) <- sc_defs] ++
                     [(name, Label name) | (name, code) <- compiledPrimitives]
+
+initialUsdSltNmbrs = []
 
 initialArgStack = [([], FrameNull)]  -- Mark2で変更
 
@@ -236,7 +263,6 @@ type TimCompilerEnv = [(Name, TimAMode)]
 
 compileSC :: TimCompilerEnv -> CoreScDefn -> (Name, [Instruction])  -- SCスキーム
 compileSC env (name, args, body)
---  | lenArgs == 0 = (name, instructions)
   | lenRqdSlts == 0 = (name, instructions)
   | otherwise    = (name, Take lenRqdSlts lenArgs : instructions)  -- Mark3で変更
     where
@@ -279,7 +305,6 @@ compileR (EAp e1 e2) env d = (d2, Push am : is)  -- Mark3で変更
                              where (d1, am) = compileA e2 env d  -- Mark3で変更
                                    (d2, is) = compileR e1 env d1  -- Mark3で変更
 compileR (EVar v)    env d = (d, [Enter (snd (compileA (EVar v) env d))])  -- Mark3で変更
--- compileR (ENum n)    env = [Enter (compileA (ENum n) env)]
 compileR (ENum n)    env d = compileB (ENum n) env d [Return]  -- Mark3で変更
 compileR e           env d = (d_, [Enter am])   -- Mark3で変更
                              where (d_, am) = compileA e env d  -- Mark3で変更
@@ -307,8 +332,8 @@ compileB (EAp (EAp (EVar op) e1) e2) env d cont  -- Mark3で変更
           "==" -> Op Eq
           "~=" -> Op NotEq
       (d1, is1) = compileB e1 env d (i : cont)  -- Mark3で変更
-      -- (d2, is2) = compileB e2 env d1 is1  -- Mark3で変更
-      (d2, is2) = compileB e2 env d is1  -- Mark3で変更
+      -- (d2, is2) = compileB e2 env d1 is1  -- Mark3で変更 (これだと、e1とe2が必要とするスロットが、個別に領域確保される。)
+      (d2, is2) = compileB e2 env d is1  -- Mark3で変更 (これだと、e1とe2が必要とするスロットが、共通に領域確保される。)
       d3 = max d1 d2
 compileB (EAp (EVar "negate") e) env d cont  -- Mark3で変更
   = compileB e env d (Op Neg : cont)  -- Mark3で変更
@@ -334,39 +359,83 @@ eval state
       rest_states | timFinal state = []
                   | otherwise      = eval next_state
       -- next_state = doAdmin (step state)
-      next_state = (statUpdMaxstkdpth . statUpdAllcdclosure . statUpdAllcdheap . statUpdExectime . doAdmin) (step state)
+      (_, _, _, _, _, _, heap, _, _) = step state
+      -- next_state = (statUpdMaxstkdpth . statUpdAllcdclosure . statUpdAllcdheap . statUpdExectime . doAdmin) (step state)
+      next_state' | hSize heap >= 1 = gc (step state)  -- gc有効化
+      -- next_state' | hSize heap >= 1 = step state  -- gc無効化
+                  | otherwise       = step state
+      next_state = (statUpdMaxstkdpth . statUpdAllcdclosure . statUpdAllcdheap . statUpdExectime . doAdmin) next_state'
 
 doAdmin :: TimState -> TimState
 doAdmin state = applyToStats statIncSteps state
 
-timFinal ([], frame, stack, vstack, dump, heap, cstore, stats) = True
+timFinal ([], frame, usedslot, stack, vstack, dump, heap, cstore, stats) = True
 timFinal state                                                 = False
 
 applyToStats :: (TimStats -> TimStats) -> TimState -> TimState
-applyToStats stats_fun (instr, frame, stack, vstack,
+applyToStats stats_fun (instr, frame, usedslot, stack, vstack,
                         dump, heap, cstore, stats)
-  = (instr, frame, stack, vstack, dump, heap, cstore, stats_fun stats)
+  = (instr, frame, usedslot, stack, vstack, dump, heap, cstore, stats_fun stats)
 
-step ((Take t n : instr), fptr, stack, vstack, dump, heap, cstore, stats)  -- 遷移規則 (4.x)  Mark3で変更
-  | (t >= n) && (length stack >= n) = (instr, fptr', drop n stack, vstack, dump, heap', cstore, stats)
+step ((Take t n : instr), fptr, usdsltnum, stack, vstack, dump, heap, cstore, stats)  -- 遷移規則 (4.x)  Mark3で変更
+  | (t >= n) && (length stack >= n) = (instr, fptr', usdsltnum_, drop n stack, vstack, dump, heap', cstore, stats)
   | otherwise                       = error "Too small alloc area or too few args for Take instruction"
   where (heap', fptr') = fAlloc heap tmpFrame
         tmpFrame = (take n stack) ++ (take (t - n) (repeat ([], FrameNull)))
-step ([Enter am], fptr, stack, vstack, dump, heap, cstore, stats)  -- 遷移規則 (4.6, 4.7, 4.8, 4.9)
-  = (instr', fptr', stack, vstack, dump, heap, cstore, stats)
+        usdsltnum_ = getUsedSlotNumber instr
+step ([Enter am], fptr, usdsltnum, stack, vstack, dump, heap, cstore, stats)  -- 遷移規則 (4.6, 4.7, 4.8, 4.9)
+  = (instr', fptr', usdsltnum_, stack, vstack, dump, heap, cstore, stats)
     where (instr',fptr') = amToClosure am fptr heap cstore
-step ((Push am:instr), fptr, stack, vstack, dump, heap, cstore, stats)  -- 遷移規則 (4.2, 4.3, 4.4, 4.5)
-  = (instr, fptr, amToClosure am fptr heap cstore : stack, vstack, dump, heap, cstore, stats)
-step ([Return], fptr, (instr', fptr') : stack, vstack, dump, heap, cstore, stats)  -- 遷移規則 (4.11)
-  = (instr', fptr', stack, vstack, dump, heap, cstore, stats)
-step ((PushV (IntVConst n) : instr), fptr, stack, vstack, dump, heap, cstore, stats)  -- 遷移規則 (4.14)
-  = (instr, fptr, stack, n : vstack, dump, heap, cstore, stats)
-step ((PushV FramePtr : instr), (FrameInt n), stack, vstack, dump, heap, cstore, stats)  -- 遷移規則 (4.12)
-  = (instr, (FrameInt n), stack, n : vstack, dump, heap, cstore, stats)
-step ((Op Neg : instr), fptr, stack, n : vstack, dump, heap, cstore, stats)  -- 遷移規則 (4.10)
-  = (instr, fptr, stack, -n : vstack, dump, heap, cstore, stats)
-step ((Op op : instr), fptr, stack, n1 : n2 : vstack, dump, heap, cstore, stats)  -- 遷移規則 (4.10)
-  = (instr, fptr, stack, result : vstack, dump, heap, cstore, stats)
+          usdsltnum_ = case instr_ of
+                       [] -> usdsltnum
+                       Take _ _ : _ -> case fptr' of
+                                       FrameAddr addr -> take n [1..]
+                                                         where n = length cl
+                                                               FClosure cl = hLookup heap addr
+                                       _ -> []
+                       _ -> getUsedSlotNumber instr_
+          instr_ = case am of
+                   Arg n -> fst (fGet heap fptr n)
+                   Code il -> il
+                   Label l -> codeLookup cstore l
+                   _ -> []
+step ((Push am:instr), fptr, usdsltnum, stack, vstack, dump, heap, cstore, stats)  -- 遷移規則 (4.2, 4.3, 4.4, 4.5)
+  = (instr, fptr, usdsltnum, amToClosure am fptr heap cstore : stack, vstack, dump, heap, cstore, stats)
+step ([Return], fptr, usdsltnum, (instr', fptr') : stack, vstack, dump, heap, cstore, stats)  -- 遷移規則 (4.11)
+  = (instr', fptr', usdsltnum_, stack, vstack, dump, heap, cstore, stats)
+    where usdsltnum_ = case instr' of
+                       [] -> usdsltnum
+                       Take _ _ : _ -> case fptr of
+                                       FrameAddr addr -> take n [1..]
+                                                         where n = length cl
+                                                               FClosure cl = hLookup heap addr
+                                       _ -> []
+                       othrs -> if isPushCodeInvolved othrs
+                                then
+                                  case fptr' of
+                                  FrameAddr addr -> take n [1..]
+                                                    where n = length cl
+                                                          FClosure cl = hLookup heap addr
+                                  _ -> []
+                                else
+                                  getUsedSlotNumber instr'
+                                where
+                                  isPushCodeInvolved [] = False
+                                  isPushCodeInvolved (oth_ : othrs_) = case oth_ of
+                                                                       Push (Code _) -> True
+                                                                       _ -> isPushCodeInvolved othrs_
+                                {-
+                                  instr_ に Push (Code _) が含まれていたら、fptr' が指すフレームに含まれる全スロットを usdsltnum_ にする。
+                                  そうでなかったら、getUsedSlotNumber instr_ の戻り値を usdsltnum_ にする。
+                                -}
+step ((PushV (IntVConst n) : instr), fptr, usdsltnum, stack, vstack, dump, heap, cstore, stats)  -- 遷移規則 (4.14)
+  = (instr, fptr, usdsltnum, stack, n : vstack, dump, heap, cstore, stats)
+step ((PushV FramePtr : instr), (FrameInt n), usdsltnum, stack, vstack, dump, heap, cstore, stats)  -- 遷移規則 (4.12)
+  = (instr, (FrameInt n), usdsltnum, stack, n : vstack, dump, heap, cstore, stats)
+step ((Op Neg : instr), fptr, usdsltnum, stack, n : vstack, dump, heap, cstore, stats)  -- 遷移規則 (4.10)
+  = (instr, fptr, usdsltnum, stack, -n : vstack, dump, heap, cstore, stats)
+step ((Op op : instr), fptr, usdsltnum, stack, n1 : n2 : vstack, dump, heap, cstore, stats)  -- 遷移規則 (4.10)
+  = (instr, fptr, usdsltnum, stack, result : vstack, dump, heap, cstore, stats)
     where
       result = case op of
                Add   -> n1 + n2
@@ -379,15 +448,17 @@ step ((Op op : instr), fptr, stack, n1 : n2 : vstack, dump, heap, cstore, stats)
                LtEq  -> if n1 <= n2 then 0 else 1
                Eq    -> if n1 == n2 then 0 else 1
                NotEq -> if n1 /= n2 then 0 else 1
-step ([Cond i1 i2], fptr, stack, n : vstack, dump, heap, cstore, stats)  -- 遷移規則 (4.13)
-  = (i, fptr, stack, vstack, dump, heap, cstore, stats)
+step ([Cond i1 i2], fptr, usdsltnum, stack, n : vstack, dump, heap, cstore, stats)  -- 遷移規則 (4.13)
+  = (i, fptr, usdsltnum, stack, vstack, dump, heap, cstore, stats)
     where i | n == 0    = i1
             | otherwise = i2
-step ((Move i a : instr), fptr, stack, vstack, dump, heap, cstore, stats)  -- 遷移規則 (4.x)  Mark3で追加
-  = (instr, fptr, stack, vstack, dump, newHeap, cstore, stats)
+step ((Move i a : instr), fptr, usdsltnum, stack, vstack, dump, heap, cstore, stats)  -- 遷移規則 (4.x)  Mark3で追加
+  = (instr, fptr, usdsltnum, stack, vstack, dump, newHeap, cstore, stats)
     where
       curFrameSize = case fptr of
-                     FrameAddr addr -> length $ hLookup heap addr
+                     FrameAddr addr -> length f
+                                       where
+                                         FClosure f = hLookup heap addr
                      _ -> 0
       newHeap | i <= curFrameSize = fUpdate heap fptr i (amToClosure a fptr heap cstore)
               | otherwise = error ("Move instruction argument slot number " ++ show i ++ " exceeds frame size " ++ show curFrameSize)
@@ -400,6 +471,140 @@ amToClosure (IntConst n) fptr heap cstore = (intCode, FrameInt n)        -- 遷�
 
 intCode = [PushV FramePtr, Return]  -- Mark2で変更
 
+gc :: TimState -> TimState
+gc (instr, fptr, usdsltnum, stack, vstack, dump, heap, cstore, stats)
+  = (instr, fptr, usdsltnum, stack, vstack, dump, newHeap, cstore, stats)
+    where
+      -- adrlst1 = findStackRoots stack heap
+      adrlst1 = findStackRoots stack fptr heap usdsltnum
+      adrlst2 = findFrmPtrRoots_ fptr heap usdsltnum
+      heap'   = mapAccuml' markFrom heap (adrlst1 ++ adrlst2)
+      newHeap = mapAccuml' scanHeap heap' (hAddresses heap')
+      mapAccuml' f acc []
+        = acc
+      mapAccuml' f acc (x : xs)
+        = acc2
+          where acc1 = f acc x
+                acc2 = mapAccuml' f acc1 xs
+{-
+  1. TIMの状態から、ヒープとスタックとフレームポインタを取得する。
+  2. 1.で取得したスタックを findStackRoots に渡して、スタックに格納されているフレームと、
+     それらのフレームが参照しているフレームのヒープアドレスのリストを取得する。
+  3. 1.で取得したフレームポインタを findFrmPtrRoots に渡して、フレームポインタが指しているフレームと、
+     それらのフレームが参照しているフレームのヒープアドレスのリストを取得する。
+  4. mapAccuml' に
+       markFrom
+       1.で取得したヒープ
+       2.と3.で取得したヒープアドレスのリストを連結したリスト
+     を渡して、使用中のフレームをマークしたヒープを作成する。
+  5. mapAccuml' に
+       scanHeap
+       4.で作成したヒープ
+       4.で作成したヒープの使用中アドレス (hAddressesを使って取得)
+     を渡して、マークされていないフレームの格納領域を解放したヒープを作成する。
+     (マークされたフレームは、マークされていない状態に戻る。)
+-}
+
+findStackRoots :: [Closure] -> FramePtr -> TimHeap -> [Int] -> [Addr]
+findStackRoots [] fptr heap usdsltnum = []
+findStackRoots ((_, FrameAddr addr) : as) fptr heap usdsltnum
+  = if (FrameAddr addr) == fptr
+    then
+      (findFrmPtrRoots_ (FrameAddr addr) heap usdsltnum) ++ (findStackRoots as fptr heap usdsltnum)
+    else
+      (findFrmPtrRoots (FrameAddr addr) heap) ++ (findStackRoots as fptr heap usdsltnum)
+findStackRoots ((_, _) : as) fptr heap usdsltnum
+  = findStackRoots as fptr heap usdsltnum
+{-
+  findStackRootsも、フレームポインタと使用スロット番号リストを引数として受け取り、スタックに積まれているクロージャのフレームポインタを再帰的にたどる際、
+  引数として受け取ったフレームポインタと同じだった場合、全スロットをたどるのではなく、使用スロット番号リストに含まれるスロットだけをたどるようにする。
+-}
+
+findFrmPtrRoots :: FramePtr -> TimHeap -> [Addr]  -- スタックに積まれているクロージャのフレームポインタをたどる関数(全スロットをたどる)
+findFrmPtrRoots (FrameAddr addr) heap
+  = [addr] ++ addr'
+    where
+      frame = hLookup heap addr
+      addr' = case frame of
+              FClosure cs -> tempFunc $ map (\x -> findFrmPtrRoots (snd x) heap) tempList
+                             where
+                               tempList = [(is, fptr_) | (is, fptr_) <- cs, fptr_ /= FrameAddr addr]
+                               tempFunc [] = []
+                               tempFunc (x : xs) = x ++ tempFunc xs
+              _           -> []
+findFrmPtrRoots _ heap
+  = []
+
+findFrmPtrRoots_ :: FramePtr -> TimHeap -> [Int] -> [Addr] -- フレームポインタが指すフレームに含まれるクロージャのフレームポインタをたどる関数(使用するスロットだけをたどる)
+findFrmPtrRoots_ (FrameAddr addr) heap usdsltnum
+  = [addr] ++ addr_
+    where
+      usdsltnum_ = map (\x -> x - 1) usdsltnum  -- 0始まりにするために、usdsltnum の各要素から1を引く。
+      frame = hLookup heap addr
+      usdslt
+        = case frame of
+          FClosure (c : cs) -> [(is, fptr_) | (is, fptr_) <- tempList, fptr_ /= FrameAddr addr]
+                               where
+                                 tempList = map ((c : cs) !!) usdsltnum_
+          _                 -> []
+      addr_ = case usdslt of
+              (c_ : cs_) -> case c_ of
+                            (is, FrameAddr addr__) -> (findFrmPtrRoots (FrameAddr addr__) heap) ++
+                                                      (findStackRoots cs_ (FrameAddr addr__) heap usdsltnum)
+                            _                      -> findStackRoots cs_ (FrameAddr addr) heap usdsltnum
+              _          -> []
+      {-
+        frame が FClosure [Closure] だったら、[Closure] から、usdsltnum に含まれるスロット番号に対応する要素だけ抽出したリストを作る。
+        抽出したリストができたら、そのリストの要素(Closure)を1つずつ調べて、タプルの第2要素が FrameAddr addr__ だったら、
+        FrameAddr addr__ を findFrmPtrRoots に渡して、再帰的に参照フレームをたどってアドレスを抽出する。
+      -}
+findFrmPtrRoots_ _ heap usdsltnum
+  = []
+
+markFrom :: TimHeap -> Addr -> TimHeap
+markFrom heap addr
+  = case f of
+    FClosure f' -> hUpdate heap addr (FMarked (FClosure f'))
+    FMarked _ -> heap
+    where
+      f = hLookup heap addr
+  {-
+    addr が指す heap の内容 f を、FMarked f に置き換える。(f が FMarked f' だったら、そのまま何もしない。)
+    内容を更新した新しいヒープを返す。
+  -}
+
+scanHeap :: TimHeap -> Addr -> TimHeap
+scanHeap heap addr
+  = case item of
+    FMarked item' -> hUpdate heap addr item'
+    _             -> hFree heap addr
+    where item = hLookup heap addr
+  {-
+    ヒープを表す三つ組みの第三要素(二つ組のリスト)を取り出す。
+    取り出した二つ組のリストの第一要素(アドレス)だけ取り出したリストを作る。
+    mapAccumul関数と補助関数とヒープとアドレスのリストを使って、未使用領域を解放したヒープを作る。
+    補助関数は、ヒープとアドレスをもらって、アドレスが指す中身を調べて、
+      FMarked _ だったら、FMarkedを外す。
+      FMarked _ でなかったら、hFreeで領域を解放する。
+  -}
+
+getUsedSlotNumber :: [Instruction] -> [Int]
+getUsedSlotNumber []
+  = []
+getUsedSlotNumber (i : il)
+  = uniqList tempList
+    where
+      tempList = (getUsedSlotNumberSub i) ++ (getUsedSlotNumber il)
+      getUsedSlotNumberSub i
+        = case i of
+          Push (Arg n) -> [n]
+          Enter (Arg n) -> [n]
+          Push (Code il_) -> getUsedSlotNumber il_
+          -- Enter (Code il__) -> getUsedSlotNumber il__
+          Cond ilthn ilels -> (getUsedSlotNumber ilthn) ++ (getUsedSlotNumber ilels)
+          _ -> []
+      uniqList []     = []
+      uniqList (x:xs) = (if x `elem` xs then [] else [x]) ++ (uniqList xs)
 ----------------------
 -- 評価器 (ここまで) --
 ----------------------
@@ -425,25 +630,29 @@ showResults states
     where last_state = last states
 
 showSCDefns :: TimState -> Iseq
-showSCDefns (instr, fptr, stack, vstack, dump, heap, cstore, stats)
+showSCDefns (instr, fptr, usdsltnum, stack, vstack, dump, heap, cstore, stats)
   = iInterleave iNewline (map showSC cstore)
 
 showSC :: (Name, [Instruction]) -> Iseq
 showSC (name, il)
   = iConcat [
       iStr "Code for ", iStr name, iStr ":", iNewline,
-      iStr " ", showInstructions Full il, iNewline, iNewline
+      iStr " ", showInstructions Full il, iNewline, -- iNewline
+      iStr "Used slot number for ", iStr name, iStr ":", iNewline,
+      iStr " ", showUsedSlotNumber il, iNewline,
+      iNewline
     ]
 
 showState :: TimState -> Iseq
-showState (instr, fptr, stack, vstack, dump, heap, cstore, stats)
+showState (instr, fptr, usdsltnum, stack, vstack, dump, heap, cstore, stats)
   = iConcat [
       iStr "Code: ", showInstructions Terse instr, iNewline,
       showFrame heap fptr,
       showStack stack,
       showValueStack vstack,
       showDump dump,
-      showUsedHeap heap,  -- デバッグ用
+      showUsedHeap heap,  -- GCデバッグ用
+      showUsdSltNmbrs usdsltnum,
       iNewline
     ]
 
@@ -454,6 +663,12 @@ showUsedHeap heap
       iIndent (iInterleave iNewline (map (showFrame heap) (map FrameAddr (hAddresses heap)))),
       iStr "]", iNewline
     ]
+
+showUsdSltNmbrs :: [Int] -> Iseq
+showUsdSltNmbrs []
+  = iConcat [iStr "Used Slot Numbers : [", iStr "]"]
+showUsdSltNmbrs usdsltnum
+  = iConcat [iStr "Used Slot Numbers : [", (iInterleave (iStr ", ") (map iNum usdsltnum)), iStr "]"]
 
 showFrame :: TimHeap -> FramePtr -> Iseq
 showFrame heap FrameNull = iStr "Null frame ptr" `iAppend` iNewline
@@ -498,7 +713,7 @@ showFramePtr (FrameAddr a) = iStr (show a)
 showFramePtr (FrameInt n)  = iStr "int " `iAppend` iNum n
 
 showStats :: TimState -> Iseq
-showStats (instr, fptr, stack, vstack, dump, heap, code, stats)
+showStats (instr, fptr, usdsltnum, stack, vstack, dump, heap, code, stats)
   = iConcat [ iStr "Steps taken = ", iNum (statGetSteps stats), iNewline,
               iStr "No of frames allocated = ", iNum (hSize heap),
               iNewline
@@ -554,7 +769,13 @@ showCompiledCode :: String -> String
 showCompiledCode coreprg
   = show codes
     where
-      (_, _, _, _, _, _, codes, _) = compile $ parse coreprg
+      (_, _, _, _, _, _, _, codes, _) = compile $ parse coreprg
+
+showUsedSlotNumber :: [Instruction] -> Iseq
+showUsedSlotNumber []
+  = iConcat [iStr "[", iStr "]"]
+showUsedSlotNumber il
+  = iConcat [iStr "[", (iInterleave (iStr ", ") (map iNum (getUsedSlotNumber il))), iStr "]"]
 --------------------------
 -- 結果の表示 (ここまで) --
 --------------------------
@@ -590,6 +811,28 @@ b_1_1_2'' = "id = S K K ;" ++
             "main = twice twice id 3"
 b_1_1_3 = "id = S K K ;" ++
           "main = twice twice twice id 3"
+test_program_for_gc = "compose2 f g x = f (g x x) ; " ++
+                      "main = compose2 I K 3"
+test_program_for_gc' = "compose2 f g x = f (g x x) ; " ++
+                       "id = I ; " ++
+                       "selarg1 = K ; " ++
+                       "main = compose2 id selarg1 3"
+test_program_for_gc'' = "compose2 f g x = f (g x x) ; " ++
+                        "id x = I x ; " ++
+                        "selarg1 x y = K x y ; " ++
+                        "main = compose2 id selarg1 3"
+test_program_for_gc''' = "compose2 f g x = f (g x x) ; " ++
+                         "func x = K1 1 x ; " ++
+                         "selarg1 x y = K x y ; " ++
+                         "main = compose2 func selarg1 3"
+test_program_for_gc'''' = "compose2 f g x = f (g x x) ; " ++
+                          "id = S K K ; " ++
+                          "selarg1 = K ; " ++
+                          "main = compose2 id selarg1 3"
+test_program_for_gc''''' = "compose2 f g x = f (g x x) ; " ++
+                           "func = K1 (S K K 3) ; " ++
+                           "selarg1 = K ; " ++
+                           "main = compose2 func selarg1 3"
 -- 算術演算のテスト --
 -- 条件分岐なし --
 b_3_1_1 = "main = 4*5+(2-5)"
@@ -614,6 +857,56 @@ b_3_2_3 = "nfib n = if (n==0) 0 " ++
 b_3_2_3' = "nfib n = if (n<2) 1 " ++
                     "(nfib (n-1) + nfib (n-2)) ;" ++
            "main = nfib 10"
+-- letとletrecのテスト --
+ex_2_11 = "pair x y f = f x y ; " ++ 
+          "fst p = p K ; " ++
+          "snd p = p K1 ; " ++
+          "f x y = letrec a = pair x b ; " ++
+                         "b = pair y a " ++
+                  "in fst (snd (snd (snd a))) ; "  ++
+          "main = f 3 4"
+{-
+  f x y
+= fst (snd (snd (snd a)))
+= fst (snd (snd (a K1)))
+= fst (snd ((a K1) K1))
+= fst (((a K1) K1) K1)
+= (((a K1) K1) K1) K
+= ((((pair x b) K1) K1) K1) K
+= (((K1 x b) K1) K1) K
+= ((b K1) K1) K
+= (((pair y a) K1) K1) K
+= ((K1 y a) K1) K
+= (a K1) K
+= ((pair x b) K1) K
+= (K1 x b) K
+= b K
+= (pair y a) K
+= K y a
+= y
+↓
+  f 3 4
+= 4
+-}
+b_2_1 = "main = let id1 = I I I " ++
+               "in id1 id1 3"
+b_2_2 = "oct g x = let h = twice g " ++ -- gの後のスペースは必要(gとinの間にスペースを入れる必要があるため)
+                  "in let k = twice h " ++ -- hの後のスペースは必要(hとinの間にスペースを入れる必要があるため)
+                  "in k (k x) ;" ++
+        "main = oct I 4"
+b_2_2' = "oct g x = let h = twice g " ++ -- gの後のスペースは必要(gとinの間にスペースを入れる必要があるため)
+                   "in let k = twice h " ++ -- hの後のスペースは必要(hとinの間にスペースを入れる必要があるため)
+                   "in k (k x) ;" ++
+         "inc x = x + 1 ; " ++
+         "main = oct inc 4"
+b_2_3 = "cons a b cc cn = cc a b ;" ++
+        "nil cc cn = cn ;" ++
+        "hd list = list K abort ;" ++
+        "tl list = list K1 abort ;" ++
+        "abort = abort ;" ++
+        "infinite x = letrec xs = cons x xs " ++  -- xsの後のスペースは必要(xsとinの間にスペースを入れる必要があるため)
+                     "in xs ;" ++
+        "main = hd (tl (tl (infinite 4)))"
 ex_4_12_1 = --"f x y z = let p = x+y in p+x+y+z ; " ++
             "f x y z = let p = x+y in (p+x)+(y+z) ; " ++  -- パーサの実装が不十分！括弧で囲んで明示的に2項演算の形にしないとパースできない模様。
             "main = f 1 2 3"
@@ -638,10 +931,17 @@ ex_4_15_1 = "f x = if x (let x = 1 in x) (let y = 2 in y) ; " ++
 ex_4_15_2 = "f x = if x (let x = 1 in x) (let y = 2 in y) ; " ++
             "main = f 1"
 ex_4_15_3 = "main = (let x = 1 in x) + (let y = 2 in y)"
+ex_4_15_3' = "main = (let x = 1 ; y = 2 in x + y) + (let x = 2 ; y = 1 in x - y)"
+-- ex_4_15_3'' = "main = (let x = 1 ; y = 2 ; z = x + y in z) + (let x = 2 ; y = 1 ; z = x - y in z)"
+ex_4_15_3'' = "main = (letrec x = 1 ; y = 2 ; z = x + y in z) + (letrec x = 2 ; y = 1 ; z = x - y in z)"
 test_program_for_let1 = "main = let x = 1 " ++
                                "in " ++
                                "  let y = 2 " ++
                                "  in x + 2"
+test_program_for_let1' = "main = let x = 1 " ++
+                                "in " ++
+                                "  let y = 2 " ++
+                                "  in x + y"
 --------------------------------
 -- テストプログラム (ここまで) --
 --------------------------------
@@ -649,4 +949,5 @@ test_program_for_let1 = "main = let x = 1 " ++
 main :: IO()
 --main = (putStrLn . fullRun) b_3_2_3'
 --main = (putStrLn . runProg) ex_4_8
-main = (putStrLn . runProg) b_1_1_3
+--main = (putStrLn . runProg) b_1_1_3
+main = (putStrLn . fullRun) b_3_2_2
