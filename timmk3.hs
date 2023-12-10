@@ -475,7 +475,6 @@ gc :: TimState -> TimState
 gc (instr, fptr, usdsltnum, stack, vstack, dump, heap, cstore, stats)
   = (instr, fptr, usdsltnum, stack, vstack, dump, newHeap, cstore, stats)
     where
-      -- adrlst1 = findStackRoots stack heap
       adrlst1 = findStackRoots stack fptr heap usdsltnum
       adrlst2 = findFrmPtrRoots_ fptr heap usdsltnum
       heap'   = mapAccuml' markFrom heap (adrlst1 ++ adrlst2)
@@ -513,7 +512,7 @@ findStackRoots ((_, FrameAddr addr) : as) fptr heap usdsltnum
       (findFrmPtrRoots_ (FrameAddr addr) heap usdsltnum) ++ (findStackRoots as fptr heap usdsltnum)
     else
       (findFrmPtrRoots (FrameAddr addr) heap) ++ (findStackRoots as fptr heap usdsltnum)
-findStackRoots ((_, _) : as) fptr heap usdsltnum
+findStackRoots ((_, _) : as) fptr heap usdsltnum  -- クロージャのフレームポインタ部分がFrameNullの場合は、ここに該当。
   = findStackRoots as fptr heap usdsltnum
 {-
   findStackRootsも、フレームポインタと使用スロット番号リストを引数として受け取り、スタックに積まれているクロージャのフレームポインタを再帰的にたどる際、
@@ -543,16 +542,18 @@ findFrmPtrRoots_ (FrameAddr addr) heap usdsltnum
       frame = hLookup heap addr
       usdslt
         = case frame of
-          FClosure (c : cs) -> [(is, fptr_) | (is, fptr_) <- tempList, fptr_ /= FrameAddr addr]
+          FClosure (c : cs) -> tempList_
                                where
                                  tempList = map ((c : cs) !!) usdsltnum_
+                                 subFunc (is, fptr_) = if fptr_ == FrameAddr addr
+                                                       then (is, FrameNull)
+                                                       else (is, fptr_)
+                                 tempList_ = map subFunc tempList
+
           _                 -> []
       addr_ = case usdslt of
-              (c_ : cs_) -> case c_ of
-                            (is, FrameAddr addr__) -> (findFrmPtrRoots (FrameAddr addr__) heap) ++
-                                                      (findStackRoots cs_ (FrameAddr addr__) heap usdsltnum)
-                            _                      -> findStackRoots cs_ (FrameAddr addr) heap usdsltnum
-              _          -> []
+              []  -> []
+              cs_ -> findStackRoots cs_ (FrameAddr addr) heap usdsltnum
       {-
         frame が FClosure [Closure] だったら、[Closure] から、usdsltnum に含まれるスロット番号に対応する要素だけ抽出したリストを作る。
         抽出したリストができたら、そのリストの要素(Closure)を1つずつ調べて、タプルの第2要素が FrameAddr addr__ だったら、
@@ -602,6 +603,7 @@ getUsedSlotNumber (i : il)
           Push (Code il_) -> getUsedSlotNumber il_
           -- Enter (Code il__) -> getUsedSlotNumber il__
           Cond ilthn ilels -> (getUsedSlotNumber ilthn) ++ (getUsedSlotNumber ilels)
+          Move n (Code il_) -> [n] ++ getUsedSlotNumber il_
           _ -> []
       uniqList []     = []
       uniqList (x:xs) = (if x `elem` xs then [] else [x]) ++ (uniqList xs)
@@ -888,6 +890,13 @@ ex_2_11 = "pair x y f = f x y ; " ++
   f 3 4
 = 4
 -}
+ex_2_11' = "pair x y f = f x y ; " ++ 
+           "fst p = p K ; " ++
+           "snd p = p K1 ; " ++
+           "f x y = letrec a = pair x b ; " ++
+                          "b = pair y a " ++
+                   "in fst (snd (snd (snd a))) ; "  ++
+           "main = f (fst (pair 3 4)) (snd (pair 3 4))"
 b_2_1 = "main = let id1 = I I I " ++
                "in id1 id1 3"
 b_2_2 = "oct g x = let h = twice g " ++ -- gの後のスペースは必要(gとinの間にスペースを入れる必要があるため)
@@ -950,4 +959,7 @@ main :: IO()
 --main = (putStrLn . fullRun) b_3_2_3'
 --main = (putStrLn . runProg) ex_4_8
 --main = (putStrLn . runProg) b_1_1_3
-main = (putStrLn . fullRun) b_3_2_2
+--main = (putStrLn . fullRun) b_1_1_3
+--main = (putStrLn . fullRun) b_3_2_2
+--main = (putStrLn . fullRun) ex_4_12_2
+main = (putStrLn . fullRun) ex_2_11
