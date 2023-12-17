@@ -277,7 +277,11 @@ step ([Enter am], fptr, usdsltnum, stack, vstack, dump, heap, cstore, stats)  --
     where (instr',fptr') = amToClosure am fptr heap cstore
           usdsltnum_ = case instr_ of
                       [] -> usdsltnum
-                      Take _ : _ -> usdsltnum
+                      Take _ : _ -> case fptr' of
+                                    FrameAddr addr -> take n [1..]
+                                                      where n = length cl
+                                                            FClosure cl = hLookup heap addr
+                                    _ -> []
                       _ -> getUsedSlotNumber instr_
           instr_ = case am of
                    Arg n -> fst (fGet heap fptr n)
@@ -300,7 +304,7 @@ gc :: TimState -> TimState
 gc (instr, fptr, usdsltnum, stack, vstack, dump, heap, cstore, stats)
   = (instr, fptr, usdsltnum, stack, vstack, dump, newHeap, cstore, stats)
     where
-      adrlst1 = findStackRoots stack heap
+      adrlst1 = findStackRoots stack fptr heap usdsltnum
       adrlst2 = findFrmPtrRoots_ fptr heap usdsltnum
       heap'   = mapAccuml' markFrom heap (adrlst1 ++ adrlst2)
       newHeap = mapAccuml' scanHeap heap' (hAddresses heap')
@@ -329,12 +333,20 @@ gc (instr, fptr, usdsltnum, stack, vstack, dump, heap, cstore, stats)
      (マークされたフレームは、マークされていない状態に戻る。)
 -}
 
-findStackRoots :: [Closure] -> TimHeap -> [Addr]
-findStackRoots [] heap = []
-findStackRoots ((_, FrameAddr addr) : as) heap
-  = (findFrmPtrRoots (FrameAddr addr) heap) ++ (findStackRoots as heap)
-findStackRoots ((_, _) : as) heap
-  = findStackRoots as heap
+findStackRoots :: [Closure] -> FramePtr -> TimHeap -> [Int] -> [Addr]
+findStackRoots [] fptr heap usdsltnum = []
+findStackRoots ((_, FrameAddr addr) : as) fptr heap usdsltnum
+  = if (FrameAddr addr) == fptr
+    then
+      (findFrmPtrRoots_ (FrameAddr addr) heap usdsltnum) ++ (findStackRoots as fptr heap usdsltnum)
+    else
+      (findFrmPtrRoots (FrameAddr addr) heap) ++ (findStackRoots as fptr heap usdsltnum)
+findStackRoots ((_, _) : as) fptr heap usdsltnum  -- クロージャのフレームポインタ部分がFrameNullの場合は、ここに該当。
+  = findStackRoots as fptr heap usdsltnum
+{-
+  findStackRootsも、フレームポインタと使用スロット番号リストを引数として受け取り、スタックに積まれているクロージャのフレームポインタを再帰的にたどる際、
+  引数として受け取ったフレームポインタと同じだった場合、全スロットをたどるのではなく、使用スロット番号リストに含まれるスロットだけをたどるようにする。
+-}
 
 findFrmPtrRoots :: FramePtr -> TimHeap -> [Addr]  -- スタックに積まれているクロージャのフレームポインタをたどる関数(全スロットをたどる)
 findFrmPtrRoots (FrameAddr addr) heap
@@ -359,16 +371,16 @@ findFrmPtrRoots_ (FrameAddr addr) heap usdsltnum
       frame = hLookup heap addr
       usdslt
         = case frame of
-          FClosure (c : cs) -> [(is, fptr_) | (is, fptr_) <- tempList, fptr_ /= FrameAddr addr]
+          FClosure (c : cs) -> map subFunc tempList
                                where
                                  tempList = map ((c : cs) !!) usdsltnum_
+                                 subFunc (is, fptr_) = if fptr_ == FrameAddr addr
+                                                       then (is, FrameNull)
+                                                       else (is, fptr_)
           _                 -> []
       addr_ = case usdslt of
-              (c_ : cs_) -> case c_ of
-                            (is, FrameAddr addr__) -> (findFrmPtrRoots (FrameAddr addr__) heap) ++
-                                                      (findStackRoots cs_ heap)
-                            _                      -> findStackRoots cs_ heap
-              _          -> []
+              []  -> []
+              cs_ -> findStackRoots cs_ (FrameAddr addr) heap usdsltnum
       {-
         frame が FClosure [Closure] だったら、[Closure] から、usdsltnum に含まれるスロット番号に対応する要素だけ抽出したリストを作る。
         抽出したリストができたら、そのリストの要素(Closure)を1つずつ調べて、タプルの第2要素が FrameAddr addr__ だったら、
@@ -465,33 +477,14 @@ showState (instr, fptr, usdsltnum, stack, vstack, dump, heap, cstore, stats)
       showStack stack,
       showValueStack vstack,
       showDump dump,
-      {-
-      showUsedHeapAddresses heap,  -- GCデバッグ用
-      showUsedHeapContents heap,  -- GCデバッグ用
-      -}
-      showUsedHeap heap, iNewline,  -- GCデバッグ用
+      showUsedHeap heap,  -- GCデバッグ用
       showUsdSltNmbrs usdsltnum,
       iNewline
     ]
 
-{-
-showUsedHeapAddresses :: TimHeap -> Iseq  -- GCデバッグ用
-showUsedHeapAddresses heap
-  = iConcat [
-      iStr "Used Heap Address : [",
-      iIndent (iInterleave (iStr ",") (map iNum (hAddresses heap))),
-      iStr "]", iNewline
-    ]
--}
-
-{-
-showUsedHeapContents :: TimHeap -> Iseq
-showUsedHeapContents heap
--}
 showUsedHeap :: TimHeap -> Iseq
 showUsedHeap heap
   = iConcat [
-      -- iStr "Used Heap Contents : [",
       iStr "Used Heap : [",
       iIndent (iInterleave iNewline (map (showFrame heap) (map FrameAddr (hAddresses heap)))),
       iStr "]", iNewline
