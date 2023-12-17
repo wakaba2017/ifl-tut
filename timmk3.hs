@@ -542,14 +542,12 @@ findFrmPtrRoots_ (FrameAddr addr) heap usdsltnum
       frame = hLookup heap addr
       usdslt
         = case frame of
-          FClosure (c : cs) -> tempList_
+          FClosure (c : cs) -> map subFunc tempList
                                where
                                  tempList = map ((c : cs) !!) usdsltnum_
                                  subFunc (is, fptr_) = if fptr_ == FrameAddr addr
                                                        then (is, FrameNull)
                                                        else (is, fptr_)
-                                 tempList_ = map subFunc tempList
-
           _                 -> []
       addr_ = case usdslt of
               []  -> []
@@ -956,10 +954,4 @@ test_program_for_let1' = "main = let x = 1 " ++
 --------------------------------
 
 main :: IO()
---main = (putStrLn . fullRun) b_3_2_3'
---main = (putStrLn . runProg) ex_4_8
---main = (putStrLn . runProg) b_1_1_3
---main = (putStrLn . fullRun) b_1_1_3
---main = (putStrLn . fullRun) b_3_2_2
---main = (putStrLn . fullRun) ex_4_12_2
 main = (putStrLn . fullRun) ex_2_11
