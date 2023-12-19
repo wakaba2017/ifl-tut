@@ -9006,6 +9006,114 @@ $\mathcal{U}$ には、現在のフレームのどのスロットを更新する
 \end{description}
 
 \subsubsection{部分的な関数適用の更新}
+
+これまでのところ、値が整数であるクロージャの更新を正常に処理できました。
+Return 命令が空のスタックを見つけると、更新を実行し、ダンプから新しいスタックをポップします。
+\vskip\baselineskip
+
+しかし、スタックから項目を消費する別の命令、つまり \texttt{Take} があります。
+\texttt{Take} 命令でスタック上に見つかったアイテムの数が必要な数よりも少ない場合はどうなるのでしょうか?
+たとえば、次のプログラムを考えてみましょう。
+
+\begin{verbatim}
+  add a b = a+b
+  twice f x = f (f x)
+  g x = add (x*x)
+  main = twice (g 3) 4
+\end{verbatim}
+
+\texttt{twice} が \texttt{f} をenterすると、間接経由でenterされ、\texttt{f} の更新が設定されます。
+この例では、\texttt{f} は \texttt{(g 3)} にバインドされ、1つの引数への加算の部分適用として評価されます。
+\texttt{add} のコードの先頭にある \texttt{Take 2} 命令は、スタック上に引数が1つだけあることを検出します。
+これは、更新が行われ、\texttt{(g x)} のクロージャが \texttt{(add (x*x))} のクロージャで上書きされることを示します。
+\vskip\baselineskip
+
+一般的に：
+
+\begin{quote}
+	\texttt{Take} 命令がスタック上で見つけた引数が少なすぎる場合は、ダンプ上の先頭の項目によって識別されるクロージャの更新を実行し、
+	現在のスタック上の項目をダンプから回復されたスタックの先頭に貼り付けて、 (別の更新が必要な場合) \texttt{Take} 命令を再試行する必要があります。
+\end{quote}
+
+\texttt{Take} 命令はすでに十分に複雑ですが、さらに実行するタスクがあります。
+\texttt{Take} が扱いにくくなるのを避けるために、\texttt{Take} を2つの命令に分割しました。
+1つは十分な引数があるかどうかのチェックを実行する \texttt{UpdateMarkers} で、もう1つは新しいフレームを実際に構築する \texttt{Take} です。
+\texttt{UpdateMarkers} $n$ 命令は常に、すべての \texttt{Take} $t$ $n$ 命令の直前に配置されます。
+\vskip\baselineskip
+
+したがって、\texttt{Take} の遷移規則は変更されません。
+\texttt{UpdateMarkers} の遷移規則は次のとおりです。
+\vskip\baselineskip
+
+\begin{tabular} {|c|l r l r r r l l|} \hline
+	(4.17) &                   & \texttt{UpdateMarkers} $n$ : $i$                                                                                       & $f$ & $c_1$ : $\ldots$ : $c_m$ : $s$ & $v$ & $d$                 & $h$  & $c$ \\
+	       & $\Longrightarrow$ & $i$                                                                                                                    & $f$ & $c_1$ : $\ldots$ : $c_m$ : $s$ & $v$ & $d$                 & $h$  & $c$ \\
+	       &                   & \multicolumn {7} {l|} {ここで$m \ge n$}                                                                                                                                                                \\ \hline
+	(4.17) &                   & \texttt{UpdateMarkers} $n$ : $i$                                                                                       & $f$ & $c_1$ : $\ldots$ : $c_m$ : []  & $v$ & $(f_u, x, s)$ : $d$ & $h$  & $c$ \\
+	       & $\Longrightarrow$ & \texttt{UpdateMarkers} $n$ : $i$                                                                                       & $f$ & $c_1$ : $\ldots$ : $c_m$ : $s$ & $v$ & $d$                 & $h'$ & $c$ \\
+	       &                   & \multicolumn {7} {l|} {ここで$m < n$かつ$h' = h[f_u :\langle \ldots, d_{x - 1}, (i', f'), d_{x + 1}, \ldots \rangle]$}                                                                                 \\ \hline
+\end{tabular}
+\vskip\baselineskip
+
+最初の規則は、十分な引数があるため、\texttt{UpdateMarkers} が何も行わない場合を扱います。
+2番目は、更新を行う必要があるもう1つのケースを扱います。
+適切なクロージャが更新され、現在のスタックが古いスタックの上に貼り付けられ、\texttt{UpdateMarkers} が再試行されます。
+\vskip\baselineskip
+
+このルールでは、$i'$ と $f'$ はターゲット クロージャを上書きするコードポインタとフレームポインタですが、これまでのところ、それらがどのような値を取るべきかについては指定されていません。
+それらがどうあるべきかを理解する方法は、「クロージャ $(i', f')$ が入力されたときに何が起こるべきか?」という質問をすることです。
+このクロージャは、スーパーコンビネータの引数 $c_1, \ldots, c_m$ への部分的な適用を表します。
+したがって、これが入力されると、$c_1, ..., c_m$ をプッシュしてから、スーパーコンビネータのコードにジャンプする必要があります。
+したがって、
+
+\begin{itemize}
+	\item $f'$ は新しく割り当てられたフレーム $\langle c_1, \ldots, c_m \rangle$ を指している必要があります。
+	\item $i'$ は以下の符号列でなければなりません
+	      \vskip\baselineskip
+	      \texttt{Push} (\texttt{Arg} $m$) \texttt{:} $\ldots$ \texttt{:} \texttt{Push} (\texttt{Arg} 1) \texttt{:} \texttt{UpdateMarkers} $n$ \texttt{:} $i$
+	      \vskip\baselineskip
+	      ここで、\texttt{Push} 命令は部分アプリケーションの引数をスタックに配置し、\texttt{UpdateMarkers} 命令は実行する必要があるさらなる更新をチェックします。
+	      $i$ はスーパーコンビネータのコードの残りの部分です。
+\end{itemize}
+
+\begin{description}
+	\item[演習 4.21] \texttt{UpdateMarkers} 命令を実装し、各 \texttt{Take} 命令の前に1つを配置するようにコンパイラを変更します。
+	      次のプログラムの変更の前後で実装をテストします。
+	      プログラムは高階関数を使用してペアを実装します (セクション 2.8.3)。
+	      ペア \texttt{w} は共有され、ペア関数の部分的な適用として評価されます。
+	      \begin{verbatim}
+          pair x y f = f x y
+          fst p = p K
+          snd p = p K1
+          main = let w = pair 2 3
+                 in (fst w) * (snd w)
+        \end{verbatim}
+	      \texttt{w} が \texttt{(pair 2 3)} の部分適用で更新されていることがわかります。
+	      もう少し説得力を持たせるために、\texttt{w} の右側にもう少し計算を含めることができます。
+	      たとえば、
+	      \begin{verbatim}
+          main = let w = if (2*3 > 4) (pair 2 3) (pair 3 2)
+                 in (fst w) * (snd w)
+        \end{verbatim}
+	\item[演習 4.22] \texttt{Take 0 0} が何もしないのと同様に、\texttt{UpdateMarkers 0} も何も行いません。
+	      必要に応じてこれらの命令の両方を省略するように、\texttt{compileSC} を変更します。
+	      (これは演習 4.3 の単純な拡張です。)
+\end{description}
+
+他にも注目すべき点がいくつかあります。
+
+\begin{itemize}
+	\item 実際の実装では、ルールにあるように、更新が行われるたびにコード $i'$ が新しく製造されることはありません。
+	      代わりに、スーパーコンビネータ $i$ のコードの前に一連の \texttt{Push} 命令を配置し、部分適用のコードポインタはシーケンス内の適切な場所を指すだけで済みます。
+	\item \texttt{UpdateMarkers} ルールはクロージャ $c_1, \ldots, c_m$ を複製します。
+	      これは、スーパーコンビネータの引数が自由にコピーできるようになったことであり、セクション 4.5.6 で導入した修正です。
+	      この変更が行われる前は、そのようなコピーを作成すると redex が複製される危険があったため、代わりに \texttt{UpdateMarkers} ルールが間接化されてさらに複雑になっていたでしょう。
+	      \texttt{UpdateMarkers} の導入が遅れて放置されているのはこのためです。
+	\item 式 $(\texttt{f} ~ e_1 ~ e_2)$ のコードをコンパイルしているとします。ここで、\texttt{f} は 2 つ (またはそれ以下) の引数のスーパーコンビネーターであることがわかっています。
+	      この場合、スタックはそれを満たすのに十分な深さがあることが確実であるため、 \texttt{f} の先頭にある \texttt{UpdateMarkers} 命令は確かに何も行いません。
+	      そのため、すべての引数 (またはそれ以上) に適用されるスーパーコンビネータへの呼び出しをコンパイルするときに、\texttt{UpdateMarkers} 命令の後にそのコードを入力できます。
+	      一般的なプログラムの関数適用の多くは、既知のスーパーコンビネータの飽和した関数適用であるため、この最適化は頻繁に適用できます。
+\end{itemize}
 \newpage
 
 \subsection{Mark 5: 構造化データ}
