@@ -281,8 +281,7 @@ compileR (ELet recursion defs e) env d  -- Mark3で追加
         | otherwise         = compileA ee env   dd  -- let    の場合
       (dn, ams) = mapAccuml subFunc1 (d + length defs) defs2
       env_  = (zip2 defs1 (map Arg [(d+1)..])) ++ env
-      -- env__ = (zip2 defs1 (map Code (map (replicate 1) (map Enter (map Arg [(d+1)..]))))) ++ env
-      env__ = (zip2 defs1 (map (Code . (replicate 1) . Enter . Arg) [(d+1)..])) ++ env
+      env__ = (zip2 defs1 (map mkIndMode [(d+1)..])) ++ env
       (d_, is) = compileR e env_ dn
       subFunc2 n am = (n + 1, Move n am)
       (_, mvinstrs) = mapAccuml subFunc2 (d + 1) ams
