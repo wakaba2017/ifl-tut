@@ -147,22 +147,23 @@ type TimStats
     Int, -- Execution time
     Int, -- Total amount of heap allocated in the run
     Int, -- Total amount of closure allocated in the run
-    Int  -- Maximum stack depth
+    Int, -- Maximum stack depth
+    Int  -- Maximum vstack depth
    )
 {-
 statInitial    = 0
 statIncSteps s = s+1
 statGetSteps s = s
 -}
-statInitial    = (0, 0, 0, 0, 0)
-statIncSteps (steps, exctime, totalheap, totalclosure, maxstkdepth)
-  = (steps + 1, exctime, totalheap, totalclosure, maxstkdepth)
-statGetSteps (steps, exctime, totalheap, totalclosure, maxstkdepth)
+statInitial    = (0, 0, 0, 0, 0, 0)
+statIncSteps (steps, exctime, totalheap, totalclosure, maxstkdepth, maxvstkdepth)
+  = (steps + 1, exctime, totalheap, totalclosure, maxstkdepth, maxvstkdepth)
+statGetSteps (steps, exctime, totalheap, totalclosure, maxstkdepth, maxvstkdepth)
   = steps
 
 statUpdExectime :: TimState -> TimState
-statUpdExectime (instr, frame, usedslot, stack, vstack, dump, heap, cstore, (steps, exctime, totalheap, totalclosure, maxstkdepth))
-  = (instr, frame, usedslot, stack, vstack, dump, heap, cstore, (steps, exctime', totalheap, totalclosure, maxstkdepth))
+statUpdExectime (instr, frame, usedslot, stack, vstack, dump, heap, cstore, (steps, exctime, totalheap, totalclosure, maxstkdepth, maxvstkdepth))
+  = (instr, frame, usedslot, stack, vstack, dump, heap, cstore, (steps, exctime', totalheap, totalclosure, maxstkdepth, maxvstkdepth))
     where
       curInstr | null instr = Take 0 0  -- Mark3で変更
                | otherwise  = head instr
@@ -171,24 +172,24 @@ statUpdExectime (instr, frame, usedslot, stack, vstack, dump, heap, cstore, (ste
                  _      -> exctime + 1
 
 statGetExectime :: TimStats -> Int
-statGetExectime (steps, exctime, totalheap, totalclosure, maxstkdepth)
+statGetExectime (steps, exctime, totalheap, totalclosure, maxstkdepth, maxvstkdepth)
   = exctime
 
 statUpdAllcdheap :: TimState -> TimState
-statUpdAllcdheap (instr, frame, usedslot, stack, vstack, dump, heap, cstore, (steps, exctime, totalheap, totalclosure, maxstkdepth))
-  = (instr, frame, usedslot, stack, vstack, dump, heap, cstore, (steps, exctime, totalheap', totalclosure, maxstkdepth))
+statUpdAllcdheap (instr, frame, usedslot, stack, vstack, dump, heap, cstore, (steps, exctime, totalheap, totalclosure, maxstkdepth, maxvstkdepth))
+  = (instr, frame, usedslot, stack, vstack, dump, heap, cstore, (steps, exctime, totalheap', totalclosure, maxstkdepth, maxvstkdepth))
     where
       totalheap' | curTotalHeap > totalheap = curTotalHeap
                  | otherwise                = totalheap
       curTotalHeap = hSize heap
 
 statGetAllcdheap :: TimStats -> Int
-statGetAllcdheap (steps, exctime, totalheap, totalclosure, maxstkdepth)
+statGetAllcdheap (steps, exctime, totalheap, totalclosure, maxstkdepth, maxvstkdepth)
   = totalheap
 
 statUpdAllcdclosure :: TimState -> TimState
-statUpdAllcdclosure (instr, frame, usedslot, stack, vstack, dump, heap, cstore, (steps, exctime, totalheap, totalclosure, maxstkdepth))
-  = (instr, frame, usedslot, stack, vstack, dump, heap, cstore, (steps, exctime, totalheap, totalclosure_, maxstkdepth))
+statUpdAllcdclosure (instr, frame, usedslot, stack, vstack, dump, heap, cstore, (steps, exctime, totalheap, totalclosure, maxstkdepth, maxvstkdepth))
+  = (instr, frame, usedslot, stack, vstack, dump, heap, cstore, (steps, exctime, totalheap, totalclosure_, maxstkdepth, maxvstkdepth))
     where
       tempList = map (hLookup heap) (hAddresses heap)
       subFunc (FClosure fcl) = length fcl
@@ -197,20 +198,32 @@ statUpdAllcdclosure (instr, frame, usedslot, stack, vstack, dump, heap, cstore, 
                     | otherwise                      = totalclosure
 
 statGetAllcdclosure :: TimStats -> Int
-statGetAllcdclosure (steps, exctime, totalheap, totalclosure, maxstkdepth)
+statGetAllcdclosure (steps, exctime, totalheap, totalclosure, maxstkdepth, maxvstkdepth)
   = totalclosure
 
 statUpdMaxstkdpth :: TimState -> TimState
-statUpdMaxstkdpth (instr, frame, usedslot, stack, vstack, dump, heap, cstore, (steps, exctime, totalheap, totalclosure, maxstkdepth))
-  = (instr, frame, usedslot, stack, vstack, dump, heap, cstore, (steps, exctime, totalheap, totalclosure, maxstkdepth'))
+statUpdMaxstkdpth (instr, frame, usedslot, stack, vstack, dump, heap, cstore, (steps, exctime, totalheap, totalclosure, maxstkdepth, maxvstkdepth))
+  = (instr, frame, usedslot, stack, vstack, dump, heap, cstore, (steps, exctime, totalheap, totalclosure, maxstkdepth', maxvstkdepth))
     where
       maxstkdepth' | curStackDepth > maxstkdepth = curStackDepth
                    | otherwise                   = maxstkdepth
       curStackDepth = length stack
 
 statGetMaxstkdpth :: TimStats -> Int
-statGetMaxstkdpth (steps, exctime, totalheap, totalclosure, maxstkdepth)
+statGetMaxstkdpth (steps, exctime, totalheap, totalclosure, maxstkdepth, maxvstkdepth)
   = maxstkdepth
+
+statUpdMaxvstkdpth :: TimState -> TimState
+statUpdMaxvstkdpth (instr, frame, usedslot, stack, vstack, dump, heap, cstore, (steps, exctime, totalheap, totalclosure, maxstkdepth, maxvstkdepth))
+  = (instr, frame, usedslot, stack, vstack, dump, heap, cstore, (steps, exctime, totalheap, totalclosure, maxstkdepth, maxvstkdepth_))
+    where
+      maxvstkdepth_ | curVstackDepth > maxvstkdepth = curVstackDepth
+                    | otherwise                     = maxvstkdepth
+      curVstackDepth = length vstack
+
+statGetMaxvstkdpth :: TimStats -> Int
+statGetMaxvstkdpth (steps, exctime, totalheap, totalclosure, maxstkdepth, maxvstkdepth)
+  = maxvstkdepth
 
 -- :a util.lhs -- heap data type and other library functions
 -------------------------------
@@ -309,10 +322,23 @@ compileR (EAp (EVar "negate") e) env d  -- Mark3で変更
 compileR (EAp e1 e2) env d = (d2, Push am : is)  -- Mark3で変更
                              where (d1, am) = compileA e2 env d  -- Mark3で変更
                                    (d2, is) = compileR e1 env d1  -- Mark3で変更
+{-
 compileR (EVar v)    env d = (d, [Enter (snd (compileA (EVar v) env d))])  -- Mark3で変更
+-}
+compileR (EVar v)    env d = (d, is)  -- Mark4で変更
+                             where am = snd $ compileA (EVar v) env d
+                                   is = mkEnter am
 compileR (ENum n)    env d = compileB (ENum n) env d [Return]  -- Mark3で変更
+{-
 compileR e           env d = (d_, [Enter am])   -- Mark3で変更
                              where (d_, am) = compileA e env d  -- Mark3で変更
+-}
+compileR e           env d = (d_, is)   -- Mark4で変更
+                             where (d_, am) = compileA e env d  -- Mark3で変更
+                                   is = mkEnter am
+{-
+  このコードでは、compileRの最後の定義式は使われないかもしれない。
+-}
 
 compileA :: CoreExpr -> TimCompilerEnv -> Int -> (Int, TimAMode)  -- Aスキーム  Mark3で変更
 compileA (EVar v) env d = (d, aLookup env v (error ("Unknown variable " ++ v)))  -- Mark3で変更
@@ -355,6 +381,11 @@ mkIndMode n = Code [Enter (Arg n)]
 -- Mark4で追加
 mkUpdIndMode :: Int -> TimAMode
 mkUpdIndMode n = Code [PushMarker n, Enter (Arg n)]
+
+-- Mark4で追加
+mkEnter :: TimAMode -> [Instruction]
+mkEnter (Code i) = i
+mkEnter other_am = [Enter other_am]
 ---------------------------------------
 -- プログラムのコンパイル (ここまで) --
 ---------------------------------------
@@ -373,7 +404,7 @@ eval state
       -- next_state' | hSize heap >= 1 = gc (step state)  -- gc有効化
       next_state' | hSize heap >= 1 = step state  -- gc無効化
                   | otherwise       = step state
-      next_state = (statUpdMaxstkdpth . statUpdAllcdclosure . statUpdAllcdheap . statUpdExectime . doAdmin) next_state'
+      next_state = (statUpdMaxvstkdpth . statUpdMaxstkdpth . statUpdAllcdclosure . statUpdAllcdheap . statUpdExectime . doAdmin) next_state'
 
 doAdmin :: TimState -> TimState
 doAdmin state = applyToStats statIncSteps state
@@ -410,6 +441,9 @@ step ([Enter am], fptr, usdsltnum, stack, vstack, dump, heap, cstore, stats)  --
                    _ -> []
 step ((Push am:instr), fptr, usdsltnum, stack, vstack, dump, heap, cstore, stats)  -- 遷移規則 (4.2, 4.3, 4.4, 4.5)
   = (instr, fptr, usdsltnum, amToClosure am fptr heap cstore : stack, vstack, dump, heap, cstore, stats)
+step ([Return], fptr, usdsltnum, [], n : vstack, (fptru, x, stack) : dump, heap, cstore, stats)  -- 遷移規則 (4.16)  Mark4で追加
+  = ([Return], fptr, usdsltnum, stack, n : vstack, dump, newHeap, cstore, stats)
+    where newHeap = fUpdate heap fptru x (intCode, FrameInt n)
 step ([Return], fptr, usdsltnum, (instr', fptr') : stack, vstack, dump, heap, cstore, stats)  -- 遷移規則 (4.16)  Mark4で番号のみ変更
   = (instr', fptr', usdsltnum_, stack, vstack, dump, heap, cstore, stats)
     where usdsltnum_ = case instr' of
@@ -437,9 +471,6 @@ step ([Return], fptr, usdsltnum, (instr', fptr') : stack, vstack, dump, heap, cs
                                   instr_ に Push (Code _) が含まれていたら、fptr' が指すフレームに含まれる全スロットを usdsltnum_ にする。
                                   そうでなかったら、getUsedSlotNumber instr_ の戻り値を usdsltnum_ にする。
                                 -}
-step ([Return], fptr, usdsltnum, [], n : vstack, (fptru, x, stack) : dump, heap, cstore, stats)  -- 遷移規則 (4.16)  Mark4で追加
-  = ([Return], fptr, usdsltnum, stack, n : vstack, dump, newHeap, cstore, stats)
-    where newHeap = fUpdate heap fptru x (intCode, FrameInt n)
 step ((PushV (IntVConst n) : instr), fptr, usdsltnum, stack, vstack, dump, heap, cstore, stats)  -- 遷移規則 (4.14)
   = (instr, fptr, usdsltnum, stack, n : vstack, dump, heap, cstore, stats)
 step ((PushV FramePtr : instr), (FrameInt n), usdsltnum, stack, vstack, dump, heap, cstore, stats)  -- 遷移規則 (4.12)
@@ -751,6 +782,8 @@ showStats (instr, fptr, usdsltnum, stack, vstack, dump, heap, code, stats)
               iNewline
             , iStr "Maximum stack depth = ", iNum (statGetMaxstkdpth stats),
               iNewline
+            , iStr "Maximum vstack depth = ", iNum (statGetMaxvstkdpth stats),
+              iNewline
     ]
 
 data HowMuchToPrint = Full | Terse | None
@@ -979,6 +1012,7 @@ test_program_for_let1' = "main = let x = 1 " ++
 -- 更新のテスト --
 ex_4_16 = "f x = x + x ; " ++
           "main = f (1+2)"
+ex_4_17 = "compose2 f g x = f (g x)"
 --------------------------------
 -- テストプログラム (ここまで) --
 --------------------------------
