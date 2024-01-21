@@ -249,11 +249,9 @@ eval state
     where
       rest_states | timFinal state = []
                   | otherwise      = eval next_state
-      -- next_state = doAdmin (step state)
-      (_, _, _, _, _, _, heap, _, _) = step state
-      -- next_state = (statUpdMaxstkdpth . statUpdAllcdheap . statUpdExectime . doAdmin) (step state)
-      next_state' | hSize heap >= 1 = gc (step state)
-                  | otherwise       = step state
+      (_, _, usdsltnum, _, _, _, heap, _, _) = step state
+      next_state' | hSize heap >= 1 && usdsltnum /= [-1] = gc (step state)
+                  | otherwise                            = step state
       next_state = (statUpdMaxstkdpth . statUpdAllcdclosure . statUpdAllcdheap . statUpdExectime . doAdmin) next_state'
 
 doAdmin :: TimState -> TimState
@@ -278,10 +276,15 @@ step ([Enter am], fptr, usdsltnum, stack, vstack, dump, heap, cstore, stats)  --
           usdsltnum_ = case instr_ of
                       [] -> usdsltnum
                       Take _ : _ -> case fptr' of
-                                    FrameAddr addr -> take n [1..]
-                                                      where n = length cl
-                                                            FClosure cl = hLookup heap addr
+                                    FrameAddr addr -> [-1]
                                     _ -> []
+                                    {-
+                                      Enter 命令で更新された命令列 instr_ の先頭が Take 命令で、
+                                      Enter 命令で更新されたフレームポインタ fptr' がフレームを指していた場合、
+                                      使用スロット番号リストを[-1]とする。
+                                      この時は、ガベージコレクションを行わない様にする。
+                                      (fptr' が指しているフレームのスロット数と、instr_ で使用する使用スロット番号は、一致しないことがあるため。)
+                                    -}
                       _ -> getUsedSlotNumber instr_
           instr_ = case am of
                    Arg n -> fst (fGet heap fptr n)
