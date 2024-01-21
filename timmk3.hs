@@ -370,19 +370,16 @@ eval state
     where
       rest_states | timFinal state = []
                   | otherwise      = eval next_state
-      -- next_state = doAdmin (step state)
-      (_, _, _, _, _, _, heap, _, _) = step state
-      -- next_state = (statUpdMaxstkdpth . statUpdAllcdclosure . statUpdAllcdheap . statUpdExectime . doAdmin) (step state)
-      next_state' | hSize heap >= 1 = gc (step state)  -- gc有効化
-      -- next_state' | hSize heap >= 1 = step state  -- gc無効化
-                  | otherwise       = step state
+      (_, _, usdsltnum, _, _, _, heap, _, _) = step state
+      next_state' | hSize heap >= 1 && usdsltnum /= [-1] = gc (step state)
+                  | otherwise                            = step state
       next_state = (statUpdMaxvstkdpth . statUpdMaxstkdpth . statUpdAllcdclosure . statUpdAllcdheap . statUpdExectime . doAdmin) next_state'
 
 doAdmin :: TimState -> TimState
 doAdmin state = applyToStats statIncSteps state
 
 timFinal ([], frame, usedslot, stack, vstack, dump, heap, cstore, stats) = True
-timFinal state                                                 = False
+timFinal state                                                           = False
 
 applyToStats :: (TimStats -> TimStats) -> TimState -> TimState
 applyToStats stats_fun (instr, frame, usedslot, stack, vstack,
@@ -397,14 +394,19 @@ step ((Take t n : instr), fptr, usdsltnum, stack, vstack, dump, heap, cstore, st
         usdsltnum_ = getUsedSlotNumber instr
 step ([Enter am], fptr, usdsltnum, stack, vstack, dump, heap, cstore, stats)  -- 遷移規則 (4.6, 4.7, 4.8, 4.9)
   = (instr', fptr', usdsltnum_, stack, vstack, dump, heap, cstore, stats)
-    where (instr',fptr') = amToClosure am fptr heap cstore
+    where (instr', fptr') = amToClosure am fptr heap cstore
           usdsltnum_ = case instr_ of
                        [] -> usdsltnum
                        Take _ _ : _ -> case fptr' of
-                                       FrameAddr addr -> take n [1..]
-                                                         where n = length cl
-                                                               FClosure cl = hLookup heap addr
+                                       FrameAddr addr -> [-1]
                                        _ -> []
+                                       {-
+                                         Enter 命令で更新された命令列 instr_ の先頭が Take 命令で、
+                                         Enter 命令で更新されたフレームポインタ fptr' がフレームを指していた場合、
+                                         使用スロット番号リストを[-1]とする。
+                                         この時は、ガベージコレクションを行わない様にする。
+                                         (fptr' が指しているフレームのスロット数と、instr_ で使用する使用スロット番号は、一致しないことがあるため。)
+                                       -}
                        _ -> getUsedSlotNumber instr_
           instr_ = case am of
                    Arg n -> fst (fGet heap fptr n)
@@ -418,10 +420,14 @@ step ([Return], fptr, usdsltnum, (instr', fptr') : stack, vstack, dump, heap, cs
     where usdsltnum_ = case instr' of
                        [] -> usdsltnum
                        Take _ _ : _ -> case fptr of
-                                       FrameAddr addr -> take n [1..]
-                                                         where n = length cl
-                                                               FClosure cl = hLookup heap addr
+                                       FrameAddr addr -> [-1]
                                        _ -> []
+                                       {-
+                                         Return 命令で更新された命令列 instr' の先頭が Take 命令で、
+                                         現在のフレームポインタ fptr がフレームを指していた場合、
+                                         使用スロット番号リストを[-1]とする。
+                                         この時は、ガベージコレクションを行わない様にする。
+                                       -}
                        othrs -> if isPushCodeInvolved othrs
                                 then
                                   case fptr' of
@@ -429,6 +435,13 @@ step ([Return], fptr, usdsltnum, (instr', fptr') : stack, vstack, dump, heap, cs
                                                     where n = length cl
                                                           FClosure cl = hLookup heap addr
                                   _ -> []
+                                  {-
+                                    Return 命令で更新された命令列 instr' に Push (Code _) が含まれていて、
+                                    Return 命令で更新されたフレームポインタ fptr' がフレームを指していた場合、
+                                    fptr' が指すフレームに含まれる全スロットを使用スロット番号リストに追加する。
+                                    (Push (Code _) が実行された際に、fptr' もクロージャの一部として引数スタックに格納される。
+                                     そうすると、ガベージコレクションの際に、fptr' が指すフレームの全スロットを使用中とみなすことになるため。)
+                                  -}
                                 else
                                   getUsedSlotNumber instr'
                                 where
@@ -436,10 +449,6 @@ step ([Return], fptr, usdsltnum, (instr', fptr') : stack, vstack, dump, heap, cs
                                   isPushCodeInvolved (oth_ : othrs_) = case oth_ of
                                                                        Push (Code _) -> True
                                                                        _ -> isPushCodeInvolved othrs_
-                                {-
-                                  instr_ に Push (Code _) が含まれていたら、fptr' が指すフレームに含まれる全スロットを usdsltnum_ にする。
-                                  そうでなかったら、getUsedSlotNumber instr_ の戻り値を usdsltnum_ にする。
-                                -}
 step ((PushV (IntVConst n) : instr), fptr, usdsltnum, stack, vstack, dump, heap, cstore, stats)  -- 遷移規則 (4.14)
   = (instr, fptr, usdsltnum, stack, n : vstack, dump, heap, cstore, stats)
 step ((PushV FramePtr : instr), (FrameInt n), usdsltnum, stack, vstack, dump, heap, cstore, stats)  -- 遷移規則 (4.12)
@@ -968,4 +977,4 @@ test_program_for_let1' = "main = let x = 1 " ++
 --------------------------------
 
 main :: IO()
-main = (putStrLn . fullRun) ex_2_11
+main = (putStrLn . fullRun) b_3_2_2
