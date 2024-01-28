@@ -322,23 +322,10 @@ compileR (EAp (EVar "negate") e) env d  -- Mark3で変更
 compileR (EAp e1 e2) env d = (d2, Push am : is)  -- Mark3で変更
                              where (d1, am) = compileA e2 env d  -- Mark3で変更
                                    (d2, is) = compileR e1 env d1  -- Mark3で変更
-{-
 compileR (EVar v)    env d = (d, [Enter (snd (compileA (EVar v) env d))])  -- Mark3で変更
--}
-compileR (EVar v)    env d = (d, is)  -- Mark4で変更
-                             where am = snd $ compileA (EVar v) env d
-                                   is = mkEnter am
 compileR (ENum n)    env d = compileB (ENum n) env d [Return]  -- Mark3で変更
-{-
 compileR e           env d = (d_, [Enter am])   -- Mark3で変更
                              where (d_, am) = compileA e env d  -- Mark3で変更
--}
-compileR e           env d = (d_, is)   -- Mark4で変更
-                             where (d_, am) = compileA e env d  -- Mark3で変更
-                                   is = mkEnter am
-{-
-  このコードでは、compileRの最後の定義式は使われないかもしれない。
--}
 
 compileA :: CoreExpr -> TimCompilerEnv -> Int -> (Int, TimAMode)  -- Aスキーム  Mark3で変更
 compileA (EVar v) env d = (d, aLookup env v (error ("Unknown variable " ++ v)))  -- Mark3で変更
@@ -381,11 +368,6 @@ mkIndMode n = Code [Enter (Arg n)]
 -- Mark4で追加
 mkUpdIndMode :: Int -> TimAMode
 mkUpdIndMode n = Code [PushMarker n, Enter (Arg n)]
-
--- Mark4で追加
-mkEnter :: TimAMode -> [Instruction]
-mkEnter (Code i) = i
-mkEnter other_am = [Enter other_am]
 ---------------------------------------
 -- プログラムのコンパイル (ここまで) --
 ---------------------------------------
@@ -747,7 +729,7 @@ showDump :: TimDump -> Iseq
 showDump dump
   = iConcat [iStr "Dump:[",
              iIndent (iInterleave iNewline
-                     (map showDumpItem (reverse dump))),
+                     (map showDumpItem dump)),
              iStr "]", iNewline]  -- Mark4で変更
 
 -- Mark4で追加
@@ -756,7 +738,8 @@ showDumpItem (fptr, x, stack)
   = iConcat [iStr "<",
              showFramePtr fptr, iStr ", ",
              iNum x, iStr ", ",
-             showStack stack, iStr ">"]
+             iStr "[", iIndent (iInterleave iNewline (map showClosure stack)), iStr "]",
+             iStr ">"]
 
 showClosure :: Closure -> Iseq
 showClosure (i,f)
@@ -1012,7 +995,6 @@ test_program_for_let1' = "main = let x = 1 " ++
 -- 更新のテスト --
 ex_4_16 = "f x = x + x ; " ++
           "main = f (1+2)"
-ex_4_17 = "compose2 f g x = f (g x)"
 --------------------------------
 -- テストプログラム (ここまで) --
 --------------------------------
