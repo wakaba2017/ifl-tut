@@ -514,8 +514,7 @@ step ((UpdateMarkers n : instr), fptr, usdsltnum, stack, vstack, dump, heap, cst
                           newStack                     = stack ++ stack_
                           newHeap                      = fUpdate heap fptru x (instr_, FrameAddr fptr_)
                           instr_                       = foldr (:) (UpdateMarkers n : instr) (map Push (map Arg (reverse [1..(length stack)])))
-                          fptr_                        = nxtAllcdAddr
-                          (_, (nxtAllcdAddr : _), _)   = heap
+                          (_, (fptr_ : _), _)          = heap
 
 amToClosure :: TimAMode -> FramePtr -> TimHeap -> CodeStore -> Closure
 amToClosure (Arg n)      fptr heap cstore = fGet heap fptr n             -- 遷移規則 (4.2, 4.7)
