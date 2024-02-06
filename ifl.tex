@@ -614,13 +614,13 @@ pprint :: CoreProgram -> String
 \begin{description}
 	\item[演習 1.1] \texttt{n} のさまざまな値に対して、計算に必要なミランダのステップ数を測定します。
 
-	      \begin{verbatim}
+		\begin{verbatim}
     # (pprExpr (mkMultiAp n (EVar "f") (EVar "x")))
   \end{verbatim}
 
-	      (Miranda ディレクティブ \texttt{/ count} を使用して、Miranda に実行統計を出力するように指示できます。
-	      画面が巨大なプリントアウトでいっぱいにならないように、結果の長さをとります。)
-	      実行コストが \texttt{n} でどのように上昇するかを示すグラフをスケッチし、\texttt{n} に関してほぼ 2 次であることを確認します。
+		(Miranda ディレクティブ \texttt{/ count} を使用して、Miranda に実行統計を出力するように指示できます。
+		画面が巨大なプリントアウトでいっぱいにならないように、結果の長さをとります。)
+		実行コストが \texttt{n} でどのように上昇するかを示すグラフをスケッチし、\texttt{n} に関してほぼ 2 次であることを確認します。
 \end{description}
 
 \subsubsection{プリティプリンティングのための抽象データ型}
@@ -705,7 +705,7 @@ pprint :: CoreProgram -> String
 
 \begin{description}
 	\item[演習 1.3] \texttt{pprExpr} に式を追加して\texttt{case}式とラムダ式を処理し、
-	      \texttt{pprAExpr} と \texttt{pprProgram} の定義を同じスタイルで記述します。
+		\texttt{pprAExpr} と \texttt{pprProgram} の定義を同じスタイルで記述します。
 \end{description}
 
 \subsubsection{\texttt{iseq}の実装}
@@ -788,11 +788,11 @@ pprint :: CoreProgram -> String
 
 \begin{description}
 	\item[演習 1.4] \texttt{iseq} のサイズに関して平坦化のコストはいくらですか?
-	      上記のように \texttt{iseq} を使用するように \texttt{pprExpr} を変更し、前の演習と同じ実験を使用して新しい実装の効果を測定します。
-	      \texttt{pprExpr} の結果に \texttt{iDisplay} を適用することを忘れないでください。
+		上記のように \texttt{iseq} を使用するように \texttt{pprExpr} を変更し、前の演習と同じ実験を使用して新しい実装の効果を測定します。
+		\texttt{pprExpr} の結果に \texttt{iDisplay} を適用することを忘れないでください。
 
 	\item[演習 1.5] 抽象データ型を使用する主な利点は、\textbf{インターフェイス}に影響を与えずに ADT の\textbf{実装}を変更できることです。
-	      この例として、引数のいずれかが \texttt{INil} の場合に単純化された結果を返すように \texttt{iAppend} を再定義します。
+		この例として、引数のいずれかが \texttt{INil} の場合に単純化された結果を返すように \texttt{iAppend} を再定義します。
 \end{description}
 
 \subsubsection{レイアウトとインデント}
@@ -849,10 +849,10 @@ pprint :: CoreProgram -> String
 
 \begin{description}
 	\item[演習 1.6] \texttt{IAppend}、\texttt{IStr}、および \texttt{INil} の\texttt{flatten}の定義を追加します。
-	      \texttt{Elet} を含む式で \texttt{pprExpr} を試し、レイアウトが適切に機能することを確認します。
+		\texttt{Elet} を含む式で \texttt{pprExpr} を試し、レイアウトが適切に機能することを確認します。
 
 	\item[演習 1.7] \texttt{IStr} に与えられた文字列に改行文字 \texttt{'\textbackslash n'} が埋め込まれていると、プリティプリンタは正しく動作しません。
-	      これをチェックするように \texttt{iStr} を変更し、改行文字を \texttt{INewline} を使用して置き換えます。
+		これをチェックするように \texttt{iStr} を変更し、改行文字を \texttt{INewline} を使用して置き換えます。
 \end{description}
 
 \subsubsection{演算子の優先順位}
@@ -1083,27 +1083,27 @@ isWhiteSpace c = c `elem` " \t\n"
 
 \begin{description}
 	\item[演習 1.9] コメントと空白を無視するように字句アナライザを変更します。
-	      コメントが二重の縦棒\texttt{||}によって導入されるのと同じ規則を使用し、行の終わりまで延長します。
+		コメントが二重の縦棒\texttt{||}によって導入されるのと同じ規則を使用し、行の終わりまで延長します。
 	\item[演習 1.10] 字句解析プログラムは現在、\texttt{<=}や\texttt{==}などの2文字の演算子を単一のトークンとして認識しません。
-	      それらのリストを提供することにより、そのような演算子を定義します。
+		それらのリストを提供することにより、そのような演算子を定義します。
 
-	      \begin{verbatim}
+		\begin{verbatim}
 twoCharOps :: [String]
 twoCharOps = ["==", "~=", ">=", "<=", "->"]
 \end{verbatim}
 
-	      \texttt{twoCharOps}の\texttt{member}をトークンとして認識するように\texttt{lex}を変更します。
-	      (標準関数メンバーが役立つ場合があります。)
+		\texttt{twoCharOps}の\texttt{member}をトークンとして認識するように\texttt{lex}を変更します。
+		(標準関数メンバーが役立つ場合があります。)
 	\item[演習 1.11] 字句解析では空白が破棄されるため、パーサは構文エラーの行番号を報告できません。
-	      この問題を解決する1つの方法は、各トークンに行番号を付けることです。
-	      つまり、タイプ\texttt{token}は次のようになります。
+		この問題を解決する1つの方法は、各トークンに行番号を付けることです。
+		つまり、タイプ\texttt{token}は次のようになります。
 
-	      \begin{verbatim}
+		\begin{verbatim}
 token == (num, [char])
 \end{verbatim}
 
-	      これを行うように字句アナライザを変更します。
-	      これを行うには、現在の行番号であるパラメータを\texttt{lex}に追加する必要があります。
+		これを行うように字句アナライザを変更します。
+		これを行うには、現在の行番号であるパラメータを\texttt{lex}に追加する必要があります。
 \end{description}
 
 \subsubsection{構文解析のための基本的なツール}
@@ -1182,7 +1182,7 @@ type Parser a = [Token] -> [(a, [Token])]
 
 \begin{description}
 	\item[演習 1.12] \texttt{pThen3}の型を指定し、その定義を書き留めて、新しいバージョンの\texttt{pGreeting}をテストします。
-	      同様に、後で必要になる\texttt{pThen4}を記述します。
+		同様に、後で必要になる\texttt{pThen4}を記述します。
 \end{description}
 
 文法のもう1つの非常に一般的な機能は、記号の0回以上の繰り返しを要求することです。
@@ -1221,8 +1221,8 @@ pOneOrMore :: Parser a -> Parser [a]
 
 \begin{description}
 	\item[演習 1.13] \texttt{pOneOrMore}と\texttt{pEmpty}の定義を記述します。
-	      (ヒント：\texttt{pOneOrMore}から\texttt{pZeroOrMore}を呼び出すと便利です。)
-	      1つまたは複数の挨拶を認識するパーサを定義するためにそれらを使用して、定義をテストします。
+		(ヒント：\texttt{pOneOrMore}から\texttt{pZeroOrMore}を呼び出すと便利です。)
+		1つまたは複数の挨拶を認識するパーサを定義するためにそれらを使用して、定義をテストします。
 \end{description}
 
 成功した解析によって返された値を処理すると便利なことがよくあります。
@@ -1242,7 +1242,7 @@ pApply :: Parser a -> (a -> b) -> Parser b
 
 \begin{description}
 	\item[演習 1.14] \texttt{pApply}の定義を記述し、それをテストします。
-	      (ヒント：リスト内包表記を使用してください。)
+		(ヒント：リスト内包表記を使用してください。)
 \end{description}
 
 文法のもう1つの非常に一般的なパターンは、他の記号で区切られた1つ以上の記号の出現を探すことです。
@@ -1257,17 +1257,17 @@ pOneOrMoreWithSep :: Parser a -> Parser b -> Parser [a]
 
 \begin{description}
 	\item[演習 1.15] \texttt{pOneOrMoreWithSep}を定義してテストします。
-	      \textit{program}の次の文法を考えると役立つ場合があります。
+		\textit{program}の次の文法を考えると役立つ場合があります。
 
-	      \begin{center}
-		      \begin{tabular} {l c l}
-			      \textit{program}     & $\rightarrow$ & \textit{sc} \textit{programRest} \\
-			      \textit{programRest} & $\rightarrow$ & \texttt{;} \textit{program}      \\
-			                           & \textbar      & $\epsilon$
-		      \end{tabular}
-	      \end{center}
+		\begin{center}
+			\begin{tabular} {l c l}
+				\textit{program}     & $\rightarrow$ & \textit{sc} \textit{programRest} \\
+				\textit{programRest} & $\rightarrow$ & \texttt{;} \textit{program}      \\
+				                     & \textbar      & $\epsilon$
+			\end{tabular}
+		\end{center}
 
-	      ここで、$\epsilon$は空の文字列(\texttt{pEmpty}パーサに対応)です。
+		ここで、$\epsilon$は空の文字列(\texttt{pEmpty}パーサに対応)です。
 \end{description}
 
 パーサ\texttt{pLit}と\texttt{pVar}は互いに非常に似ています。
@@ -1289,7 +1289,7 @@ pLit s = pSat (== s)
 
 \begin{description}
 	\item[演習 1.16] \texttt{pSat}を定義し、テストします。
-	      \texttt{pLit}と同様の方法で、\texttt{pSat}の観点から\texttt{pVar}を記述します。
+		\texttt{pLit}と同様の方法で、\texttt{pSat}の観点から\texttt{pVar}を記述します。
 \end{description}
 
 \texttt{pSat}は、有用なレベルのモジュール性を追加します。
@@ -1299,19 +1299,19 @@ pLit s = pSat (== s)
 \begin{description}
 	\item[演習 1.17] 上記の\texttt{pVar}の定義で\texttt{pSat}に渡される関数を変更して、リストキーワードの文字列を変数として扱わないようにします。
 
-	      \begin{verbatim}
+		\begin{verbatim}
 keywords :: [String]
 keywords = ["let", "letrec", "case", "in", "of", "Pack"]
 \end{verbatim}
 
 	\item[演習 1.18] 別の例として、\texttt{pSat}を使用して、以下に示す型の数値のパーサを定義します。
 
-	      \begin{verbatim}
+		\begin{verbatim}
 pNum :: ParserInt
 \end{verbatim}
 
-	      \texttt{pNum}は\texttt{pSat}を使用して数値トークンを識別し、次に\texttt{pApply}を使用して文字列を数値に変換する必要があります。
-	      (Mirandaは、ハードワークを実行するために使用できる\texttt{[Char]-> num}型の標準関数\texttt{numval}を提供します。)
+		\texttt{pNum}は\texttt{pSat}を使用して数値トークンを識別し、次に\texttt{pApply}を使用して文字列を数値に変換する必要があります。
+		(Mirandaは、ハードワークを実行するために使用できる\texttt{[Char]-> num}型の標準関数\texttt{numval}を提供します。)
 \end{description}
 
 \texttt{pOneOrMore}とそれに関連する機能に関連する興味深いパフォーマンスの問題があります。
@@ -1364,8 +1364,8 @@ pSc = pThen4 mk_sc pVar (pZeroOrMore pVar) (pLit "=") pExpr
 
 \begin{description}
 	\item[演習 1.20] 関数\texttt{mk\_sc}を記述します。
-	      これは、\texttt{pSc}で使用される4つのパーサによって返される4つの引数を取り、次のタイプの値を作成します。
-	      \begin{verbatim}
+		これは、\texttt{pSc}で使用される4つのパーサによって返される4つの引数を取り、次のタイプの値を作成します。
+		\begin{verbatim}
   (name, [name], coreExpr)
 \end{verbatim}
 \end{description}
@@ -1374,12 +1374,12 @@ pSc = pThen4 mk_sc pVar (pZeroOrMore pVar) (pLit "=") pExpr
 
 \begin{description}
 	\item[演習 1.21] これらの2つのプロダクションを除外して、パーサを完成させます。
-	      型が\texttt{Parser CoreExpr}であるパーサ\texttt{pAexpr}には少し注意が必要です。
-	      \texttt{pApply}関数は、\texttt{pVar}によって返される値の周りに\texttt{EVar}コンストラクタをラップし、
-	      \texttt{pNum}によって返される値の周りに\texttt{ENum}コンストラクタをラップするために必要です。
-	      次のプログラムでパーサをテストします。
+		型が\texttt{Parser CoreExpr}であるパーサ\texttt{pAexpr}には少し注意が必要です。
+		\texttt{pApply}関数は、\texttt{pVar}によって返される値の周りに\texttt{EVar}コンストラクタをラップし、
+		\texttt{pNum}によって返される値の周りに\texttt{ENum}コンストラクタをラップするために必要です。
+		次のプログラムでパーサをテストします。
 
-	      \begin{verbatim}
+		\begin{verbatim}
   f = 3 ;
   g x y = let z = x in z ;
   h x = case (let y = x in y) of
@@ -1387,20 +1387,20 @@ pSc = pThen4 mk_sc pVar (pZeroOrMore pVar) (pLit "=") pExpr
           <2> -> 5
 \end{verbatim}
 
-	      より大きなプログラムでパーサを実行すると、出力が判読できなくなることがわかります。
-	      これを解決するには、プリティプリンティング関数\texttt{pprint}を使用して、パーサの出力をフォーマットします。
+		より大きなプログラムでパーサを実行すると、出力が判読できなくなることがわかります。
+		これを解決するには、プリティプリンティング関数\texttt{pprint}を使用して、パーサの出力をフォーマットします。
 	\item[演習 1.22] 次のプログラムを検討します。
 
-	      \begin{verbatim}
+		\begin{verbatim}
   f x y = case x of
           <1> -> case y of
                   <1> -> 1;
           <2> -> 2
 \end{verbatim}
 
-	      \texttt{<2>}で始まる選択肢は、内側の\texttt{case}または外側の\texttt{case}のどちらに取り付けられますか？
-	      答えを見つけて、パーサが期待どおりに動作するかどうかを確認します。
-	      これは「ぶら下がりelse」の問題として知られています。
+		\texttt{<2>}で始まる選択肢は、内側の\texttt{case}または外側の\texttt{case}のどちらに取り付けられますか？
+		答えを見つけて、パーサが期待どおりに動作するかどうかを確認します。
+		これは「ぶら下がりelse」の問題として知られています。
 \end{description}
 
 ここで、上記の2つの問題に目を向けます。
@@ -1434,7 +1434,7 @@ pApplyを使用してこれを解決し、パーサを提供します
 
 \begin{description}
 	\item[演習 1.23] 型が\texttt{[CoreExpr] -> CoreExpr}の適切な関数\texttt{mk\_ap\_chain}を定義します。
-	      関数適用のプロダクションをパーサに追加してテストします。
+		関数適用のプロダクションをパーサに追加してテストします。
 \end{description}
 
 \subsubsection{中置演算子の追加}
@@ -1692,13 +1692,13 @@ redexのルートを結果で物理的に更新することにより、外側の
 
 \begin{description}
 	\item[スーパーコンビネータ] 最も外側の関数適用がスーパーコンビネータの適用である場合、
-	      それは確かにredexでもあり、以下に説明するように簡約することができます(セクション2.1.4)。
+		それは確かにredexでもあり、以下に説明するように簡約することができます(セクション2.1.4)。
 	\item[組み込みのプリミティブ] 最も外側の関数適用が組み込みプリミティブの適用である場合、
-	      引数が評価されるかどうかに応じて、適用はredexである場合とそうでない場合があります。
-	      redexでない場合は、引数を評価する必要があります。
-	      これは、まったく同じプロセスを使用して行われます。
-	      引数の最も外側のredexを繰り返し見つけて、それを簡約します。
-	      これが完了すると、外側の組み込みプリミティブ適用の簡約に戻ることができます。
+		引数が評価されるかどうかに応じて、適用はredexである場合とそうでない場合があります。
+		redexでない場合は、引数を評価する必要があります。
+		これは、まったく同じプロセスを使用して行われます。
+		引数の最も外側のredexを繰り返し見つけて、それを簡約します。
+		これが完了すると、外側の組み込みプリミティブ適用の簡約に戻ることができます。
 \end{description}
 
 \subsubsection{次のredexを見つけるためのスパインの巻き戻し}
@@ -1945,17 +1945,17 @@ CAFの興味深い点は、スーパーコンビネータ自体がredexである
 
 \begin{description}
 	\item[演習 2.1] 初期状態（2; 3; 0; 0）から開始して、各ステップでどのルールを実行するかを指定して、マシンを手動で実行しなさい。
-	      最終状態が（2; 0; 0; 6）であることを確認しなさい。
+		最終状態が（2; 0; 0; 6）であることを確認しなさい。
 	\item[演習 2.2] 一連の状態の不変量は、すべての状態に当てはまる述語です。
-	      \textbf{n}と\textbf{m}の初期値（\textbf{N}と\textbf{M}と呼びます）と\textbf{m}、\textbf{d}、\textbf{t}の現在の値との関係を表す不変量を見つけなさい。
-	      次に、マシンが乗算を実行するという推測を\textbf{証明}しなさい。
-	      証明を行うには、以下を示す必要があります。
-	      \begin{enumerate}
-		      \item 不変量は初期状態では真になる。
-		      \item 不変量が特定の状態で真になれば、次の状態でも真になる。
-		      \item 不変量と終了条件$(m = d = 0)$が与えられると、$t = N * M$になる。
-		      \item マシンは終了する。
-	      \end{enumerate}
+		\textbf{n}と\textbf{m}の初期値（\textbf{N}と\textbf{M}と呼びます）と\textbf{m}、\textbf{d}、\textbf{t}の現在の値との関係を表す不変量を見つけなさい。
+		次に、マシンが乗算を実行するという推測を\textbf{証明}しなさい。
+		証明を行うには、以下を示す必要があります。
+		\begin{enumerate}
+			\item 不変量は初期状態では真になる。
+			\item 不変量が特定の状態で真になれば、次の状態でも真になる。
+			\item 不変量と終了条件$(m = d = 0)$が与えられると、$t = N * M$になる。
+			\item マシンは終了する。
+		\end{enumerate}
 \end{description}
 
 状態遷移システムは、次の理由で私たちの目的に便利です。
@@ -1998,7 +1998,7 @@ multFinal :: MultState -> Bool
 
 \begin{description}
 	\item[演習 2.3] 関数\texttt{multFinal}を定義し、結果のマシンを初期状態(2, 3, 0, 0)で実行し、結果リストの最後の状態が(2, 0, 0, 6)であることを確認します。
-	      標準関数\texttt{layn}は、結果をより読みやすくレイアウトするのに役立つ場合があります。
+		標準関数\texttt{layn}は、結果をより読みやすくレイアウトするのに役立つ場合があります。
 \end{description}
 
 \begin{verbatim}
@@ -2763,14 +2763,14 @@ data Node = NAp Addr Addr                   -- Application
 
 \begin{description}
 	\item[演習 2.13] 間接ノードで更新を実行するように変更を加えます。
-	      リダクションマシンのMark1バージョンとMark3バージョンの両方で次のプログラムを実行して、変更の効果を試してください。
-	      \begin{verbatim}
+		リダクションマシンのMark1バージョンとMark3バージョンの両方で次のプログラムを実行して、変更の効果を試してください。
+		\begin{verbatim}
         id x = x ;
         main = twice twice id 3
 \end{verbatim}
-	      (\texttt{twice}は\texttt{preludeDefs}(セクション1.4)で定義されていることを思い出してください。)
-	      最初に手でそれを簡約することによって何が起こるかを理解するようにしてください。
-	      \texttt{main}を\texttt{twice twice twice id3}と定義するとどうなりますか？
+		(\texttt{twice}は\texttt{preludeDefs}(セクション1.4)で定義されていることを思い出してください。)
+		最初に手でそれを簡約することによって何が起こるかを理解するようにしてください。
+		\texttt{main}を\texttt{twice twice twice id3}と定義するとどうなりますか？
 \end{description}
 
 \subsubsection{間接参照の数を減らす}
@@ -2807,17 +2807,17 @@ instantiateAndUpdate (EAp e1 e2) upd_addr heap env
 
 \begin{description}
 	\item[演習 2.14] \texttt{instanceiateAndUpdate}の定義を完了します。
-	      次の点には少し注意が必要です。
+		次の点には少し注意が必要です。
 
-	      \begin{itemize}
-		      \item インスタンス化される式が単純な変数である場合でも、間接参照を使用する必要があります。
-		            なんで？
-		      \item \texttt{let(rec)}式の方程式の再帰的なインスタンス化について慎重に検討してください。
-	      \end{itemize}
+		\begin{itemize}
+			\item インスタンス化される式が単純な変数である場合でも、間接参照を使用する必要があります。
+			      なんで？
+			\item \texttt{let(rec)}式の方程式の再帰的なインスタンス化について慎重に検討してください。
+		\end{itemize}
 
-	      \texttt{scStep}を変更して、インスタンス化の代わりに\texttt{instantiateAndUpdate}を呼び出し、更新するノードのアドレスとしてredexのルートを渡します。
-	      \texttt{scStep}自体から更新コードを削除します。
-	      削減の数と割り当てられたヒープノードの数に対するこの変更の影響を測定します。
+		\texttt{scStep}を変更して、インスタンス化の代わりに\texttt{instantiateAndUpdate}を呼び出し、更新するノードのアドレスとしてredexのルートを渡します。
+		\texttt{scStep}自体から更新コードを削除します。
+		削減の数と割り当てられたヒープノードの数に対するこの変更の影響を測定します。
 \end{description}
 \newpage
 
@@ -2891,7 +2891,7 @@ primitives = [ ("negate", Neg),
 
 \begin{description}
 	\item[演習 2.18] テンプレートインスタンス化マシンにcase式を導入するのが難しいのはなぜですか？
-	      (ヒント：インスタンス化が\texttt{case}式で何をするかを考えてください。)
+		(ヒント：インスタンス化が\texttt{case}式で何をするかを考えてください。)
 \end{description}
 
 \subsubsection{構造化データの構築}
@@ -2975,14 +2975,14 @@ data Node = NAp Addr Addr                   -- Application
 
 \begin{description}
 	\item[演習 2.19] 条件付きプリミティブの状態遷移ルールを記述します。
-	      3つのルールが必要です。
-	      ブール条件がすでに評価されている場合に削減を実行するための2つのルール。
-	      1つは、条件が評価されていない場合に、古いスタックをダンプにプッシュし、
-	      条件のアドレスを新しい空のスタックにプッシュすることによって評価を開始します（ルール2.9を参照）。
-	      最初の2つのルールの更新では、間接参照を使用する必要があることに注意してください。
-	      もう1つのルールがありません。
-	      それは何ですか？
-	      （ヒント：条件の評価が完了すると、条件はどのように再試行されますか？）
+		3つのルールが必要です。
+		ブール条件がすでに評価されている場合に削減を実行するための2つのルール。
+		1つは、条件が評価されていない場合に、古いスタックをダンプにプッシュし、
+		条件のアドレスを新しい空のスタックにプッシュすることによって評価を開始します（ルール2.9を参照）。
+		最初の2つのルールの更新では、間接参照を使用する必要があることに注意してください。
+		もう1つのルールがありません。
+		それは何ですか？
+		（ヒント：条件の評価が完了すると、条件はどのように再試行されますか？）
 \end{description}
 
 \texttt{if}があれば、それと\texttt{False}および\texttt{True}に関して、他のブール演算子のコア言語定義を与えることができます。
@@ -2994,7 +2994,7 @@ data Node = NAp Addr Addr                   -- Application
 
 \begin{description}
 	\item[演習 2.20] \texttt{or}、\texttt{xor}および\texttt{not}のコア言語定義を指定します。
-	      これらのコア言語定義をすべて\texttt{extraPreludeDefs}に追加します。
+		これらのコア言語定義をすべて\texttt{extraPreludeDefs}に追加します。
 \end{description}
 
 最後に、数値を比較する何らかの方法が必要です。
@@ -3029,9 +3029,9 @@ primDyadic :: TiState -> (Node -> Node -> Node) -> TiState
 
 \begin{description}
 	\item[演習 2.21] これらすべての変更を行います。
-	      再帰を終了する条件があるので、ついに、賢明な再帰関数を書くことができます。
-	      たとえば、階乗関数を試してください
-	      \begin{verbatim}
+		再帰を終了する条件があるので、ついに、賢明な再帰関数を書くことができます。
+		たとえば、階乗関数を試してください
+		\begin{verbatim}
         fac n = if (n == 0) 1 (n * fac (n-1)) ;
         main = fac 3
 \end{verbatim}
@@ -3089,11 +3089,11 @@ primDyadic :: TiState -> (Node -> Node -> Node) -> TiState
 
 \begin{description}
 	\item[演習 2.22] \texttt{casePair}の状態遷移ルールを記述します。
-	      いつものように、2つのルールが必要になります。
-	      1つは最初の引数が評価された場合に削減を実行し、もう1つは評価されなかった場合にその評価を開始します。
-	      上記のように、ペアを実装するために必要な変更を加えます。
-	      次のプログラム(および独自の他のプログラム)を使用して実装をテストします。
-	      \begin{verbatim}
+		いつものように、2つのルールが必要になります。
+		1つは最初の引数が評価された場合に削減を実行し、もう1つは評価されなかった場合にその評価を開始します。
+		上記のように、ペアを実装するために必要な変更を加えます。
+		次のプログラム(および独自の他のプログラム)を使用して実装をテストします。
+		\begin{verbatim}
 main = fst (snd (fst (MkPair (MkPair 1 (MkPair 2 3)) 4)))
 \end{verbatim}
 \end{description}
@@ -3141,12 +3141,12 @@ main = fst (snd (fst (MkPair (MkPair 1 (MkPair 2 3)) 4)))
 
 \begin{description}
 	\item[演習 2.23] \texttt{Cons}、\texttt{Nil}、\texttt{head}、\texttt{tail}のコア言語定義を記述します。
-	      \texttt{head}と\texttt{tail}を定義するには、新しいプリミティブ\texttt{abort}を導入する必要があります。
-	      これは、空リストの\texttt{head}または\texttt{tail}を取得した場合に返されます。
-	      \texttt{abort}は、Mirandaの\texttt{error}プリミティブを呼び出してプログラムを停止することで便利に実装できます。
+		\texttt{head}と\texttt{tail}を定義するには、新しいプリミティブ\texttt{abort}を導入する必要があります。
+		これは、空リストの\texttt{head}または\texttt{tail}を取得した場合に返されます。
+		\texttt{abort}は、Mirandaの\texttt{error}プリミティブを呼び出してプログラムを停止することで便利に実装できます。
 	\item[演習 2.24] \texttt{caseList}の状態遷移ルールを記述し、それと\texttt{abort}を実装して、
-	      \texttt{preludeDefs}に\texttt{Cons}、\texttt{Nil}、\texttt{head}、\texttt{tail}の定義を追加します。
-	      実装をテストするためのプログラムをいくつか作成します。
+		\texttt{preludeDefs}に\texttt{Cons}、\texttt{Nil}、\texttt{head}、\texttt{tail}の定義を追加します。
+		実装をテストするためのプログラムをいくつか作成します。
 \end{description}
 
 これで、考えたい構造化データ型に適した\texttt{case}プリミティブを記述できるようになります。
@@ -3268,7 +3268,7 @@ type TiDump = Stack Num
 \end{verbatim}
 \begin{description}
 	\item[演習 2.28] この変更を実装してテストします。
-	      引数の評価の開始と終了、および\texttt{tiFinal}の定義を処理する関数定義を変更する必要があります。
+		引数の評価の開始と終了、および\texttt{tiFinal}の定義を処理する関数定義を変更する必要があります。
 \end{description}
 
 \subsubsection{データ値の代替表現}
@@ -3329,7 +3329,7 @@ type TiDump = Stack Num
 
 \begin{description}
 	\item[演習 2.30] \texttt{findRoots}、\texttt{markFrom}、\texttt{scanHeap}の観点から\texttt{gc}の定義を記述し、
-	      \texttt{doAdmin}から適切に呼び出します。
+		\texttt{doAdmin}から適切に呼び出します。
 	\item[演習 2.31] \texttt{findRoots}の定義を記述します。
 \end{description}
 
@@ -3417,9 +3417,9 @@ type TiDump = Stack Num
 	\vskip\baselineskip
 
 	\item[演習 2.33] \texttt{markFrom}の改訂版を実装し、間接をマークせずに「スキップオーバー」し、再帰的に呼び出すときに各ノード内のアドレスを更新します。
-	      次に、\texttt{markFrom}の観点から他のマーキング関数を実装し、それらを新しいバージョンの\texttt{gc}で接着します。
-	      この新しいコレクタで取得したヒープサイズを以前に取得したヒープサイズと比較して、改善を測定します。
-	      (\texttt{markFrom}から\texttt{NInd}の特別な処理を削除することで、以前の状態に簡単に戻すことができます。)
+		次に、\texttt{markFrom}の観点から他のマーキング関数を実装し、それらを新しいバージョンの\texttt{gc}で接着します。
+		この新しいコレクタで取得したヒープサイズを以前に取得したヒープサイズと比較して、改善を測定します。
+		(\texttt{markFrom}から\texttt{NInd}の特別な処理を削除することで、以前の状態に簡単に戻すことができます。)
 \end{description}
 
 \subsubsection{ポインタ反転}
@@ -3530,7 +3530,7 @@ NMarked (Visits 1) (NAp b a2)　※bは、それまでのバックワードポ�
 				f : \texttt{NMarked Done} ~ n \\
 				b : \texttt{NMarked} ~ (\texttt{Visits 1}) ~ (\texttt{NAp} ~ b' ~ a_2)
 			\end{array}
-			\right]$                                                                                                             \\
+	\right]$                                                                                                             \\
 	       & $\Longrightarrow$ & $a_2$ & $b$ & $h[b : \texttt{NMarked} ~ (\texttt{Visits 2}) ~ (\texttt{NAp} ~ f ~ b')]$ \\ \hline
 \end{tabular}
 \vskip\baselineskip
@@ -3545,7 +3545,7 @@ NMarked (Visits 1) (NAp b a2)　※bは、それまでのバックワードポ�
 				f : \texttt{NMarked Done} ~ n \\
 				b : \texttt{NMarked} ~ (\texttt{Visits 2}) ~ (\texttt{NAp} ~ a_1 ~ b')
 			\end{array}
-			\right]$                                                                                            \\
+	\right]$                                                                                            \\
 	       & $\Longrightarrow$ & $b$ & $b'$ & $h[b : \texttt{NMarked Done} ~ (\texttt{NAp} ~ a_1 ~ f)]$ \\ \hline
 \end{tabular}
 \vskip\baselineskip
@@ -3568,8 +3568,8 @@ $f$を変更することでスキップされますが、$b$は変更されま�
 \begin{description}
 	\item[演習 2.34] \texttt{NData}ノードのルールを追加します。
 	\item[演習 2.35] アルゴリズムを実装します。
-	      必要な主な変更は、\texttt{node}型と\texttt{markFrom}関数です。
-	      \texttt{NMarked}コンストラクタの形式が変更されたため、\texttt{scan}は簡単な方法で変更する必要があります。
+		必要な主な変更は、\texttt{node}型と\texttt{markFrom}関数です。
+		\texttt{NMarked}コンストラクタの形式が変更されたため、\texttt{scan}は簡単な方法で変更する必要があります。
 \end{description}
 
 \subsubsection{2スペースガベージコレクション}
@@ -3887,18 +3887,18 @@ Gマシンに戻る前に、このアナロジーをさらに調べます。
 
 \begin{description}
 	\item[演習 3.1.] 構造帰納法を使用するか、またはその他の方法で、算術式の後置評価が式のツリー評価と同じ結果になることを証明します。
-	      つまり、型\texttt{aExpr}のすべての式 e に対して、
-	      \begin{verbatim}
+		つまり、型\texttt{aExpr}のすべての式 e に対して、
+		\begin{verbatim}
       aInterpret e = aEval (aCompile e, [])
     \end{verbatim}
-	      これは一致証明の例です。
+		これは一致証明の例です。
 	\item[演習 3.2.] 関数\texttt{aInterpret}、\texttt{aCompile}、および\texttt{aEval}を拡張して、\texttt{let}式を処理します。
-	      \texttt{aExpr}型の\texttt{e}のすべての式について、これらの新しい関数が次の関係を満たすことを証明します。
-	      \begin{verbatim}
+		\texttt{aExpr}型の\texttt{e}のすべての式について、これらの新しい関数が次の関係を満たすことを証明します。
+		\begin{verbatim}
       aInterpret e = aEval (aCompile e, [])
     \end{verbatim}
-	      \texttt{letrec}式など、さらに複雑な式に言語を拡張できますか?
-	      これらの拡張機能を正しく実装したことを証明できますか?
+		\texttt{letrec}式など、さらに複雑な式に言語を拡張できますか?
+		これらの拡張機能を正しく実装したことを証明できますか?
 \end{description}
 
 \subsubsection{後置コードを使用してグラフを作成する}
@@ -4546,14 +4546,14 @@ Mark 1 Gマシン については、このケースを無視します。
 
 \begin{description}
 	\item[演習 3.3] プレリュードの定義から \texttt{S} コンビネータの変換の同等のシーケンスを書き出します。
-	      \texttt{S} が次のように定義されていることを思い出してください。
+		\texttt{S} が次のように定義されていることを思い出してください。
 
-	      \begin{verbatim}
+		\begin{verbatim}
     S f g x = f x (g x)
         \end{verbatim}
 
-	      Appendix B に示す単純なプログラムのいずれかでコンパイラとマシンを実行して、最終結果を確認してください
-	      (\texttt{S} は標準プレリュードにあります)。
+		Appendix B に示す単純なプログラムのいずれかでコンパイラとマシンを実行して、最終結果を確認してください
+		(\texttt{S} は標準プレリュードにあります)。
 \end{description}
 
 \textbf{プリミティブ}
@@ -4678,39 +4678,39 @@ Mark 1 Gマシン については、このケースを無視します。
 \begin{description}
 
 	\item[演習 3.4] プログラム\texttt{main = S K K 3}を実行します。
-	      何ステップかかりますか？
-	      テンプレートインスタンス化マシンで取得した値と異なるのはなぜですか?
-	      取られたステップを比較することは、マシンの公平な比較だと思いますか?
+		何ステップかかりますか？
+		テンプレートインスタンス化マシンで取得した値と異なるのはなぜですか?
+		取られたステップを比較することは、マシンの公平な比較だと思いますか?
 
 	\item[演習 3.5] Appendix B の他のプログラムを実行してみてください。
-	      この単純な機械には算術がないことを思い出してください。
+		この単純な機械には算術がないことを思い出してください。
 
 	\item[演習 3.6] \texttt{Pushglobal}で使用したのと同じトリックを使用して\texttt{Pushint}を実装することができます:
-	      個別の数値ごとに、ヒープ内に一意のノードを作成します。
-	      たとえば、最初に\texttt{Pushint 2}を実行するとき、
-	      ノード\texttt{NNum 2}のヒープ内のアドレスに\texttt{"2"}を関連付けるように\texttt{gmGlobals}を更新します。
+		個別の数値ごとに、ヒープ内に一意のノードを作成します。
+		たとえば、最初に\texttt{Pushint 2}を実行するとき、
+		ノード\texttt{NNum 2}のヒープ内のアドレスに\texttt{"2"}を関連付けるように\texttt{gmGlobals}を更新します。
 
-	      遷移規則では、$n$ という名前のグローバルが既に存在する場合、このグローバル ノードを再利用できます。
-	      \vskip\baselineskip
+		遷移規則では、$n$ という名前のグローバルが既に存在する場合、このグローバル ノードを再利用できます。
+		\vskip\baselineskip
 
-	      \begin{tabular} {|c|l r r l l|} \hline
-		      (3.13) &                   & \texttt{Pushint} $n$ : $i$ & $s$       & $h$ & $m$[$n$ : $a$] \\
-		             & $\Longrightarrow$ & $i$                        & $a$ : $s$ & $h$ & $m$            \\ \hline
-	      \end{tabular}
-	      \vskip\baselineskip
+		\begin{tabular} {|c|l r r l l|} \hline
+			(3.13) &                   & \texttt{Pushint} $n$ : $i$ & $s$       & $h$ & $m$[$n$ : $a$] \\
+			       & $\Longrightarrow$ & $i$                        & $a$ : $s$ & $h$ & $m$            \\ \hline
+		\end{tabular}
+		\vskip\baselineskip
 
-	      そうでない場合は、新しいノードを作成してグローバル マップに追加します。
-	      \vskip\baselineskip
+		そうでない場合は、新しいノードを作成してグローバル マップに追加します。
+		\vskip\baselineskip
 
-	      \begin{tabular} {|c|l r r l l|} \hline
-		      (3.14) &                   & \texttt{Pushint} $n$ : $i$ & $s$       & $h$                          & $m$            \\
-		             & $\Longrightarrow$ & $i$                        & $a$ : $s$ & $h$[$a$ : \texttt{NNum} $n$] & $m$[$n$ : $a$] \\ \hline
-	      \end{tabular}
-	      \vskip\baselineskip
+		\begin{tabular} {|c|l r r l l|} \hline
+			(3.14) &                   & \texttt{Pushint} $n$ : $i$ & $s$       & $h$                          & $m$            \\
+			       & $\Longrightarrow$ & $i$                        & $a$ : $s$ & $h$[$a$ : \texttt{NNum} $n$] & $m$[$n$ : $a$] \\ \hline
+		\end{tabular}
+		\vskip\baselineskip
 
-	      このスキームの利点は、Pushint が実行されるたびにヒープ内の同じ番号のノードを再利用できることです。
-	      Pushint 命令のこの新しい遷移 pushint を実装します。
-	      グローバル コンポーネントのアクセス関数を定義して、putGlobals と呼ぶ必要があります。
+		このスキームの利点は、Pushint が実行されるたびにヒープ内の同じ番号のノードを再利用できることです。
+		Pushint 命令のこの新しい遷移 pushint を実装します。
+		グローバル コンポーネントのアクセス関数を定義して、putGlobals と呼ぶ必要があります。
 
 \end{description}
 \newpage
@@ -4835,7 +4835,7 @@ Mark 1 マシンでは、各スーパーコンビネータのコードは [\text
 
 \begin{description}
 	\item[演習 3.9] Mark 1 マシンの\texttt{dispatch}関数を変更して、新しい命令を組み込みます。
-	      新しい遷移規則を実装します。
+		新しい遷移規則を実装します。
 \end{description}
 
 \subsubsection{コンパイラ}
@@ -4857,14 +4857,14 @@ Mark 1 マシンでは、各スーパーコンビネータのコードは [\text
 	\item[演習 3.10] \texttt{compileR} を変更して、新しい $\mathcal{R}$ スキームを実装します。
 
 	\item[演習 3.11] 次のプログラムで遅延評価を実行します。
-	      \begin{verbatim}
+		\begin{verbatim}
     twice f x = f (f x)
     id x = x
     main = twice twice id 3
   \end{verbatim}
-	      何ステップかかりますか？
-	      Mark1マシンで取得した値と異なるのはなぜですか?
-	      マシンのステップ数を比較するのは公正ですか?
+		何ステップかかりますか？
+		Mark1マシンで取得した値と異なるのはなぜですか?
+		マシンのステップ数を比較するのは公正ですか?
 \end{description}
 \newpage
 
@@ -4929,12 +4929,12 @@ Mark1マシンに関して:
 
 \begin{tabular} {|c|l r r l l|} \hline
 	(3.19) &                   & [\texttt{Unwind}] & $a_0 : \ldots : a_n : s$         & $h\left[\begin{array}{l}
-				a_0 : \texttt{NGlobal} ~ \textit{n} ~ \textit{c} \\
-				a_1 : \texttt{NAp} ~ a_0 ~ a_1'                  \\
-				$\ldots$                                         \\
-				a_n : \texttt{NAp} ~ a_{n-1} ~ a_n'
-			\end{array}\right]$ & $m$ \\
-	       & $\Longrightarrow$ & c                 & $a_1' : \ldots : a_n' : a_n : s$ & $h$                                         & $m$ \\ \hline
+				                                                                                            a_0 : \texttt{NGlobal} ~ \textit{n} ~ \textit{c} \\
+				                                                                                            a_1 : \texttt{NAp} ~ a_0 ~ a_1'                  \\
+				                                                                                            $\ldots$                                         \\
+				                                                                                            a_n : \texttt{NAp} ~ a_{n-1} ~ a_n'
+			                                                                                            \end{array}\right]$ & $m$  \\
+	       & $\Longrightarrow$ & c                 & $a_1' : \ldots : a_n' : a_n : s$ & $h$                                                 & $m$ \\ \hline
 \end{tabular}
 \vskip\baselineskip
 
@@ -4942,8 +4942,8 @@ Mark1マシンに関して:
 
 \begin{description}
 	\item[演習 3.12] \texttt{dispatch}関数と新しい命令セットの新しい遷移を書き直します。
-	      スタックを再配置するには、\texttt{rearrange} 関数を使用する必要があります。
-	      \begin{verbatim}
+		スタックを再配置するには、\texttt{rearrange} 関数を使用する必要があります。
+		\begin{verbatim}
     rearrange :: Int -> GmHeap -> GmStack -> GmStack
     rearrange n heap as
       = take n as' ++ drop n as
@@ -5000,7 +5000,7 @@ Mark3マシン用の新しいデータ型を追加します。
 
 \begin{description}
 	\item[演習 3.14] \texttt{Alloc} と \texttt{Slide} が含まれるように、データ型\texttt{instruction}を変更します。
-	      また、これらの新しい命令に対応するために、関数 \texttt{showInstruction} を変更する必要があります。
+		また、これらの新しい命令に対応するために、関数 \texttt{showInstruction} を変更する必要があります。
 \end{description}
 
 \subsubsection{評価器}
@@ -5023,7 +5023,7 @@ Mark3 G マシンの場合、ヒープ内に $n$ 個の場所を作成する \te
 
 \begin{description}
 	\item[演習 3.15] 新しい命令のケースを使用して、\texttt{dispatch}関数を拡張します。
-	      \texttt{AllocNodes} を使用して、\texttt{Alloc} 命令の遷移関数である \texttt{alloc} を実装する必要があります。
+		\texttt{AllocNodes} を使用して、\texttt{Alloc} 命令の遷移関数である \texttt{alloc} を実装する必要があります。
 \end{description}
 
 \subsubsection{コンパイラ}
@@ -5175,17 +5175,17 @@ Mark3 G マシンの場合、ヒープ内に $n$ 個の場所を作成する \te
 
 \begin{description}
 	\item[演習 3.16] \texttt{letrec} のコンパイルは、図 3.10 で定義されています。
-	      この操作を実行するには、関数 \texttt{compileLetrec} を実装します。
+		この操作を実行するには、関数 \texttt{compileLetrec} を実装します。
 
 	\item[演習 3.17] 新しいコンパイラと命令セットが適切に動作することを示すために、どのテスト プログラムを使用しますか?
 
 	\item[演習 3.18] スーパーコンビネータ \texttt{Y} 用に生成されたコードを実行するか、そうでない場合は、残りの状態遷移を図 3.11 のスタイルで描画します。
 
 	\item[演習 3.19] スーパーコンビネータ \texttt{Y} の短い代替コードシーケンスを指定します。
-	      それはまだ「結び目」バージョンを構築する必要があります。
+		それはまだ「結び目」バージョンを構築する必要があります。
 
 	\item[演習 3.20] 言語に \texttt{letrec} 構文がない場合、不動点コンビネータ \texttt{Y} をどのように定義しますか?
-	      この定義は、例で使用した定義とどう違うのでしょうか?
+		この定義は、例で使用した定義とどう違うのでしょうか?
 \end{description}
 \newpage
 
@@ -5521,8 +5521,8 @@ Mark3マシンからのすべての命令を再利用します。
 
 \begin{description}
 	\item[演習 3.23] マシンの新しい命令遷移をすべて実装します。
-	      \texttt{dispatch}関数を変更して、新しい命令を処理します。
-	      高階関数の\texttt{primitive1} と\texttt{primitive2} を使用して、演算子を実装する必要があります。
+		\texttt{dispatch}関数を変更して、新しい命令を処理します。
+		高階関数の\texttt{primitive1} と\texttt{primitive2} を使用して、演算子を実装する必要があります。
 	\item[演習 3.24] \texttt{Eval} 命令の完了時に間接ノードがスタックの一番上に残らないのはなぜですか?
 \end{description}
 
@@ -5617,7 +5617,7 @@ Mark3マシンからのすべての命令を再利用します。
 
 \begin{description}
 	\item[演習 3.26] 最初の命令シーケンスが変更されたのはなぜですか?
-	      古いものを保持するとどうなりますか？
+		古いものを保持するとどうなりますか？
 \end{description}
 
 コンパイラを拡張する最も簡単な方法は、新しい組み込み関数ごとにGマシン コードを\texttt{compiledPrimitives}に追加することです。
@@ -5820,8 +5820,8 @@ $\mathcal{R}$スキームから$\mathcal{E}$スキームの関数を呼び出す
 
 \begin{description}
 	\item[演習 3.28] 既存のコンパイラ関数\texttt{compileR}と\texttt{compileE}を、
-	      図 3.12 の$\mathcal{R}$スキームと$\mathcal{E}$スキームを実装するように修正します。
-	      \texttt{builtInDyadic}を使用する必要があります。
+		図 3.12 の$\mathcal{R}$スキームと$\mathcal{E}$スキームを実装するように修正します。
+		\texttt{builtInDyadic}を使用する必要があります。
 \end{description}
 
 時折、新しいコンパイラを使うとマシンが失敗することがあります。
@@ -5838,12 +5838,12 @@ $\mathcal{R}$スキームから$\mathcal{E}$スキームの関数を呼び出す
 
 \begin{description}
 	\item[演習 3.29] \texttt{Unwind}の新しい遷移規則を実装してください。
-	      新しい\texttt{Unwind}の遷移規則がないと失敗するプログラムを書いてください。
+		新しい\texttt{Unwind}の遷移規則がないと失敗するプログラムを書いてください。
 	\item[演習 3.30] 冒頭で使用したサンプルプログラムの実行を、Mark4マシンでの実行と比較してみてください。
-	      \begin{verbatim}
+		\begin{verbatim}
     main = 3+4*5
   \end{verbatim}
-	      Appendix Bの他のプログラムも試してみてください。
+		Appendix Bの他のプログラムも試してみてください。
 \end{description}
 
 Strictなコンテキストをコンパイラに実装する方法は、コンパイラの理論から継承される属性の簡単な例である。
@@ -6223,7 +6223,7 @@ $n$の値は、コンストラクタ内のコンポーネントの数によっ�
 	\item[演習 3.34] 関連する変更を\texttt{compile}に加え、\texttt{initialCode}を変更して最後に\texttt{Print}命令を追加します。
 	\item[演習 3.35] 新しいケースをコンパイラ関数\texttt{compileE}および\texttt{compileC}に追加します。
 	\item[演習 3.36] 出力を「構造化された形式」で出力するには、どのような変更が必要ですか。
-	      これは、整数だけでなく、コンストラクタと括弧を出力コンポーネント\texttt{gmOutput}に配置することを意味します。
+		これは、整数だけでなく、コンストラクタと括弧を出力コンポーネント\texttt{gmOutput}に配置することを意味します。
 \end{description}
 
 \subsubsection{比較における新しい論理表現の使用}
@@ -6276,7 +6276,7 @@ Mark4マシン用に開発したコードの一部を再利用することで、
 
 \begin{description}
 	\item[演習 3.37] Appendix Bのサンプルプログラムをいくつか実行します。たとえば、階乗プログラムを試してください。
-	      \begin{verbatim}
+		\begin{verbatim}
     fac n = if (n==0) 1 (n * fac (n-1))
   \end{verbatim}
 \end{description}
@@ -6874,7 +6874,7 @@ $\mathcal{R}$-strictコンテキストでコンパイルされる式はWHNFに�
 
 \begin{description}
 	\item[演習 3.43] 図3.20の$\mathcal{R}$スキームを実装してください。
-	      \texttt{compileAlts}関数の一般性を利用して、$\mathcal{A}_\mathcal{R}$スキームと$\mathcal{A}_\mathcal{E}$スキームの両方を実装できることに注意してください。
+		\texttt{compileAlts}関数の一般性を利用して、$\mathcal{A}_\mathcal{R}$スキームと$\mathcal{A}_\mathcal{E}$スキームの両方を実装できることに注意してください。
 \end{description}
 
 Mark7マシンについて特筆すべき点は、現在のVスタックをダンプに保存する\texttt{Eval}命令を定義していないことです。
@@ -6894,36 +6894,36 @@ Mark7マシンについて特筆すべき点は、現在のVスタックをダ�
 	\item[演習 3.44] \texttt{Eval}のためにこの代替遷移規則を実装します。この新しい遷移規則を可能にするために変更する必要がある他の命令は何ですか？
 	\item[演習 3.45] ブール演算子\texttt{\&}, \texttt{\textbar}, \texttt{not}の最適化されたコードを生成するために、どのようなコンパイルルールを変更しますか？
 	\item[演習 3.46] 以下の遷移規則による\texttt{Return}命令の追加。
-	      \vskip\baselineskip
+		\vskip\baselineskip
 
-	      \begin{tabular} {|c|l l r r r r l l|} \hline
-		      (3.49) &                   & $o$ & [\texttt{Return}] & [$a_0, \ldots, a_k$] & $\langle i, s \rangle$ : $d$ & $v$ & $h$ & $m$ \\
-		             & $\Longrightarrow$ & $o$ & $i$               & $a_k$ : $s$          & $d$                          & $v$ & $h$ & $m$ \\ \hline
-	      \end{tabular}
-	      \vskip\baselineskip
+		\begin{tabular} {|c|l l r r r r l l|} \hline
+			(3.49) &                   & $o$ & [\texttt{Return}] & [$a_0, \ldots, a_k$] & $\langle i, s \rangle$ : $d$ & $v$ & $h$ & $m$ \\
+			       & $\Longrightarrow$ & $o$ & $i$               & $a_k$ : $s$          & $d$                          & $v$ & $h$ & $m$ \\ \hline
+		\end{tabular}
+		\vskip\baselineskip
 
-	      ※※※
+		※※※
 
-	      上記の遷移規則では、WHNFにあることが分かっているスタックの一番上のアイテムを捨ててしまうことになる。 \\
-	      以下の様な遷移規則になるのでは？
-	      \vskip\baselineskip
+		上記の遷移規則では、WHNFにあることが分かっているスタックの一番上のアイテムを捨ててしまうことになる。 \\
+		以下の様な遷移規則になるのでは？
+		\vskip\baselineskip
 
-	      \begin{tabular} {|c|l l r r r r l l|} \hline
-		      (3.49) &                   & $o$ & [\texttt{Return}] & [$a_0, \ldots, a_k$] & $\langle i, s \rangle$ : $d$ & $v$ & $h$ & $m$ \\
-		             & $\Longrightarrow$ & $o$ & $i$               & $a_0$ : $s$          & $d$                          & $v$ & $h$ & $m$ \\ \hline
-	      \end{tabular}
+		\begin{tabular} {|c|l l r r r r l l|} \hline
+			(3.49) &                   & $o$ & [\texttt{Return}] & [$a_0, \ldots, a_k$] & $\langle i, s \rangle$ : $d$ & $v$ & $h$ & $m$ \\
+			       & $\Longrightarrow$ & $o$ & $i$               & $a_0$ : $s$          & $d$                          & $v$ & $h$ & $m$ \\ \hline
+		\end{tabular}
 
-	      ※※※
-	      \vskip\baselineskip
+		※※※
+		\vskip\baselineskip
 
-	      これは、スタックの一番上のアイテムがWHNFにあることが分かっているときに、$\mathcal{R}$スキームによって\texttt{Unwind}の代わりに使用されます。
-	      この新しい命令を生成するために\texttt{compileR}を修正します。
+		これは、スタックの一番上のアイテムがWHNFにあることが分かっているときに、$\mathcal{R}$スキームによって\texttt{Unwind}の代わりに使用されます。
+		この新しい命令を生成するために\texttt{compileR}を修正します。
 	\item[演習 3.47] \texttt{UpdateInt n}の遷移規則を書いてください。
-	      この命令はシーケンス\texttt{[Mkint, Update n]}と同じアクションを実行します。
-	      この遷移規則と\texttt{UpdateBool n}のための同様の遷移規則を実装してください。
-	      \texttt{compileR}を修正して、元のシーケンスの代わりにこれらの命令を生成するようにしてください。
-	      なぜ新しい命令が元のシーケンスより好ましいのでしょうか？
-	      (ヒント：いくつかのサンプルプログラムからの統計値を利用すること)
+		この命令はシーケンス\texttt{[Mkint, Update n]}と同じアクションを実行します。
+		この遷移規則と\texttt{UpdateBool n}のための同様の遷移規則を実装してください。
+		\texttt{compileR}を修正して、元のシーケンスの代わりにこれらの命令を生成するようにしてください。
+		なぜ新しい命令が元のシーケンスより好ましいのでしょうか？
+		(ヒント：いくつかのサンプルプログラムからの統計値を利用すること)
 \end{description}
 \newpage
 
@@ -7894,28 +7894,28 @@ showFrame は状態のフレーム コンポーネントを表示し、showClosu
 
 \begin{description}
 	\item[演習 4.1] \texttt{main}の次の定義を使用してマシンを実行します。
-	      \begin{verbatim}
+		\begin{verbatim}
           main = S K K 4
         \end{verbatim}
-	      \texttt{S K K}は恒等関数であるため、\texttt{main}は\texttt{4}に減少し、マシンが停止します。
-	      もう少し手の込んだものにしてみてください。
-	      例えば
-	      \begin{verbatim}
+		\texttt{S K K}は恒等関数であるため、\texttt{main}は\texttt{4}に減少し、マシンが停止します。
+		もう少し手の込んだものにしてみてください。
+		例えば
+		\begin{verbatim}
           id = S K K ;
           id1 = id id ;
           main = id1 4
         \end{verbatim}
 	\item[演習 4.2] さらなる性能測定を追加します。
-	      例えば：
-	      \begin{itemize}
-		      \item 実行時間を測定し、\texttt{Take}を除く命令ごとに1つの時間単位をカウントします。
-		            \texttt{Take}は、フレームに含まれる要素と同じ数の時間単位をカウントする必要があります。
-		      \item 実行で割り当てられたヒープの合計量を出力して、ヒープ使用量を測定します。
-		            フレームのサイズを数えて、結果をテンプレートインスタンス化バージョンの結果と直接比較できるようにします。
-		      \item 最大スタック深さを測定します。
-	      \end{itemize}
+		例えば：
+		\begin{itemize}
+			\item 実行時間を測定し、\texttt{Take}を除く命令ごとに1つの時間単位をカウントします。
+			      \texttt{Take}は、フレームに含まれる要素と同じ数の時間単位をカウントする必要があります。
+			\item 実行で割り当てられたヒープの合計量を出力して、ヒープ使用量を測定します。
+			      フレームのサイズを数えて、結果をテンプレートインスタンス化バージョンの結果と直接比較できるようにします。
+			\item 最大スタック深さを測定します。
+		\end{itemize}
 	\item[演習 4.3] $n = 0$の場合、\texttt{Take} $n$は何も役に立ちません。
-	      CAFの\texttt{Take}命令を完全に省略することで、\texttt{compileSC}の定義を調整して、この最適化を見つけます。
+		CAFの\texttt{Take}命令を完全に省略することで、\texttt{compileSC}の定義を調整して、この最適化を見つけます。
 \end{description}
 
 \subsubsection{ガベージコレクション \dag}
@@ -8134,36 +8134,36 @@ showFrame は状態のフレーム コンポーネントを表示し、showClosu
 
 \begin{description}
 	\item[演習 4.4] これらの変更をプロトタイプに実装します。
-	      簡単な例で試してみてください。
-	      例えば
-	      \begin{verbatim}
+		簡単な例で試してみてください。
+		例えば
+		\begin{verbatim}
           four = 2 * 2
           main = four + four
         \end{verbatim}
 	\item[演習 4.5] まだ条件式がなく、条件式がなければ再帰を使用できないため、まだ「興味深い」プログラムを実行できません。
-	      簡単な解決策は、新しい命令\texttt{Cond i1 i2}を追加することです。
-	      この命令は、値スタックの一番上から値を削除し、それがゼロかどうかをチェックし、
-	      ゼロである場合は命令シーケンス\texttt{i1}を続行し、そうでない場合は\texttt{i2}を続行します。
-	      その状態遷移規則は次のとおりです。
-	      \vskip\baselineskip
-	      \begin{tabular} {|c|l r l r r l l|} \hline
-		      (4.13) &                   & [\texttt{Cond} ~ $i_1$ ~ $i_2$]          & $f$ & $s$ & $0$ : $v$ & $h$ & $c$ \\
-		             & $\Longrightarrow$ & $i_1$                                    & $f$ & $s$ & $v$       & $h$ & $c$ \\ \hline
-		             &                   & [\texttt{Cond} ~ $i_1$ ~ $i_2$]          & $f$ & $s$ & $n$ : $v$ & $h$ & $c$ \\
-		      (4.13) & $\Longrightarrow$ & $i_2$                                    & $f$ & $s$ & $v$       & $h$ & $c$ \\
-		             &                   & \multicolumn {6} {l|} {ここで$n \neq 0$}                                     \\ \hline
-	      \end{tabular}
-	      \vskip\baselineskip
-	      最初のルールは、ゼロが値スタックの一番上にある場合に一致します。
-	      それ以外の場合は、2番目の規則が適用されます。
-	      次のように動作するプリミティブ\texttt{if}も追加する必要があります。
-	      \begin{verbatim}
+		簡単な解決策は、新しい命令\texttt{Cond i1 i2}を追加することです。
+		この命令は、値スタックの一番上から値を削除し、それがゼロかどうかをチェックし、
+		ゼロである場合は命令シーケンス\texttt{i1}を続行し、そうでない場合は\texttt{i2}を続行します。
+		その状態遷移規則は次のとおりです。
+		\vskip\baselineskip
+		\begin{tabular} {|c|l r l r r l l|} \hline
+			(4.13) &                   & [\texttt{Cond} ~ $i_1$ ~ $i_2$]          & $f$ & $s$ & $0$ : $v$ & $h$ & $c$ \\
+			       & $\Longrightarrow$ & $i_1$                                    & $f$ & $s$ & $v$       & $h$ & $c$ \\ \hline
+			       &                   & [\texttt{Cond} ~ $i_1$ ~ $i_2$]          & $f$ & $s$ & $n$ : $v$ & $h$ & $c$ \\
+			(4.13) & $\Longrightarrow$ & $i_2$                                    & $f$ & $s$ & $v$       & $h$ & $c$ \\
+			       &                   & \multicolumn {6} {l|} {ここで$n \neq 0$}                                     \\ \hline
+		\end{tabular}
+		\vskip\baselineskip
+		最初のルールは、ゼロが値スタックの一番上にある場合に一致します。
+		それ以外の場合は、2番目の規則が適用されます。
+		次のように動作するプリミティブ\texttt{if}も追加する必要があります。
+		\begin{verbatim}
           if 0 t f = t
           if n t f = f
         \end{verbatim}
-	      \texttt{Cond}命令を使用して\texttt{if}のTIMコードを作成し、それを\texttt{compiledPrimitives}に追加する必要があります。
-	      最後に、階乗関数を使用して改善されたシステムをテストできます。
-	      \begin{verbatim}
+		\texttt{Cond}命令を使用して\texttt{if}のTIMコードを作成し、それを\texttt{compiledPrimitives}に追加する必要があります。
+		最後に、階乗関数を使用して改善されたシステムをテストできます。
+		\begin{verbatim}
           factorial n = if n 1 (n * factorial (n-1))
           main = factorial 3
         \end{verbatim}
@@ -8265,24 +8265,24 @@ $\mathcal{B}$には、継続を明示的にプッシュすることを回避す�
 
 \begin{description}
 	\item[演習 4.6] 改善されたコンパイル スキームを実装します。
-	      実装のパフォーマンスを以前のパフォーマンスと比較します。
+		実装のパフォーマンスを以前のパフォーマンスと比較します。
 	\item[演習 4.7] $\mathcal{R}$スキームに新しいルールを追加して、\texttt{if}の(完全な)アプリケーションに一致させます。
-	      \texttt{if}プリミティブを呼び出して取得するよりもはるかに優れたコードを生成できるはずです。
-	      変更を実装し、パフォーマンスの改善を測定します。
+		\texttt{if}プリミティブを呼び出して取得するよりもはるかに優れたコードを生成できるはずです。
+		変更を実装し、パフォーマンスの改善を測定します。
 	\item[演習 4.8] 次のように、より一般的な算術比較を処理するために条件を一般化するとします。
-	      \begin{verbatim}
+		\begin{verbatim}
           fib n = if (n < 2) 1 (fib (n-1) + fib (n-2))
         \end{verbatim}
-	      必要なのは、値スタックの上位2つの項目をポップし、それらを比較し、比較の結果に応じて値スタックに1または0をプッシュする新しい命令\texttt{Op Lt}です。
-	      次に、\texttt{Cond}命令がこの結果を検査します。
+		必要なのは、値スタックの上位2つの項目をポップし、それらを比較し、比較の結果に応じて値スタックに1または0をプッシュする新しい命令\texttt{Op Lt}です。
+		次に、\texttt{Cond}命令がこの結果を検査します。
 
-	      このような比較命令のファミリを実装し、他の算術演算子とまったく同じ方法で、それらの特殊なケースを$\mathcal{B}$スキームに追加します。
-	      あなたの改善をテストします。
+		このような比較命令のファミリを実装し、他の算術演算子とまったく同じ方法で、それらの特殊なケースを$\mathcal{B}$スキームに追加します。
+		あなたの改善をテストします。
 	\item[演習 4.9] 前の練習問題で、追加の比較モードを持つように\texttt{Cond}命令を変更しなかった理由を疑問に思ったかもしれません。
-	      次に、このモードに従って値スタックの上位2つの項目を比較し、それに応じて動作します。
-	      なぜこれをしなかったのですか？
-	      ヒント: このようなプログラムはどうなるでしょうか?
-	      \begin{verbatim}
+		次に、このモードに従って値スタックの上位2つの項目を比較し、それに応じて動作します。
+		なぜこれをしなかったのですか？
+		ヒント: このようなプログラムはどうなるでしょうか?
+		\begin{verbatim}
           multipleof3 x = ((x / 3) * 3) == x
           f y = if (multipleof3 y) 0 1
         \end{verbatim}
@@ -8440,21 +8440,21 @@ $\mathcal{R}$スキームの\texttt{let}式の場合、定義ごとに命令$\te
 
 \begin{description}
 	\item[演習 4.11] このセクションで説明する変更を実装します。
-	      新しい命令を\texttt{instruction}型に追加し、新しいケースを\texttt{step}と\texttt{showInstruction}に追加してそれらを処理し、
-	      新しいコンパイルスキームを実装します。
+		新しい命令を\texttt{instruction}型に追加し、新しいケースを\texttt{step}と\texttt{showInstruction}に追加してそれらを処理し、
+		新しいコンパイルスキームを実装します。
 	\item[演習 4.12] 以下のプログラムを検討します。
-	      \begin{verbatim}
+		\begin{verbatim}
           f x y z = let p = x+y in p+x+y+z
           main = f 1 2 3
         \end{verbatim}
-	      \texttt{let}式がない場合は、次のように補助関数を使用して記述する必要があります。
-	      \begin{verbatim}
+		\texttt{let}式がない場合は、次のように補助関数を使用して記述する必要があります。
+		\begin{verbatim}
           f' p x y z = p+x+y+z
           f x y z = f' (x+y) x y z
           main = f 1 2 3
         \end{verbatim}
-	      これら2つのプログラムによって生成されたコードを比較し、消費されたストアと実行されたステップの違いを測定します。
-	      \texttt{let}式を直接実装することで得られる主な節約は何ですか?
+		これら2つのプログラムによって生成されたコードを比較し、消費されたストアと実行されたステップの違いを測定します。
+		\texttt{let}式を直接実装することで得られる主な節約は何ですか?
 \end{description}
 
 \subsubsection{\texttt{letrec}式}
@@ -8466,13 +8466,13 @@ $\mathcal{R}$ スキームの \texttt{letrec} ケースは、$am_i$ の定義で
 
 \begin{description}
 	\item[演習 4.13] この追加のケースを\texttt{compileR}に実装し、プログラム上で試してみます。
-	      \begin{verbatim}
+		\begin{verbatim}
     f x = letrec p = if (x==0) 1 q ;
                  q = if (x==0) p 2
           in p+q
     main = f 1
   \end{verbatim}
-	      生成されたコードを必ず理解し、テストしてください。
+		生成されたコードを必ず理解し、テストしてください。
 \end{description}
 
 残念ながら、この実装には微妙なバグがあります。
@@ -8524,10 +8524,10 @@ $\mathcal{R}$ スキームの \texttt{letrec} ケースは、$am_i$ の定義で
 
 \begin{description}
 	\item[演習 4.14] このアイデアを実装するために\texttt{compileR}を変更し、上記の例に対して正しいコードが生成されることを確認します。
-	      新しい環境で間接アドレス指定モードを生成するには、\texttt{compileR} を変更する際に、
-	      補助関数 \texttt{mkIndMode} ($\mathcal{I}$ スキームに対応) を使用します。
+		新しい環境で間接アドレス指定モードを生成するには、\texttt{compileR} を変更する際に、
+		補助関数 \texttt{mkIndMode} ($\mathcal{I}$ スキームに対応) を使用します。
 
-	      \begin{verbatim}
+		\begin{verbatim}
     mkIndMode :: Int -> TimAMode
     mkIndMode n = Code [Enter (Arg n)]
   \end{verbatim}
@@ -8733,47 +8733,47 @@ $\mathcal{SC}$ スキームと $\mathcal{R}$ スキームのみが影響を受�
 
 \begin{description}
 	\item[演習 4.16] 説明に従って更新メカニズムを実装します。
-	      いくつかのテスト プログラムで新しいシステムを実行すると、\texttt{PushMarker} が更新情報をダンプに追加し、\texttt{Return} が更新を実行するのを確認できるはずです。
-	      考えられるテスト プログラムの 1 つを次に示します。
-	      \begin{verbatim}
+		いくつかのテスト プログラムで新しいシステムを実行すると、\texttt{PushMarker} が更新情報をダンプに追加し、\texttt{Return} が更新を実行するのを確認できるはずです。
+		考えられるテスト プログラムの 1 つを次に示します。
+		\begin{verbatim}
           f x = x + x
           main = f (1+2)
         \end{verbatim}
-	      \texttt{(1+2)} の評価は 1 回だけ行う必要があります。
+		\texttt{(1+2)} の評価は 1 回だけ行う必要があります。
 	\item[演習 4.17] ここでは、実行できる簡単な最適化を示します。
-	      次のような関数の場合:
-	      \begin{verbatim}
+		次のような関数の場合:
+		\begin{verbatim}
           compose f g x = f (g x)
         \end{verbatim}
-	      \texttt{compose} のコードは次のようになっていることがわかります。
-	      \begin{verbatim}
+		\texttt{compose} のコードは次のようになっていることがわかります。
+		\begin{verbatim}
           compose: Take 3 3
                    Push (Code [...])
                    Enter (Code [PushMarker 1, Enter (Arg 1)])
         \end{verbatim}
-	      ここで、\texttt{[...]} は \texttt{(g x)} のコードです。
-	      最後の命令は、\texttt{f} の間接更新に入ります。
-	      しかし、
-	      \begin{center}
-		      \texttt{Enter (Code \textit{i})} が \textit{i} と同等であること
-	      \end{center}
-	      は事実です。(これはルール 4.8 から直ちに導かれます。)
-	      したがって、\texttt{compose} の同等のコードは次のようになります。
-	      \begin{verbatim}
+		ここで、\texttt{[...]} は \texttt{(g x)} のコードです。
+		最後の命令は、\texttt{f} の間接更新に入ります。
+		しかし、
+		\begin{center}
+			\texttt{Enter (Code \textit{i})} が \textit{i} と同等であること
+		\end{center}
+		は事実です。(これはルール 4.8 から直ちに導かれます。)
+		したがって、\texttt{compose} の同等のコードは次のようになります。
+		\begin{verbatim}
           compose: Take 3 3
                    Push (Code [...])
                    PushMarker 1
                    Enter (Arg 1)
         \end{verbatim}
-	      この最適化を実装します。
-	      これを行う最も良い方法は、コンパイラ内の \texttt{[Enter \textit{e}]} 形式のすべての式を \texttt{(mkEnter \textit{e})} に置き換えることです。
-	      ここで、\texttt{mkEnter} は次のように定義されます。
-	      \begin{verbatim}
+		この最適化を実装します。
+		これを行う最も良い方法は、コンパイラ内の \texttt{[Enter \textit{e}]} 形式のすべての式を \texttt{(mkEnter \textit{e})} に置き換えることです。
+		ここで、\texttt{mkEnter} は次のように定義されます。
+		\begin{verbatim}
           mkEnter :: TimAMode -> [Instruction]
           mkEnter (Code i) = i
           mkEnter other_am = [Enter other_am]
         \end{verbatim}
-	      \texttt{mkEnter} は \texttt{Enter} コンストラクタの「アクティブ」形式で、\texttt{Enter} 命令を生成する前に特殊なケースをチェックします。
+		\texttt{mkEnter} は \texttt{Enter} コンストラクタの「アクティブ」形式で、\texttt{Enter} 命令を生成する前に特殊なケースをチェックします。
 \end{description}
 
 このスキームには他にも多くの改善点があり、それについては次のセクションで検討します。
@@ -8934,13 +8934,13 @@ $\mathcal{SC}$ スキームと $\mathcal{R}$ スキームのみが影響を受�
 \begin{description}
 	\item[演習 4.18] このアイデアを試して、どれだけのステップが節約されるかという点でその効果を測定してください。
 	\item[演習 4.19] 次の表現を考えてみる
-	      \begin{verbatim}
+		\begin{verbatim}
           let x = 3 in x+x
         \end{verbatim}
-	      この場合、\texttt{let} 式の右側はすでに正規形式になっているため、$\mathcal{U}$ スキームで \texttt{PushMarker} 命令を生成する意味はありません。
-	      むしろ、この場合、$\mathcal{U}$ は単純に \texttt{IntConst} アドレッシング モードを返すことができます。
+		この場合、\texttt{let} 式の右側はすでに正規形式になっているため、$\mathcal{U}$ スキームで \texttt{PushMarker} 命令を生成する意味はありません。
+		むしろ、この場合、$\mathcal{U}$ は単純に \texttt{IntConst} アドレッシング モードを返すことができます。
 
-	      $\mathcal{U}$ コンパイルスキームと対応する \texttt{compileU} 関数を変更し、変更が正しく動作することを確認します。
+		$\mathcal{U}$ コンパイルスキームと対応する \texttt{compileU} 関数を変更し、変更が正しく動作することを確認します。
 \end{description}
 
 \subsubsection{間接チェーンの排除}
@@ -9113,26 +9113,26 @@ Return 命令が空のスタックを見つけると、更新を実行し、ダ�
 
 \begin{description}
 	\item[演習 4.21] \texttt{UpdateMarkers} 命令を実装し、各 \texttt{Take} 命令の前に1つを配置するようにコンパイラを変更します。
-	      次のプログラムの変更の前後で実装をテストします。
-	      プログラムは高階関数を使用してペアを実装します (セクション 2.8.3)。
-	      ペア \texttt{w} は共有され、ペア関数の部分的な適用として評価されます。
-	      \begin{verbatim}
+		次のプログラムの変更の前後で実装をテストします。
+		プログラムは高階関数を使用してペアを実装します (セクション 2.8.3)。
+		ペア \texttt{w} は共有され、ペア関数の部分的な適用として評価されます。
+		\begin{verbatim}
           pair x y f = f x y
           fst p = p K
           snd p = p K1
           main = let w = pair 2 3
                  in (fst w) * (snd w)
         \end{verbatim}
-	      \texttt{w} が \texttt{(pair 2 3)} の部分適用で更新されていることがわかります。
-	      もう少し説得力を持たせるために、\texttt{w} の右側にもう少し計算を含めることができます。
-	      たとえば、
-	      \begin{verbatim}
+		\texttt{w} が \texttt{(pair 2 3)} の部分適用で更新されていることがわかります。
+		もう少し説得力を持たせるために、\texttt{w} の右側にもう少し計算を含めることができます。
+		たとえば、
+		\begin{verbatim}
           main = let w = if (2*3 > 4) (pair 2 3) (pair 3 2)
                  in (fst w) * (snd w)
         \end{verbatim}
 	\item[演習 4.22] \texttt{Take 0 0} が何もしないのと同様に、\texttt{UpdateMarkers 0} も何も行いません。
-	      必要に応じてこれらの命令の両方を省略するように、\texttt{compileSC} を変更します。
-	      (これは演習 4.3 の単純な拡張です。)
+		必要に応じてこれらの命令の両方を省略するように、\texttt{compileSC} を変更します。
+		(これは演習 4.3 の単純な拡張です。)
 \end{description}
 
 他にも注目すべき点がいくつかあります。
@@ -9159,6 +9159,137 @@ Return 命令が空のスタックを見つけると、更新を実行し、ダ�
 代わりに、より一般的なデータ構造を処理できるように、算術演算に使用したアプローチを開発します。
 
 \subsubsection{一般的なアプローチ}
+
+\texttt{is\_empty} 関数について考えてみましょう。この関数は、引数が空のリストの場合は 1 を返し、そうでない場合は 0 を返します。
+これは、それをシングルトン リストに適用するプログラムのコンテキストで与えられます。
+
+\begin{verbatim}
+  is_empty xs = case xs of
+                  <1>      -> 1
+                  <2> y ys -> 0
+  
+  cons a b = Pack{2,2} a b
+  nil      = Pack{1,0}
+  
+  main = is_empty (cons 1 nil)
+\end{verbatim}
+
+セクション 1.1.4 でコンストラクターが \texttt{Pack{$tag, ~ arity$}} で表されることを思い出してください。
+リストを操作するこのプログラムでは、空リストコンストラクタ \texttt{nil} にはタグ1とアリティ0があり、リストコンストラクタ \texttt{cons} にはタグ2とアリティ2があります。
+パターンマッチングは \texttt{case} 式によってのみ実行されます。ネストされたパターンは、ネストされた \texttt{case} 式によって照合されます。
+\vskip\baselineskip
+
+まず、\texttt{case} 式に対してどのようなコードを生成するかを検討します。
+算術演算子では引数を評価する必要があるのと同様に、\texttt{case} 式では式 (\texttt{is\_empty} の例では \texttt{xs}) を評価する必要があります。
+この後、返されたオブジェクトのタグに応じて、多方向ジャンプを実行できます。
+算術演算子に使用したものと同様のアプローチを採用すると、次の規則が示唆されます。
+
+\begin{itemize}
+	\item データオブジェクトを表すクロージャを評価するには、継続が引数スタックにプッシュされ、クロージャがEnterされます。
+	\item (先頭)正規形に評価されると、この継続がスタックからポップされてEnterされます。
+	\item データオブジェクトのタグは値スタックの一番上に返されます。
+	\item データオブジェクトのコンポーネント(存在する場合)は、新しいレジスタであるデータフレームポインタが指すフレームで返されます。
+\end{itemize}
+
+したがって、\texttt{is\_empty} に対して生成するコードは次のようになります。
+\footnote{いつものように、継続の明示的なラベルを使用してコードを作成しますが、
+	実際には、新しいラベルの生成を避けるために、\texttt{Code} アドレッシング モードの使用をコンパイルします。}
+
+\begin{verbatim}
+  is_empty: Take 1 1            -- One argument
+            Push (Label "cont") -- Continuation
+            Enter (Arg 1)       -- Evaluate xs
+
+  cont:     Switch [ 1 -> [PushV (IntVConst 1), Return]
+                     2 -> [PushV (IntVConst 0), Return]
+                   ]
+\end{verbatim}
+
+\texttt{Switch} 命令は、値スタックの最上位項目に基づいて多方向ジャンプを実行します。
+この例では、\texttt{case} 式の両方の分岐が定数を返すだけです。
+\vskip\baselineskip
+
+この例では、精査されたリストセルのコンポーネントは使用されませんでした。
+これは常に当てはまるわけではありません。
+たとえば、\texttt{sum} 関数を考えてみましょう。
+
+\begin{verbatim}
+  sum xs = case xs of
+                  <1>      -> 0
+                  <2> y ys -> y + sum ys
+\end{verbatim}
+
+\texttt{sum} はリストの要素の合計を計算します。
+新しい機能は、式 \texttt{y + sum ys} がリスト セルのコンポーネント \texttt{y} と \texttt{ys} を使用することです。
+前に示したように、これらのコンポーネントは、データフレームポインタが指すフレーム内の継続、つまり新しいレジスタに返されます。
+(演習: なぜ通常のフレームポインタをこの目的に使用できないのですか?)
+\vskip\baselineskip
+
+これまでのところ、すべてのローカル変数 (つまり、スーパーコンビネータ引数または \texttt{let(rec)} バインド変数) には、
+そのクロージャを含む現在のフレーム内にスロットがあるため、このアイデアを拡張して、\texttt{y} と \texttt{ys} にさらにスロットを追加するのが論理的であると思われます。
+必要なのは、クロージャをリストセルフレームから現在のフレームに移動することだけです。
+\texttt{sum} のコードは次のとおりです。
+
+\begin{verbatim}
+  sum: Take 3 1            -- One argument, two extra slots for y,ys
+       Push (Label "cont") -- Continuation for case
+       Enter (Arg 1)       -- Evalute xs
+
+  cont: Switch [1 -> [PushV (IntVConst 0), Return]
+                2 -> [Move 2 (Data 1)
+                      Move 3 (Data 2)
+                      ...code to compute y + sum ys...
+                     ]
+               ]
+\end{verbatim}
+
+\texttt{Move} 命令は、データフレームポインタが指すフレーム内のクロージャをアドレス指定する新しいアドレス指定モード \texttt{Data} を使用します。
+2つの \texttt{Move} 命令は、\texttt{y} と \texttt{ys} をリスト セルから現在のフレーム (\texttt{xs} を含むフレーム) にコピーします。
+\vskip\baselineskip
+
+要約すると、\texttt{case} 式は 5 つのステップにコンパイルされます。
+
+\begin{enumerate}
+	\item 継続をPushします。
+	\item 精査するクロージャをEnterします。
+	      評価されると、ステップ1でPushした継続に入ります。
+	\item 継続では、\texttt{Switch} 命令を使用して、値スタックの一番上に返されるタグに基づいて多方向ジャンプを実行します。
+	\item \texttt{Switch} の各ブランチは、データオブジェクトの内容を現在のフレームにコピーする \texttt{Move} 命令で始まります。
+	      これはクロージャをコピーするので、データオブジェクト内のすべてのクロージャが自由にコピーできるプロパティを持っていることを確認する必要があります (セクション 4.5.6)。
+	\item 各ブランチは、通常どおりにコンパイルされたそのブランチのコードを続行します。
+\end{enumerate}
+
+最後に、式 \texttt{Pack\{} $tag$ \texttt{,} $arity$ \texttt{\}} に対してどのようなコードを生成する必要があるかを尋ねることができます。
+たとえば、次の式を考えてみましょう。
+
+\[\texttt{Pack\{1,2\}} ~ e1 ~ e2\]
+
+これによりリストセルが構築されます。
+最小限のアプローチは、\texttt{Pack\{1,2\}} をスーパーコンビネータとして扱うことです。
+そして、次のコードを生成します。
+\footnote{原理的には、使用可能なコンストラクタは無限にあるため、コードストアには、それらに対応する類似のコードフラグメントの有限ファミリーが必要と思われます。
+実際には、詳細なコンパイルスキームを記述するときにわかるように、これは簡単に回避できます。}
+
+\begin{verbatim}
+  Push (...addressing mode for e2...)
+  Push (...addressing mode for e1...)
+  Enter (Label "Pack{1,2}")
+\end{verbatim}
+
+\texttt{Pack\{1,2\}} のコードは非常に単純です。
+
+\begin{verbatim}
+  Pack{1,2}: UpdateMarkers 2
+             Take 2 2
+             ReturnConstr 1
+\end{verbatim}
+
+最初の2つの命令は、他のスーパーコンビネータとまったく同じです。
+\texttt{UpdateMarkers} 命令は必要な更新を実行し、\texttt{Take} 命令はリストセルの2つのコンポーネントを含むフレームを構築し、そのフレームへのポインタを現在のフレームポインタに置きます。
+最後に、新しい命令 \texttt{ReturnConstr} が継続に入ります。
+タグ1を値スタックにプッシュし、現在のフレームポインタをデータフレームポインタにコピーします。
+\texttt{Return} と同様に、\texttt{ReturnConstr} は更新を確認し、必要に応じて実行する必要があります。
+
 \subsubsection{データ構造の遷移規則とコンパイル方式}
 \subsubsection{試してみる}
 \subsubsection{リストの表示}
