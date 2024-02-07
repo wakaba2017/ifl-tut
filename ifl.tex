@@ -9327,6 +9327,51 @@ Return 命令が空のスタックを見つけると、更新を実行し、ダ�
 コンストラクタは、検出されると「インライン」でコンパイルされるため、無限の定義ファミリーをコードストアに追加する必要がなくなります。
 
 \subsubsection{試してみる}
+
+次の追加のコア言語定義を使用することで、新しい機構を使用してリストとブール値を実装できます。
+
+\begin{verbatim}
+  cons = Pack{2,2}
+  nil  = Pack{1,0}
+
+  true  = Pack{2,0}
+  false = Pack{1,0}
+  if cond tbranch fbranch = case cond of
+                                  <1> -> fbranch
+                                  <2> -> tbranch
+\end{verbatim}
+
+\texttt{if} は、以前はコンパイルスキームに特別な命令とケースを持っていましたが、現在は他の定義と同様に単なるスーパーコンビネータ定義であることに注意してください。
+それでも、多くの場合、\texttt{case} よりも \texttt{if} を使用してプログラムを作成する方が明確なので、コンパイラに特別なケースを残しておきたい場合があります。
+ただし、今度は \texttt{Cond} 命令ではなく \texttt{Switch} 命令を生成します。
+(後者は消える可能性があります。)
+
+\begin{description}
+	\item[演習 4.23] 新しい命令とコンパイル スキームを実装します。
+		次のプログラムで新しい実装をテストします。
+		\begin{verbatim}
+      length xs = case xs of
+                      <1> -> 0
+                      <2> p ps -> 1 + length ps
+
+      main = length (cons 1 (cons 2 nil))
+    \end{verbatim}
+		更新コードが正しく機能するかどうかを示す、より興味深い例は次のとおりです。
+		\begin{verbatim}
+      append xs ys = case xs of
+                      <1>      -> ys
+                      <2> p ps -> cons p (append ps ys)
+
+      main = let xs = append (cons 1 nil) (cons 2 nil)
+             in
+             length xs + length xs
+    \end{verbatim}
+		ここでは \texttt{xs} が2回使用されていますが、\texttt{append} の作業は1回だけ行う必要があります。
+	\item[演習 4.24] コンストラクタのアリティ $a$ が 0 の場合、
+		$\mathcal{R} \llbracket \texttt{Pack\{} t, ~ a \texttt{\}} \rrbracket$ はコード \texttt{[UpdateMarkers 0, Take 0 0, ReturnConstr t]} を生成します。
+		この場合に適したコードを生成するには、$\mathcal{R}$ スキームと \texttt{compileR} 関数を最適化します (演習 4.22 を参照)。
+\end{description}
+
 \subsubsection{リストの表示}
 \subsubsection{データ構造を直接使用する \dag}
 \newpage
