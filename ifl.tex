@@ -9326,6 +9326,36 @@ Return 命令が空のスタックを見つけると、更新を実行し、ダ�
 後者は、\texttt{case} の選択肢をコンパイルする補助スキーム $\mathcal{E}$ を使用して構造化されています (図 4.6)。
 コンストラクタは、検出されると「インライン」でコンパイルされるため、無限の定義ファミリーをコードストアに追加する必要がなくなります。
 
+\vskip\baselineskip
+
+\begin{tabular} {|l|} \hline
+	\begin{tabular}{l c l}
+		$\mathcal{R} \llbracket \texttt{Pack\{} t, ~ a \texttt{\}} \rrbracket ~ \rho ~ d$                       & $=$ & ($d$, [\texttt{UpdateMarkers} $a$, \texttt{Take} $a$ $a$, \texttt{ReturnConstr} $t$])                      \\
+		$\mathcal{R} \llbracket \texttt{case} ~ e ~ \texttt{of} ~ alt_1 ~ \ldots ~ alt_n \rrbracket ~ \rho ~ d$ & $=$ & ($d'$, \texttt{Push} (\texttt{Code} [\texttt{Switch} [$branch_1 ~ \ldots ~ branch_n$]]) \texttt{:} $is_e$) \\
+		                                                                                                        &     & ここで、$d_1, ~ \ldots, ~ d_n, ~ d', ~ is_e$は以下の通りです。                                             \\
+		                                                                                                        &     & $(d_1, ~ branch_1) = \mathcal{E} \llbracket alt_1 \rrbracket ~ \rho ~ d)$                                  \\
+		                                                                                                        &     & $\dots$                                                                                                    \\
+		                                                                                                        &     & $(d_n, ~ branch_n) = \mathcal{E} \llbracket alt_n \rrbracket ~ \rho ~ d)$                                  \\
+		                                                                                                        &     & $(d', ~ is_e) = \mathcal{R} \llbracket e \rrbracket ~ \rho ~ max(d_1, ~ \ldots, ~ d_n)$                    \\
+	\end{tabular}
+	\\ \hline
+	$\mathcal{E} \llbracket alt \rrbracket ~ \rho ~ d$ ($alt$ は \texttt{case} の選択肢) はペア $(d', ~ branch)$ です。 \\
+	ここで $branch$ は、環境 $\rho$ でコンパイルされた \texttt{Switch} の選択肢です。                             \\
+	このコードは、フレームの最初の $d$ スロットが占有されていると仮定し、                                         \\
+	スロット $(d + 1, ~ \ldots, ~ d')$ を使用します。                                                             \\
+	\\
+	\begin{tabular}{l c l}
+		$\mathcal{E} \llbracket \texttt{<} t \texttt{>} ~ x_1 ~ \ldots ~ x_n ~ \texttt{->} ~ body \rrbracket ~ \rho ~ d$ & $=$ & ($d'$, $t$ \texttt{->} ($is_{moves}$ \texttt{++} $is_{body}$))                                            \\
+		                                                                                                                 &     & ここで、$d', ~ is_{moves}, ~ is_{body}$は以下の通りです。                                                 \\
+		                                                                                                                 &     & $is_{moves}$ = [\texttt{Move} (d + 1) (\texttt{Data} 1), \ldots, \texttt{Move} (d + n) (\texttt{Data} n)] \\
+		                                                                                                                 &     & $\dots$                                                                                                   \\
+		                                                                                                                 &     & $(d', ~ is_{body}) = \mathcal{R} \llbracket body \rrbracket ~ \rho' ~ (d + n)$                            \\
+		                                                                                                                 &     & $\rho' = [x_1 \mapsto \texttt{Arg} ~ (d + 1), ~ \ldots, ~ x_n \mapsto \texttt{Arg} ~ (d + n)]$            \\
+	\end{tabular}
+	\\ \hline
+\end{tabular}
+\vskip\baselineskip
+
 \subsubsection{試してみる}
 
 次の追加のコア言語定義を使用することで、新しい機構を使用してリストとブール値を実装できます。
@@ -9417,7 +9447,7 @@ CAFが呼び出されるとき、redexのルートはスーパーコンビネー
 明らかな疑問は、「TIMはGマシンより優れているのか、それとも劣っているのか?」ということです。
 答えるのは難しいです。
 私たちのプロトタイプは、設計の選択を検討するのには非常に役立ちますが、本格的なパフォーマンスの比較には全く役に立ちません。
-たとえば、Gマシン Mkap と比較した Take 命令の相対コストをどのように確立できるでしょうか?
+たとえば、Gマシン \texttt{Mkap} と比較した \texttt{Take} 命令の相対コストをどのように確立できるでしょうか?
 実際に比較できる唯一の尺度は、この2つのヒープ消費量です。
 \vskip\baselineskip
 
