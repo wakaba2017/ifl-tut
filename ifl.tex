@@ -9340,9 +9340,9 @@ Return 命令が空のスタックを見つけると、更新を実行し、ダ�
 	\end{tabular}
 	\\ \hline
 	$\mathcal{E} \llbracket alt \rrbracket ~ \rho ~ d$ ($alt$ は \texttt{case} の選択肢) はペア $(d', ~ branch)$ です。 \\
-	ここで $branch$ は、環境 $\rho$ でコンパイルされた \texttt{Switch} の選択肢です。                             \\
-	このコードは、フレームの最初の $d$ スロットが占有されていると仮定し、                                         \\
-	スロット $(d + 1, ~ \ldots, ~ d')$ を使用します。                                                             \\
+	ここで $branch$ は、環境 $\rho$ でコンパイルされた \texttt{Switch} の選択肢です。                                   \\
+	このコードは、フレームの最初の $d$ スロットが占有されていると仮定し、                                               \\
+	スロット $(d + 1, ~ \ldots, ~ d')$ を使用します。                                                                   \\
 	\\
 	\begin{tabular}{l c l}
 		$\mathcal{E} \llbracket \texttt{<} t \texttt{>} ~ x_1 ~ \ldots ~ x_n ~ \texttt{->} ~ body \rrbracket ~ \rho ~ d$ & $=$ & ($d'$, $t$ \texttt{->} ($is_{moves}$ \texttt{++} $is_{body}$))                                            \\
@@ -9403,6 +9403,68 @@ Return 命令が空のスタックを見つけると、更新を実行し、ダ�
 \end{description}
 
 \subsubsection{リストの表示}
+
+これまでに提案したサンプル プログラムはすべて整数を返しましたが、代わりにリストを返して出力できると便利です。
+\vskip\baselineskip
+
+Gマシンの章でこれを表現した方法は、出力の末尾に数字を追加する \texttt{Print} 命令とともに、出力を表す追加のコンポーネントをマシン状態に追加することでした。
+この場合、数値は値スタックで返されるため、\texttt{Print} は値スタックから数値を消費し、それを出力に追加します。
+
+現在、コンパイルは継続 \texttt{([], FrameNull)} を使用してスタックを初期化します。
+これにより、この継続がEnterされるとマシンが停止します。
+必要なのは、この継続を変更して印刷を行うことだけです。
+今回は、継続ではプログラムの値がリストであることを期待しているため、処理方法を決定するためにケース分析を行う必要があります。
+リストが空の場合、マシンは停止する必要があるため、そのブランチには空のコードシーケンスだけを含めることができます。
+それ以外の場合は、リストの先頭が評価されて出力され、その後、末尾に元の継続が再度与えられる必要があります。
+コードは次のとおりです。
+
+\begin{verbatim}
+  topCont:    Switch [ 1 -> []
+                       2 -> [ Move 1 (Data 1)         -- Head
+                              Move 2 (Data 2)         -- Tail
+                              Push (Label "headCont")
+                              Enter (Arg 1)           -- Evaluate head
+                            ]
+                     ]
+
+  headCont:   Print
+              Push (Label "topCont")
+              Enter (Arg 2)                           -- Do the same to tail
+\end{verbatim}
+
+\texttt{topCont} コードには作業用ストレージとして2スロットフレームが必要であり、\texttt{compile} でそれを提供する方がよいことに注意してください。
+したがって、\texttt{compile} は次の継続でスタックを初期化します。
+
+\begin{verbatim}
+  (topCont, frame)
+\end{verbatim}
+
+ここで、\texttt{topCont} は上記のコードシーケンス、\texttt{frame} はヒープから割り当てられた2スロットフレームのアドレスです。
+
+\begin{description}
+	\item[演習 4.25] 説明に従ってリストの表示を実装します。
+		唯一面倒な点は、マシンの状態に追加のコンポーネントを (再度) 追加する必要があることです。
+
+		いつものように、\texttt{Push (Label "headCont")} の代わりに \texttt{Push (Code ...)} を使用できます。
+		実際、少し再帰を使用することで、\texttt{Push (Label "topCont")} に対しても同じことができます。
+
+		次のプログラムで作業をテストします。
+
+		\begin{verbatim}
+      between n m = if (n>m) nil (cons n (between (n+1) m))
+      main = between 1 4
+    \end{verbatim}
+
+	\item[演習 4.26] 結果がリストであるプログラムを実行する場合、リストの要素が使用可能になったらすぐに出力できると便利です。
+		現在の実装では、すべての状態を出力するか (\texttt{showFullResults} を使用する場合)、最後の状態のみを出力します (\texttt{showResults} を使用する場合)。
+		前者の場合は非常に多くの出力が得られますが、後者の場合はプログラムが終了するまでまったく出力が得られません。
+
+		\texttt{showResults} を変更して、生成された出力を印刷するようにします。
+		これを行う最も簡単な方法は、連続する状態のペアの出力コンポーネントを比較し、ある状態と次の状態の間で出力が長くなったときに最後の要素を出力することです。
+
+		\texttt{showResults} に対するもう1つの可能な変更は、各状態(または10個の状態)のドットを出力して、各出力ステップ間でどれだけの作業が行われたかを大まかに示すことです。
+\end{description}
+
 \subsubsection{データ構造を直接使用する \dag}
 \newpage
 
