@@ -9220,7 +9220,7 @@ Return 命令が空のスタックを見つけると、更新を実行し、ダ�
 \end{verbatim}
 
 \texttt{sum} はリストの要素の合計を計算します。
-新しい機能は、式 \texttt{y + sum ys} がリスト セルのコンポーネント \texttt{y} と \texttt{ys} を使用することです。
+新しい機能は、式 \texttt{y + sum ys} がリストセルのコンポーネント \texttt{y} と \texttt{ys} を使用することです。
 前に示したように、これらのコンポーネントは、データフレームポインタが指すフレーム内の継続、つまり新しいレジスタに返されます。
 (演習: なぜ通常のフレームポインタをこの目的に使用できないのですか?)
 \vskip\baselineskip
@@ -9244,7 +9244,7 @@ Return 命令が空のスタックを見つけると、更新を実行し、ダ�
 \end{verbatim}
 
 \texttt{Move} 命令は、データフレームポインタが指すフレーム内のクロージャをアドレス指定する新しいアドレス指定モード \texttt{Data} を使用します。
-2つの \texttt{Move} 命令は、\texttt{y} と \texttt{ys} をリスト セルから現在のフレーム (\texttt{xs} を含むフレーム) にコピーします。
+2つの \texttt{Move} 命令は、\texttt{y} と \texttt{ys} をリストセルから現在のフレーム (\texttt{xs} を含むフレーム) にコピーします。
 \vskip\baselineskip
 
 要約すると、\texttt{case} 式は 5 つのステップにコンパイルされます。
@@ -9307,8 +9307,8 @@ Return 命令が空のスタックを見つけると、更新を実行し、ダ�
 \vskip\baselineskip
 
 \begin{tabular} {|c|l r l l r r r l l|} \hline
-	(4.19) &                   & $[\texttt{ReturnConstr} ~ t]$ & $f$ & $f_d$ & $(i, f')$ : $s$ & $v$       & $d$ & $h$ & $c$ \\
-	       & $\Longrightarrow$ & $i$                           & $f$ & $f$   & $s$             & $t$ : $v$ & $d$ & $h$ & $c$ \\ \hline
+	(4.19) &                   & $[\texttt{ReturnConstr} ~ t]$ & $f$  & $f_d$ & $(i, ~ f')$ : $s$ & $v$       & $d$ & $h$ & $c$ \\
+	       & $\Longrightarrow$ & $i$                           & $f'$ & $f$   & $s$               & $t$ : $v$ & $d$ & $h$ & $c$ \\ \hline
 \end{tabular}
 \vskip\baselineskip
 
@@ -9316,9 +9316,9 @@ Return 命令が空のスタックを見つけると、更新を実行し、ダ�
 \vskip\baselineskip
 
 \begin{tabular} {|c|l r l l r r r l l|} \hline
-	(4.20) &                   & $[\texttt{ReturnConstr} ~ t]$                                                                                                     & $f$ & $f_d$ & []  & $v$ & $(f_u, x, s)$ : $d$ & $h$  & $c$ \\
-	       & $\Longrightarrow$ & $[\texttt{ReturnConstr} ~ t]$                                                                                                     & $f$ & $f$   & $s$ & $v$ & $d$                 & $h'$ & $c$ \\
-	       &                   & \multicolumn {8} {l|} {ここで$h' = h[f_u :\langle \ldots, d_{x - 1}, ([\texttt{ReturnConstr} t], f), d_{x + 1}, \ldots \rangle]$}                                                              \\ \hline
+	(4.20) &                   & $[\texttt{ReturnConstr} ~ t]$                                                                                                     & $f$ & $f_d$ & []  & $v$ & $(f_u, ~ x, ~ s)$ : $d$ & $h$  & $c$ \\
+	       & $\Longrightarrow$ & $[\texttt{ReturnConstr} ~ t]$                                                                                                     & $f$ & $f_d$ & $s$ & $v$ & $d$                     & $h'$ & $c$ \\
+	       &                   & \multicolumn {8} {l|} {ここで$h' = h[f_u :\langle \ldots, ~ d_{x - 1}, ~ ([\texttt{ReturnConstr} ~ t], ~ f), ~ d_{x + 1}, ~ \ldots \rangle]$}                                                       \\ \hline
 \end{tabular}
 \vskip\baselineskip
 
