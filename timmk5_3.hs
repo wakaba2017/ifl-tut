@@ -269,8 +269,7 @@ compile program
 
 initialUsdSltNmbrs = []
 
--- initialArgStack = [([], FrameNull)]  -- Mark2で変更
-initialArgStack = [([Enter (Label "topCont")], FrameNull)]  -- Mark5で変更
+initialArgStack = [([], FrameNull)]  -- Mark2で変更
 
 initialValueStack = []  -- Mark2で変更
 initialDump = []  -- Mark4で変更
@@ -584,7 +583,7 @@ step (output, [Switch brchs], fptr, dfptr, usdsltnum, stack, vstack, dump, heap,
       instr | length tmpList == 1 = head tmpList
             | otherwise           = error "Switch instrustion error."
 step (output, [ReturnConstr t], fptr, dfptr, usdsltnum, (instr', fptr') : stack, vstack, dump, heap, cstore, stats)  -- 遷移規則 (4.19)  Mark5で追加
-  = (output, instr', fptr', fptr, usdsltnum_, stack, t : vstack, dump, heap, cstore, stats)
+  = (output, newInstr, fptr', fptr, usdsltnum_, stack, t : vstack, dump, heap, cstore, stats)
     where usdsltnum_ = case instr' of
                        [] -> usdsltnum
                        Take _ _ : _ -> case fptr of
@@ -610,6 +609,8 @@ step (output, [ReturnConstr t], fptr, dfptr, usdsltnum, (instr', fptr') : stack,
                                   instr_ に Push (Code _) が含まれていたら、fptr' が指すフレームに含まれる全スロットを usdsltnum_ にする。
                                   そうでなかったら、getUsedSlotNumber instr_ の戻り値を usdsltnum_ にする。
                                 -}
+          newInstr | length instr' == 0 && length stack == 0 = [Enter (Label "topCont")]
+                   | otherwise                               = instr'
 step (output, [ReturnConstr t], fptr, dfptr, usdsltnum, [], vstack, (fptru, x, stack) : dump, heap, cstore, stats)  -- 遷移規則 (4.20)  Mark5で追加
   = (output, [ReturnConstr t], fptr, dfptr, usdsltnum, stack, vstack, dump, newHeap, cstore, stats)
     where newHeap = fUpdate heap fptru x ([ReturnConstr t], fptr)
