@@ -9468,7 +9468,7 @@ Gマシンの章でこれを表現した方法は、出力の末尾に数字を�
 
 \subsubsection{データ構造を直接使用する \dag}
 
-\texttt{Move} 以外の命令でデータアドレッシングモードを使用して、\texttt{Switch} 命令のアーム内でデータ構造のコンポーネントを直接使用できないのはなぜかと疑問に思う人もいるかもしれません。
+\texttt{Move} 以外の命令でデータアドレッシングモードを使用して、\texttt{Switch} 命令の選択肢内でデータ構造のコンポーネントを直接使用できないのはなぜかと疑問に思う人もいるかもしれません。
 理由は \texttt{sum} の例でわかります。これをここで繰り返します。
 
 \begin{verbatim}
@@ -9585,6 +9585,50 @@ CAFの適切な更新を Mark 4 または Mark 5 TIM に追加するには、次
 \end{description}
 
 \subsubsection{コードストアをより忠実にモデリングする}
+
+これまでの \texttt{Label} の扱いには少し奇妙な点があります。
+それは次のとおりです。
+スーパーコンビネータの名前は、コンパイル時に (\texttt{Label} アドレッシングモードにマッピングするため) 環境内で検索され、
+次に実行時に (グローバルフレームのオフセットにマッピングするために) 再度検索されます
+\footnote{前のセクションで提案した変更を CAF に対して実装したことを前提としていますが、このセクションは CAF 以前のバージョンのマシンにも適用されます。}。
+これは現実的ではありません。
+実際のコンパイラでは、名前が検索されます。
+ただし、実行前にハードマシン アドレスにリンクされるため、実行時の検索は行われません。
+\vskip\baselineskip
+
+これをモデル化するには、\texttt{Label} コンストラクタを1つではなく2つの引数を取るように変更します。
+次のようになります。
+
+\begin{verbatim}
+  timAMode ::= Label name num
+               | ...従来通り...
+\end{verbatim}
+
+\texttt{name} フィールドには以前と同様にスーパーコンビネータの名前が記録されますが、\texttt{num} はグローバルフレームで使用するオフセットを示します。
+テンプレートインスタンス化マシンの \texttt{NSupercomb} コンストラクタと同様に、\texttt{name} フィールドはドキュメントとデバッグの目的でのみ存在します。
+\texttt{Push Label} の遷移規則が改訂されていることからわかるように、コードストアコンポーネントは単にグローバルフレームのアドレスになりました。
+\vskip\baselineskip
+
+(4.22) \\
+\begin{tabular} {|l r l r l l|} \hline
+	                  & \texttt{Push} (\texttt{Label} $l$ $k$) : $i$ & $f$ & $s$                  & $h$[$g$ : $\langle (i_1, f_1), \ldots, (i_n, f_n) \rangle$] & $g$ \\
+	$\Longrightarrow$ & $i$                                          & $f$ & ($i_k$, $f_k$) : $s$ & $h$                                                         & $g$ \\ \hline
+\end{tabular}
+\vskip\baselineskip
+
+\texttt{Enter} の遷移規則は、\texttt{Push}/\texttt{Enter} 関係に従います。
+
+\begin{description}
+	\item[演習 4.30] このアイデアを実装します。
+		これをするには：
+		\begin{itemize}
+			\item 説明に従って \texttt{timAMode} 型を変更します。
+			\item \texttt{codeStore} 型をフレームポインタのみで構成されるように変更します。
+			\item マシンの正しい初期状態を生成するように \texttt{compile} 関数を変更します。
+			      特に、適切な \texttt{Label} アドレッシングモードを使用して、\texttt{initial\_env} を生成する必要があります。
+			\item これらの変化を考慮して \texttt{show} 関数を調整します。
+		\end{itemize}
+\end{description}
 \newpage
 
 \subsection{まとめ}
