@@ -171,7 +171,7 @@ statIncSteps (steps, exctime, totalheap, totalclosure, maxstkdepth, maxvstkdepth
 statGetSteps (steps, exctime, totalheap, totalclosure, maxstkdepth, maxvstkdepth)
   = steps
 
--- Mark6で変更 (出力情報を追加) Mark5で変更 (データフレームポインタを追加)
+-- Mark5で変更 (出力情報とデータフレームポインタを追加)
 statUpdExectime :: TimState -> TimState
 statUpdExectime (output, instr, frame, dataframe, usedslot, stack, vstack, dump, heap, cstore, (steps, exctime, totalheap, totalclosure, maxstkdepth, maxvstkdepth))
   = (output, instr, frame, dataframe, usedslot, stack, vstack, dump, heap, cstore, (steps, exctime', totalheap, totalclosure, maxstkdepth, maxvstkdepth))
@@ -186,7 +186,7 @@ statGetExectime :: TimStats -> Int
 statGetExectime (steps, exctime, totalheap, totalclosure, maxstkdepth, maxvstkdepth)
   = exctime
 
--- Mark6で変更 (出力情報を追加) Mark5で変更 (データフレームポインタを追加)
+-- Mark5で変更 (出力情報とデータフレームポインタを追加)
 statUpdAllcdheap :: TimState -> TimState
 statUpdAllcdheap (output, instr, frame, dataframe, usedslot, stack, vstack, dump, heap, cstore, (steps, exctime, totalheap, totalclosure, maxstkdepth, maxvstkdepth))
   = (output, instr, frame, dataframe, usedslot, stack, vstack, dump, heap, cstore, (steps, exctime, totalheap', totalclosure, maxstkdepth, maxvstkdepth))
@@ -199,7 +199,7 @@ statGetAllcdheap :: TimStats -> Int
 statGetAllcdheap (steps, exctime, totalheap, totalclosure, maxstkdepth, maxvstkdepth)
   = totalheap
 
--- Mark6で変更 (出力情報を追加) Mark5で変更 (データフレームポインタを追加)
+-- Mark5で変更 (出力情報とデータフレームポインタを追加)
 statUpdAllcdclosure :: TimState -> TimState
 statUpdAllcdclosure (output, instr, frame, dataframe, usedslot, stack, vstack, dump, heap, cstore, (steps, exctime, totalheap, totalclosure, maxstkdepth, maxvstkdepth))
   = (output, instr, frame, dataframe, usedslot, stack, vstack, dump, heap, cstore, (steps, exctime, totalheap, totalclosure_, maxstkdepth, maxvstkdepth))
@@ -214,7 +214,7 @@ statGetAllcdclosure :: TimStats -> Int
 statGetAllcdclosure (steps, exctime, totalheap, totalclosure, maxstkdepth, maxvstkdepth)
   = totalclosure
 
--- Mark6で変更 (出力情報を追加) Mark5で変更 (データフレームポインタを追加)
+-- Mark5で変更 (出力情報とデータフレームポインタを追加)
 statUpdMaxstkdpth :: TimState -> TimState
 statUpdMaxstkdpth (output, instr, frame, dataframe, usedslot, stack, vstack, dump, heap, cstore, (steps, exctime, totalheap, totalclosure, maxstkdepth, maxvstkdepth))
   = (output, instr, frame, dataframe, usedslot, stack, vstack, dump, heap, cstore, (steps, exctime, totalheap, totalclosure, maxstkdepth', maxvstkdepth))
@@ -227,7 +227,7 @@ statGetMaxstkdpth :: TimStats -> Int
 statGetMaxstkdpth (steps, exctime, totalheap, totalclosure, maxstkdepth, maxvstkdepth)
   = maxstkdepth
 
--- Mark6で変更 (出力情報を追加) Mark5で変更 (データフレームポインタを追加)
+-- Mark5で変更 (出力情報とデータフレームポインタを追加)
 statUpdMaxvstkdpth :: TimState -> TimState
 statUpdMaxvstkdpth (output, instr, frame, dataframe, usedslot, stack, vstack, dump, heap, cstore, (steps, exctime, totalheap, totalclosure, maxstkdepth, maxvstkdepth))
   = (output, instr, frame, dataframe, usedslot, stack, vstack, dump, heap, cstore, (steps, exctime, totalheap, totalclosure, maxstkdepth, maxvstkdepth_))
@@ -438,7 +438,7 @@ eval state
       rest_states | timFinal state = []
                   | otherwise      = eval next_state
       -- next_state = doAdmin (step state)
-      (_, _, _, _, _, _, _, _, heap, _, _) = step state  -- Mark6で変更 (出力情報を追加) Mark5で変更 (データフレームポインタを追加)
+      (_, _, _, _, _, _, _, _, heap, _, _) = step state  -- Mark5で変更 (出力情報とデータフレームポインタを追加)
       -- next_state = (statUpdMaxstkdpth . statUpdAllcdclosure . statUpdAllcdheap . statUpdExectime . doAdmin) (step state)
       -- next_state' | hSize heap >= 1 = gc (step state)  -- gc有効化
       next_state' | hSize heap >= 1 = step state  -- gc無効化
@@ -448,16 +448,16 @@ eval state
 doAdmin :: TimState -> TimState
 doAdmin state = applyToStats statIncSteps state
 
--- Mark6で変更 (出力情報を追加) Mark5で変更 (データフレームポインタを追加)
+-- Mark5で変更 (出力情報とデータフレームポインタを追加)
 timFinal (output, [], frame, dataframe, usedslot, stack, vstack, dump, heap, cstore, stats) = True
 timFinal state                                                                              = False
 
--- Mark6で変更 (出力情報を追加) Mark5で変更 (データフレームポインタを追加)
+-- Mark5で変更 (出力情報とデータフレームポインタを追加)
 applyToStats :: (TimStats -> TimStats) -> TimState -> TimState
 applyToStats stats_fun (output, instr, frame, dataframe, usedslot, stack, vstack, dump, heap, cstore, stats)
   = (output, instr, frame, dataframe, usedslot, stack, vstack, dump, heap, cstore, stats_fun stats)
 
--- Mark6で変更 (出力情報を追加) Mark5で変更 (データフレームポインタを追加)
+-- Mark5で変更 (出力情報とデータフレームポインタを追加)
 step (output, (Take t n : instr), fptr, dfptr, usdsltnum, stack, vstack, dump, heap, cstore, stats)  -- 遷移規則 (4.x)  Mark3で変更
   | (t >= n) && (length stack >= n) = (output, instr, fptr', dfptr, usdsltnum_, drop n stack, vstack, dump, heap', cstore, stats)
   | otherwise                       = error "Too small alloc area or too few args for Take instruction"
@@ -630,7 +630,7 @@ amToClosure (IntConst n) fptr heap cstore = (intCode, FrameInt n)        -- 遷�
 
 intCode = [PushV FramePtr, Return]  -- Mark2で変更
 
--- Mark6で変更 (出力情報を追加) Mark5で変更 (データフレームポインタを追加)
+-- Mark5で変更 (出力情報とデータフレームポインタを追加)
 gc :: TimState -> TimState
 gc (output, instr, fptr, dfptr, usdsltnum, stack, vstack, dump, heap, cstore, stats)
   = (output, instr, fptr, dfptr, usdsltnum, stack, vstack, dump, newHeap, cstore, stats)
@@ -796,7 +796,7 @@ showResults states
                                                | otherwise             = "." ++ subFuncForShowResults (x2 : xs)
           outputs = subFuncForShowResults tempList
 
--- Mark6で変更 (出力情報を追加) Mark5で変更 (データフレームポインタを追加)
+-- Mark5で変更 (出力情報とデータフレームポインタを追加)
 showSCDefns :: TimState -> Iseq
 showSCDefns (output, instr, fptr, dfptr, usdsltnum, stack, vstack, dump, heap, cstore, stats)
   = iInterleave iNewline (map showSC cstore)
@@ -811,7 +811,7 @@ showSC (name, il)
       iNewline
     ]
 
--- Mark6で変更 (出力情報を追加) Mark5で変更 (データフレームポインタを追加)
+-- Mark5で変更 (出力情報とデータフレームポインタを追加)
 showState :: TimState -> Iseq
 showState (output, instr, fptr, dfptr, usdsltnum, stack, vstack, dump, heap, cstore, stats)
   = iConcat [
@@ -896,7 +896,7 @@ showFramePtr FrameNull     = iStr "null"
 showFramePtr (FrameAddr a) = iStr (show a)
 showFramePtr (FrameInt n)  = iStr "int " `iAppend` iNum n
 
--- Mark6で変更 (出力情報を追加) Mark5で変更 (データフレームポインタを追加)
+-- Mark5で変更 (出力情報とデータフレームポインタを追加)
 showStats :: TimState -> Iseq
 showStats (output, instr, fptr, dfptr, usdsltnum, stack, vstack, dump, heap, code, stats)
   = iConcat [ iStr "Steps taken = ", iNum (statGetSteps stats), iNewline,
@@ -964,7 +964,7 @@ showArg d (Data n)     = (iStr "Data ")     `iAppend` (iNum n)  -- Mark5で追�
 
 nTerse = 3
 
--- Mark6で変更 (出力情報を追加) Mark5で変更 (データフレームポインタを追加)
+-- Mark5で変更 (出力情報とデータフレームポインタを追加)
 showCompiledCode :: String -> String
 showCompiledCode coreprg
   = show codes
