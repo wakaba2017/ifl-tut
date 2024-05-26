@@ -265,9 +265,7 @@ compile program
      initialArgStack,        -- Argument stack
      initialValueStack,      -- Value stack
      initialDump,            -- Dump
-     -- hInitial,               -- Empty heap
      initialHeap,            -- Initial heap  -- Mark6で変更
-     -- compiled_code,          -- Compiled code for supercombinators
      codeStore,              -- Compiled code for supercombinators  -- Mark6で変更
      statInitial)            -- Initial statistics
     where
@@ -284,7 +282,6 @@ initialArgStack = [([], FrameNull)]  -- Mark2で変更
 
 initialValueStack = []  -- Mark2で変更
 initialDump = []  -- Mark4で変更
--- initialDump = [(FrameNull, 1, [])]  -- Mark4で変更
 
 compiledPrimitives :: [([Char], [Instruction])]
 compiledPrimitives  -- Mark2で変更
@@ -303,7 +300,7 @@ compiledPrimitives  -- Mark2で変更
     , ("~=",     [Take 2, Push (Code [Push (Code [Op NotEq, Return]), Enter (Arg 1)]), Enter (Arg 2)])
     , ("if",     [Take 3, Push (Code [Cond [Enter (Arg 2)] [Enter (Arg 3)]]), Enter (Arg 1)])
     -}
-      ("topCont",  [Take 2 0, Switch [(1, []), (2, [Move 1 (Data 1), Move 2 (Data 2), Push (Label "headCont"), Enter (Arg 1)])]])
+      ("topCont",  [Switch [(1, []), (2, [Move 1 (Data 1), Move 2 (Data 2), Push (Label "headCont"), Enter (Arg 1)])]])
     , ("headCont", [Print, Push (Label "topCont"), Enter (Arg 2)])
     ]
 
@@ -530,7 +527,6 @@ step (output, (Take t n : instr), fptr, dfptr, usdsltnum, stack, vstack, dump, h
         usdsltnum_ = getUsedSlotNumber instr
 step (output, [Enter am], fptr, dfptr, usdsltnum, stack, vstack, dump, heap, cstore, stats)  -- 遷移規則 (4.6, 4.7, 4.8, 4.9)
   = (output, instr', fptr', dfptr, usdsltnum_, stack, vstack, dump, heap, cstore, stats)
-    -- where (instr',fptr') = amToClosure am fptr heap cstore
     where (instr',fptr') = amToClosure am fptr dfptr heap cstore
           usdsltnum_ = case instr_ of
                        [] -> usdsltnum
@@ -540,20 +536,8 @@ step (output, [Enter am], fptr, dfptr, usdsltnum, stack, vstack, dump, heap, cst
                                                                FClosure cl = hLookup heap addr
                                        _ -> []
                        _ -> getUsedSlotNumber instr_
-          {-
-          instr_ = case am of
-                   Arg n -> fst (fGet heap fptr n)
-                   Code il -> il
-                   Label l -> codeLookup cstore l
-                   _ -> []
-          -}
           instr_ = fst (amToClosure am fptr dfptr heap cstore)
-step (output, (Push (Label l) : instr), fptr, dfptr, usdsltnum, stack, vstack, dump, heap, cstore, stats)  -- 遷移規則 (4.2, 4.3, 4.4, 4.5)
-  = (output, instr, fptr, dfptr, usdsltnum, (il, fptr) : stack, vstack, dump, heap, cstore, stats)
-    where
-      (il, _) = amToClosure (Label l) fptr dfptr heap cstore
-step (output, (Push am:instr), fptr, dfptr, usdsltnum, stack, vstack, dump, heap, cstore, stats)  -- 遷移規則 (4.2, 4.3, 4.4, 4.5)
-  -- = (output, instr, fptr, dfptr, usdsltnum, amToClosure am fptr heap cstore : stack, vstack, dump, heap, cstore, stats)
+step (output, (Push am:instr), fptr, dfptr, usdsltnum, stack, vstack, dump, heap, cstore, stats)  -- 遷移規則 (4.2, 4.3, 4.4, 4.5, 4.21)
   = (output, instr, fptr, dfptr, usdsltnum, amToClosure am fptr dfptr heap cstore : stack, vstack, dump, heap, cstore, stats)
 step (output, [Return], fptr, dfptr, usdsltnum, [], n : vstack, (fptru, x, stack) : dump, heap, cstore, stats)  -- 遷移規則 (4.16)  Mark4で追加
   = (output, [Return], fptr, dfptr, usdsltnum, stack, n : vstack, dump, newHeap, cstore, stats)
@@ -657,8 +641,8 @@ step (output, [Switch brchs], fptr, dfptr, usdsltnum, stack, vstack, dump, heap,
       instr | length tmpList == 1 = head tmpList
             | otherwise           = error "Switch instrustion error."
 step (output, [ReturnConstr t], fptr, dfptr, usdsltnum, (instr', fptr') : stack, vstack, dump, heap, cstore, stats)  -- 遷移規則 (4.19)  Mark5で追加
-  = (output, newInstr, fptr', fptr, usdsltnum_, stack, t : vstack, dump, heap, cstore, stats)
-  -- = (output, newInstr, fptr', fptr, usdsltnum_, stack, t : vstack, dump, newHeap, cstore, stats)
+  -- = (output, newInstr, fptr', fptr, usdsltnum_, stack, t : vstack, dump, heap, cstore, stats)
+  = (output, newInstr, fptr', fptr, usdsltnum_, stack, t : vstack, dump, newHeap, cstore, stats)
     where usdsltnum_ = case instr' of
                        [] -> usdsltnum
                        Take _ _ : _ -> case fptr of
@@ -686,17 +670,15 @@ step (output, [ReturnConstr t], fptr, dfptr, usdsltnum, (instr', fptr') : stack,
                                 -}
           newInstr | length instr' == 0 && length stack == 0 = [Enter (Label "topCont")]
                    | otherwise                               = instr'
-          {-
-          newHeap | length instr' == 0 && length stack == 0 = newHeap2
+          newHeap | length instr' == 0 && length stack == 0 = newHeap4
                   | otherwise                               = heap
                   where
+                    (newHeap2, addr2) = hAlloc heap (FClosure [([], FrameNull), ([], FrameNull)])
                     (fg, g) = cstore
                     (instrTopCont, _) = amToClosure (Label "topCont") fptr dfptr heap cstore
-                    (_, free, _) = heap
-                    newHeap1 = fUpdate heap (FrameAddr fg) (codeLookup g "topCont") (instrTopCont, (FrameAddr (head free)))
-                    (instrHeadCont, _) = amToClosure (Label "headCont") fptr dfptr newHeap1 cstore
-                    newHeap2 = fUpdate newHeap1 (FrameAddr fg) (codeLookup g "headCont") (instrHeadCont, (FrameAddr (head free)))
-          -}
+                    newHeap3 = fUpdate newHeap2 (FrameAddr fg) (codeLookup g "topCont") (instrTopCont, (FrameAddr addr2))
+                    (instrHeadCont, _) = amToClosure (Label "headCont") fptr dfptr newHeap3 cstore
+                    newHeap4 = fUpdate newHeap3 (FrameAddr fg) (codeLookup g "headCont") (instrHeadCont, (FrameAddr addr2))
 step (output, [ReturnConstr t], fptr, dfptr, usdsltnum, [], vstack, (fptru, x, stack) : dump, heap, cstore, stats)  -- 遷移規則 (4.20)  Mark5で追加
   = (output, [ReturnConstr t], fptr, dfptr, usdsltnum, stack, vstack, dump, newHeap, cstore, stats)
     where newHeap = fUpdate heap fptru x ([ReturnConstr t], fptr)
@@ -708,17 +690,9 @@ step (output, (Print : instr), fptr, dfptr, usdsltnum, stack, vstack, dump, heap
       newOutput | length vstack > 0 = output ++ show(head vstack) ++ " "
                 | otherwise         = error "Print : vstack is empty."
 
-{-
-amToClosure :: TimAMode -> FramePtr -> TimHeap -> CodeStore -> Closure
-amToClosure (Arg n)      fptr heap cstore = fGet heap fptr n             -- 遷移規則 (4.2, 4.7)
-amToClosure (Code il)    fptr heap cstore = (il, fptr)                   -- 遷移規則 (4.4, 4.8)
-amToClosure (Label l)    fptr heap cstore = (codeLookup cstore l, fptr)  -- 遷移規則 (4.3, 4.6)
-amToClosure (IntConst n) fptr heap cstore = (intCode, FrameInt n)        -- 遷移規則 (4.5, 4.9)
--}
 amToClosure :: TimAMode -> FramePtr -> FramePtr -> TimHeap -> CodeStore -> Closure
 amToClosure (Arg n)      fptr dfptr heap cstore = fGet heap fptr n             -- 遷移規則 (4.2, 4.7)
 amToClosure (Code il)    fptr dfptr heap cstore = (il, fptr)                   -- 遷移規則 (4.4, 4.8)
--- amToClosure (Label l)    fptr dfptr heap cstore = (codeLookup cstore l, fptr)  -- 遷移規則 (4.3, 4.6)
 amToClosure (Label l)    fptr dfptr heap cstore = fGet heap (FrameAddr fg) k   -- 遷移規則 (4.3, 4.6, 4.21)
                                                   where
                                                     (fg, g) = cstore
@@ -897,7 +871,6 @@ showResults states
 -- Mark5で変更 (出力情報とデータフレームポインタを追加) Mark6で変更 (CodeStore型変更対応)
 showSCDefns :: TimState -> Iseq
 showSCDefns (output, instr, fptr, dfptr, usdsltnum, stack, vstack, dump, heap, cstore, stats)
-  -- = iInterleave iNewline (map showSC cstore)
   = iInterleave iNewline (map showSC xs)
     where (fg, g) = cstore
           xs = subFunc g
@@ -1668,4 +1641,4 @@ ssc_4_6_5_ECase = "cons  = Pack{2, 2} ; " ++
 --------------------------------
 
 main :: IO()
-main = (putStrLn . fullRun) ex_4_25_2
+main = (putStrLn . fullRun) ex_4_25
