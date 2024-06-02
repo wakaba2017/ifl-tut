@@ -291,7 +291,7 @@ compiledPrimitives  -- Mark2で変更
     , ("~=",     [Take 2, Push (Code [Push (Code [Op NotEq, Return]), Enter (Arg 1)]), Enter (Arg 2)])
     , ("if",     [Take 3, Push (Code [Cond [Enter (Arg 2)] [Enter (Arg 3)]]), Enter (Arg 1)])
     -}
-      ("topCont",  [Take 2 0, Switch [(1, []), (2, [Move 1 (Data 1), Move 2 (Data 2), Push (Label "headCont"), Enter (Arg 1)])]])
+      ("topCont",  [Switch [(1, []), (2, [Move 1 (Data 1), Move 2 (Data 2), Push (Label "headCont"), Enter (Arg 1)])]])
     , ("headCont", [Print, Push (Label "topCont"), Enter (Arg 2)])
     ]
 
@@ -404,7 +404,8 @@ compileU e u env d
     where (d_, is) = compileR e env d
 
 -- Mark5で追加
-compileE :: (Int, [Name], CoreExpr) -> TimCompilerEnv -> Int -> (Int, (Int, [Instruction]))
+-- compileE :: (Int, [Name], CoreExpr) -> TimCompilerEnv -> Int -> (Int, (Int, [Instruction]))
+compileE :: CoreAlt -> TimCompilerEnv -> Int -> (Int, (Int, [Instruction]))
 compileE (t, args, expr) env d
   = (d_, (t, is_moves ++ is_body))
     where
@@ -466,7 +467,8 @@ step (output, (Take t n : instr), fptr, dfptr, usdsltnum, stack, vstack, dump, h
         usdsltnum_ = getUsedSlotNumber instr
 step (output, [Enter am], fptr, dfptr, usdsltnum, stack, vstack, dump, heap, cstore, stats)  -- 遷移規則 (4.6, 4.7, 4.8, 4.9)
   = (output, instr', fptr', dfptr, usdsltnum_, stack, vstack, dump, heap, cstore, stats)
-    where (instr',fptr') = amToClosure am fptr heap cstore
+    -- where (instr',fptr') = amToClosure am fptr heap cstore
+    where (instr',fptr') = amToClosure am fptr dfptr heap cstore
           usdsltnum_ = case instr_ of
                        [] -> usdsltnum
                        Take _ _ : _ -> case fptr' of
@@ -481,7 +483,8 @@ step (output, [Enter am], fptr, dfptr, usdsltnum, stack, vstack, dump, heap, cst
                    Label l -> codeLookup cstore l
                    _ -> []
 step (output, (Push am:instr), fptr, dfptr, usdsltnum, stack, vstack, dump, heap, cstore, stats)  -- 遷移規則 (4.2, 4.3, 4.4, 4.5)
-  = (output, instr, fptr, dfptr, usdsltnum, amToClosure am fptr heap cstore : stack, vstack, dump, heap, cstore, stats)
+  -- = (output, instr, fptr, dfptr, usdsltnum, amToClosure am fptr heap cstore : stack, vstack, dump, heap, cstore, stats)
+  = (output, instr, fptr, dfptr, usdsltnum, amToClosure am fptr dfptr heap cstore : stack, vstack, dump, heap, cstore, stats)
 step (output, [Return], fptr, dfptr, usdsltnum, [], n : vstack, (fptru, x, stack) : dump, heap, cstore, stats)  -- 遷移規則 (4.16)  Mark4で追加
   = (output, [Return], fptr, dfptr, usdsltnum, stack, n : vstack, dump, newHeap, cstore, stats)
     where newHeap = fUpdate heap fptru x (intCode, FrameInt n)
@@ -560,7 +563,8 @@ step (output, (Move i a : instr), fptr, dfptr, usdsltnum, stack, vstack, dump, h
                                        where
                                          FClosure f = hLookup heap addr
                      _ -> 0
-      newHeap | i <= curFrameSize = fUpdate heap fptr i (amToClosure a fptr heap cstore)
+      -- newHeap | i <= curFrameSize = fUpdate heap fptr i (amToClosure a fptr heap cstore)
+      newHeap | i <= curFrameSize = fUpdate heap fptr i (amToClosure a fptr dfptr heap cstore)
               | otherwise = error ("Move instruction argument slot number " ++ show i ++ " exceeds frame size " ++ show curFrameSize)
 step (output, (PushMarker x : instr), fptr, dfptr, usdsltnum, stack, vstack, dump, heap, cstore, stats)  -- 遷移規則 (4.16)  Mark4で追加
   = (output, instr, fptr, dfptr, usdsltnum, [], vstack, (fptr, x, stack) : dump, heap, cstore, stats)
@@ -583,7 +587,8 @@ step (output, [Switch brchs], fptr, dfptr, usdsltnum, stack, vstack, dump, heap,
       instr | length tmpList == 1 = head tmpList
             | otherwise           = error "Switch instrustion error."
 step (output, [ReturnConstr t], fptr, dfptr, usdsltnum, (instr', fptr') : stack, vstack, dump, heap, cstore, stats)  -- 遷移規則 (4.19)  Mark5で追加
-  = (output, newInstr, fptr', fptr, usdsltnum_, stack, t : vstack, dump, heap, cstore, stats)
+  | length instr' == 0 && length stack == 0 = (output, [Enter (Label "topCont")], FrameAddr addr_, fptr, usdsltnum_, stack, t : vstack, dump, newHeap, cstore, stats)
+  | otherwise                               = (output, instr', fptr', fptr, usdsltnum_, stack, t : vstack, dump, heap, cstore, stats)
     where usdsltnum_ = case instr' of
                        [] -> usdsltnum
                        Take _ _ : _ -> case fptr of
@@ -609,8 +614,7 @@ step (output, [ReturnConstr t], fptr, dfptr, usdsltnum, (instr', fptr') : stack,
                                   instr_ に Push (Code _) が含まれていたら、fptr' が指すフレームに含まれる全スロットを usdsltnum_ にする。
                                   そうでなかったら、getUsedSlotNumber instr_ の戻り値を usdsltnum_ にする。
                                 -}
-          newInstr | length instr' == 0 && length stack == 0 = [Enter (Label "topCont")]
-                   | otherwise                               = instr'
+          (newHeap, addr_) = hAlloc heap (FClosure [([], FrameNull), ([], FrameNull)])
 step (output, [ReturnConstr t], fptr, dfptr, usdsltnum, [], vstack, (fptru, x, stack) : dump, heap, cstore, stats)  -- 遷移規則 (4.20)  Mark5で追加
   = (output, [ReturnConstr t], fptr, dfptr, usdsltnum, stack, vstack, dump, newHeap, cstore, stats)
     where newHeap = fUpdate heap fptru x ([ReturnConstr t], fptr)
@@ -622,11 +626,19 @@ step (output, (Print : instr), fptr, dfptr, usdsltnum, stack, vstack, dump, heap
       newOutput | length vstack > 0 = output ++ show(head vstack) ++ " "
                 | otherwise         = error "Print : vstack is empty."
 
+{-
 amToClosure :: TimAMode -> FramePtr -> TimHeap -> CodeStore -> Closure
 amToClosure (Arg n)      fptr heap cstore = fGet heap fptr n             -- 遷移規則 (4.2, 4.7)
 amToClosure (Code il)    fptr heap cstore = (il, fptr)                   -- 遷移規則 (4.4, 4.8)
 amToClosure (Label l)    fptr heap cstore = (codeLookup cstore l, fptr)  -- 遷移規則 (4.3, 4.6)
 amToClosure (IntConst n) fptr heap cstore = (intCode, FrameInt n)        -- 遷移規則 (4.5, 4.9)
+-}
+amToClosure :: TimAMode -> FramePtr -> FramePtr -> TimHeap -> CodeStore -> Closure
+amToClosure (Arg n)      fptr dfptr heap cstore = fGet heap fptr n             -- 遷移規則 (4.2, 4.7)
+amToClosure (Code il)    fptr dfptr heap cstore = (il, fptr)                   -- 遷移規則 (4.4, 4.8)
+amToClosure (Label l)    fptr dfptr heap cstore = (codeLookup cstore l, fptr)  -- 遷移規則 (4.3, 4.6)
+amToClosure (IntConst n) fptr dfptr heap cstore = (intCode, FrameInt n)        -- 遷移規則 (4.5, 4.9)
+amToClosure (Data n)     fptr dfptr heap cstore = fGet heap dfptr n            -- 遷移規則 (4.x)
 
 intCode = [PushV FramePtr, Return]  -- Mark2で変更
 
