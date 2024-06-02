@@ -291,7 +291,7 @@ compiledPrimitives  -- Mark2で変更
     , ("~=",     [Take 2, Push (Code [Push (Code [Op NotEq, Return]), Enter (Arg 1)]), Enter (Arg 2)])
     , ("if",     [Take 3, Push (Code [Cond [Enter (Arg 2)] [Enter (Arg 3)]]), Enter (Arg 1)])
     -}
-      ("topCont",  [Take 2 0, Switch [(1, []), (2, [Move 1 (Data 1), Move 2 (Data 2), Push (Label "headCont"), Enter (Arg 1)])]])
+      ("topCont",  [Switch [(1, []), (2, [Move 1 (Data 1), Move 2 (Data 2), Push (Label "headCont"), Enter (Arg 1)])]])
     , ("headCont", [Print, Push (Label "topCont"), Enter (Arg 2)])
     ]
 
@@ -626,7 +626,8 @@ step (output, [Switch brchs], fptr, dfptr, usdsltnum, stack, vstack, dump, heap,
       instr | length tmpList == 1 = head tmpList
             | otherwise           = error "Switch instrustion error."
 step (output, [ReturnConstr t], fptr, dfptr, usdsltnum, (instr', fptr') : stack, vstack, dump, heap, cstore, stats)  -- 遷移規則 (4.19)  Mark5で追加
-  = (output, newInstr, fptr', fptr, usdsltnum_, stack, t : vstack, dump, heap, cstore, stats)
+  | length instr' == 0 && length stack == 0 = (output, [Enter (Label "topCont")], FrameAddr addr_, fptr, usdsltnum_, stack, t : vstack, dump, newHeap, cstore, stats)
+  | otherwise                               = (output, instr', fptr', fptr, usdsltnum_, stack, t : vstack, dump, heap, cstore, stats)
     where usdsltnum_ = case instr' of
                        [] -> usdsltnum
                        Take _ _ : _ -> case fptr of
@@ -652,8 +653,7 @@ step (output, [ReturnConstr t], fptr, dfptr, usdsltnum, (instr', fptr') : stack,
                                   instr_ に Push (Code _) が含まれていたら、fptr' が指すフレームに含まれる全スロットを usdsltnum_ にする。
                                   そうでなかったら、getUsedSlotNumber instr_ の戻り値を usdsltnum_ にする。
                                 -}
-          newInstr | length instr' == 0 && length stack == 0 = [Enter (Label "topCont")]
-                   | otherwise                               = instr'
+          (newHeap, addr_) = hAlloc heap (FClosure [([], FrameNull), ([], FrameNull)])
 step (output, [ReturnConstr t], fptr, dfptr, usdsltnum, [], vstack, (fptru, x, stack) : dump, heap, cstore, stats)  -- 遷移規則 (4.20)  Mark5で追加
   = (output, [ReturnConstr t], fptr, dfptr, usdsltnum, stack, vstack, dump, newHeap, cstore, stats)
     where newHeap = fUpdate heap fptru x ([ReturnConstr t], fptr)
@@ -1615,5 +1615,4 @@ ssc_4_6_5_ECase = "cons  = Pack{2, 2} ; " ++
 --------------------------------
 
 main :: IO()
--- main = (putStrLn . fullRun) ex_4_25
-main = (putStrLn . runProg) ex_4_25_1000
+main = (putStrLn . fullRun) ex_4_25_2
