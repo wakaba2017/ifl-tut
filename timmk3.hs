@@ -295,7 +295,8 @@ compileR (ELet recursion defs e) env d  -- Mark3で追加
       (dn, ams) = mapAccuml subFunc1 (d + length defs) defs2
       env_  = (zip2 defs1 (map Arg [(d+1)..])) ++ env
       env__ = (zip2 defs1 (map mkIndMode [(d+1)..])) ++ env
-      (d_, is) = compileR e env_ dn
+      (d_, is) | recursion == True = compileR e env__ dn
+               | otherwise         = compileR e env_  dn
       subFunc2 n am = (n + 1, Move n am)
       (_, mvinstrs) = mapAccuml subFunc2 (d + 1) ams
 compileR (EAp (EAp (EAp (EVar "if") e0) e1) e2) env d  -- Mark3で変更
@@ -866,6 +867,14 @@ b_3_1_3 = "cons a b cc cn = cc a b ;" ++
           "length xs = xs length1 0 ;" ++
           "length1 x xs = 1 + (length xs) ;" ++
           "main = length (cons 3 (cons 3 (cons 3 nil)))"
+b_3_1_4 = "cons a b cc cn = cc a b ;" ++
+          "nil cc cn = cn ;" ++
+          "total  acc   xs = xs total_ acc ;" ++
+          "total_ acc x xs = total (acc + x) xs ;" ++
+          "main = total 0 nil"  -- 結果は0になる
+          -- "main = total 0 (cons 1 nil)"  -- vstackの中身は空
+          -- "main = total 0 (cons 1 (cons 2 (cons 3 (cons 4 (cons 5 nil)))))"  -- vstackの中身は空
+          -- "main = cons 1 (cons 2 (cons 3 (cons 4 (cons 5 nil))))"  -- Mark3ではリストを返すことはできない？
 -- 条件分岐あり --
 b_3_2_1 = "fac n = if (n==0) 1 (n * fac (n-1)) ;" ++
           "main = fac 5"
