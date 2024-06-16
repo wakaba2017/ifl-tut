@@ -298,10 +298,10 @@ compileR (ELet recursion defs e) env d  -- Mark3で追加
         | recursion == True = compileA ee env__ dd  -- letrec の場合
         | otherwise         = compileA ee env   dd  -- let    の場合
       (dn, ams) = mapAccuml subFunc1 (d + length defs) defs2
-      -- env_  = (zip2 defs1 (map Arg [(d+1)..])) ++ env
-      env_  = (zip2 defs1 (map mkUpdIndMode [(d+1)..])) ++ env  -- Mark4で変更
-      env__ = (zip2 defs1 (map mkIndMode [(d+1)..])) ++ env  -- Mark3で変更
-      (d_, is) = compileR e env_ dn
+      env_  = (zip2 defs1 (map Arg [(d+1)..])) ++ env
+      env__  = (zip2 defs1 (map mkUpdIndMode [(d+1)..])) ++ env  -- Mark4で変更
+      (d_, is) | recursion == True = compileR e env__ dn
+               | otherwise         = compileR e env_  dn
       subFunc2 n am = (n + 1, Move n am)
       (_, mvinstrs) = mapAccuml subFunc2 (d + 1) ams
 compileR (EAp (EAp (EAp (EVar "if") e0) e1) e2) env d  -- Mark3で変更
@@ -1006,6 +1006,10 @@ test_program_for_let1' = "main = let x = 1 " ++
 -- 更新のテスト --
 ex_4_16 = "f x = x + x ; " ++
           "main = f (1+2)"
+ex_4_16_1 = "f x = let    y = x in y + y ; main = f (((((((((1 + 2) + 3) + 4) + 5) + 6) + 7) + 8) + 9) + 10)"
+ex_4_16_2 = "f x = letrec y = x in y + y ; main = f (((((((((1 + 2) + 3) + 4) + 5) + 6) + 7) + 8) + 9) + 10)"
+ex_4_16_3 = "double x = x + x ; main = double (double (double 3))"
+ex_4_16_4 = "f x = let y = x + x in y * y ; main = f (3+5)"
 ex_4_17 = "compose2 f g x = f (g x)"
 ssc_4_5_4_1 = "g x y = x + y ; " ++
               "f x = g x x ; " ++
