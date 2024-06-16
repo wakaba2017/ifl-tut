@@ -1636,9 +1636,21 @@ ssc_4_6_5_ECase = "cons  = Pack{2, 2} ; " ++
   -- case の分岐 <2> の引数 ys のために、Data 2 を Move する命令は生成されていない模様。
 -}
 
+ex_4_28_1 = "fac n = if (n==0) 1 (n * fac (n-1)) ;" ++
+            "x = fac 3 ; " ++
+            "y = x + 2 ; " ++
+            "z = x - 3 ; " ++
+            "main = y * z"
+
+ex_4_28_2 = "fac n = if (n==0) 1 (n * fac (n-1)) ;" ++
+            "f x = fac x ; " ++
+            "y = f 3 + 2 ; " ++
+            "z = f 3 - 3 ; " ++
+            "main = y * z"
+
 --------------------------------
 -- テストプログラム (ここまで) --
 --------------------------------
 
 main :: IO()
-main = (putStrLn . fullRun) ex_4_25
+main = (putStrLn . fullRun) ex_4_28_1
