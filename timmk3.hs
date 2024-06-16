@@ -981,6 +981,11 @@ test_program_for_let1' = "main = let x = 1 " ++
                                 "in " ++
                                 "  let y = 2 " ++
                                 "  in x + y"
+-- 更新の効果確認テスト --
+ex_4_16_1 = "f x = let    y = x in y + y ; main = f (((((((((1 + 2) + 3) + 4) + 5) + 6) + 7) + 8) + 9) + 10)"
+ex_4_16_2 = "f x = letrec y = x in y + y ; main = f (((((((((1 + 2) + 3) + 4) + 5) + 6) + 7) + 8) + 9) + 10)"
+ex_4_16_3 = "double x = x + x ; main = double (double (double 3))"
+ex_4_16_4 = "f x = let y = x + x in y * y ; main = f (3+5)"
 --------------------------------
 -- テストプログラム (ここまで) --
 --------------------------------
