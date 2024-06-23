@@ -366,7 +366,7 @@ compileR (ELet recursion defs e) env d  -- Mark3で追加
         | recursion == True = compileU ee (dd - length defs + 1) env_ dd  -- letrec の場合
         | otherwise         = compileU ee (dd - length defs + 1) env  dd  -- let    の場合
       (dn, ams) = mapAccuml subFunc1 (d + length defs) defs2
-      env_  = (zip2 defs1 (map (\x -> Code [Enter (Arg x)]) [(d+1)..])) ++ env  -- Mark4で変更
+      env_  = (zip2 defs1 (map mkIndMode [(d+1)..])) ++ env  -- Mark4で変更
       (d_, is) = compileR e env_ dn
       subFunc2 n am = (n + 1, Move n am)
       (_, mvinstrs) = mapAccuml subFunc2 (d + 1) ams
@@ -1663,9 +1663,16 @@ ex_4_28_2 = "fac n = if (n==0) 1 (n * fac (n-1)) ;" ++
             "z = f 3 - 3 ; " ++
             "main = y * z"
 
+ex_4_28_3 = "fac n = if (n==0) 1 (n * fac (n-1)) ;" ++
+            "f x = fac x ; " ++
+            "x = f 3 + 2 ; " ++  -- x = 3! + 2 =  6 + 2 =  8
+            "y = f 4 + 3 ; " ++  -- y = 4! + 3 = 24 + 3 = 27
+            "z = f 3 - 1 ; " ++  -- z = 3! - 1 =  6 - 1 =  5
+            "main = x * z - y"   -- main = 8 * 5 - 27 = 40 - 27 = 13
+
 --------------------------------
 -- テストプログラム (ここまで) --
 --------------------------------
 
 main :: IO()
-main = (putStrLn . fullRun) ex_4_28_1
+main = (putStrLn . fullRun) ex_4_28_3
