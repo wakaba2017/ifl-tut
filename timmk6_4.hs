@@ -72,7 +72,8 @@ type TimState = (TimOutput,     -- Current Output  -- Mark5で追加
                  TimValueStack, -- Value stack (Mark2から使用開始)
                  TimDump,       -- Dump (not used yet)
                  TimHeap,       -- Heap of frames
-                 CodeStore,     -- Labelled blocks of code
+                 CodeStore,     -- Heap address of global frame
+                 ASSOC Name Int,  -- associative list of SC name and its index
                  TimStats)      -- Statistics
 
 data FramePtr = FrameAddr Addr -- The address of a frame
@@ -180,10 +181,10 @@ statIncSteps (steps, exctime, totalheap, totalclosure, maxstkdepth, maxvstkdepth
 statGetSteps (steps, exctime, totalheap, totalclosure, maxstkdepth, maxvstkdepth)
   = steps
 
--- Mark5で変更 (出力情報とデータフレームポインタを追加)
+-- Mark5で変更 (出力情報とデータフレームポインタを追加) Mark6で変更 (CodeStore型変更対応)
 statUpdExectime :: TimState -> TimState
-statUpdExectime (output, instr, frame, dataframe, usedslot, stack, vstack, dump, heap, cstore, (steps, exctime, totalheap, totalclosure, maxstkdepth, maxvstkdepth))
-  = (output, instr, frame, dataframe, usedslot, stack, vstack, dump, heap, cstore, (steps, exctime', totalheap, totalclosure, maxstkdepth, maxvstkdepth))
+statUpdExectime (output, instr, frame, dataframe, usedslot, stack, vstack, dump, heap, cstore, offsets, (steps, exctime, totalheap, totalclosure, maxstkdepth, maxvstkdepth))
+  = (output, instr, frame, dataframe, usedslot, stack, vstack, dump, heap, cstore, offsets, (steps, exctime', totalheap, totalclosure, maxstkdepth, maxvstkdepth))
     where
       curInstr | null instr = Take 0 0  -- Mark3で変更
                | otherwise  = head instr
@@ -195,10 +196,10 @@ statGetExectime :: TimStats -> Int
 statGetExectime (steps, exctime, totalheap, totalclosure, maxstkdepth, maxvstkdepth)
   = exctime
 
--- Mark5で変更 (出力情報とデータフレームポインタを追加)
+-- Mark5で変更 (出力情報とデータフレームポインタを追加) Mark6で変更 (CodeStore型変更対応)
 statUpdAllcdheap :: TimState -> TimState
-statUpdAllcdheap (output, instr, frame, dataframe, usedslot, stack, vstack, dump, heap, cstore, (steps, exctime, totalheap, totalclosure, maxstkdepth, maxvstkdepth))
-  = (output, instr, frame, dataframe, usedslot, stack, vstack, dump, heap, cstore, (steps, exctime, totalheap', totalclosure, maxstkdepth, maxvstkdepth))
+statUpdAllcdheap (output, instr, frame, dataframe, usedslot, stack, vstack, dump, heap, cstore, offsets, (steps, exctime, totalheap, totalclosure, maxstkdepth, maxvstkdepth))
+  = (output, instr, frame, dataframe, usedslot, stack, vstack, dump, heap, cstore, offsets, (steps, exctime, totalheap', totalclosure, maxstkdepth, maxvstkdepth))
     where
       totalheap' | curTotalHeap > totalheap = curTotalHeap
                  | otherwise                = totalheap
@@ -208,10 +209,10 @@ statGetAllcdheap :: TimStats -> Int
 statGetAllcdheap (steps, exctime, totalheap, totalclosure, maxstkdepth, maxvstkdepth)
   = totalheap
 
--- Mark5で変更 (出力情報とデータフレームポインタを追加)
+-- Mark5で変更 (出力情報とデータフレームポインタを追加) Mark6で変更 (CodeStore型変更対応)
 statUpdAllcdclosure :: TimState -> TimState
-statUpdAllcdclosure (output, instr, frame, dataframe, usedslot, stack, vstack, dump, heap, cstore, (steps, exctime, totalheap, totalclosure, maxstkdepth, maxvstkdepth))
-  = (output, instr, frame, dataframe, usedslot, stack, vstack, dump, heap, cstore, (steps, exctime, totalheap, totalclosure_, maxstkdepth, maxvstkdepth))
+statUpdAllcdclosure (output, instr, frame, dataframe, usedslot, stack, vstack, dump, heap, cstore, offsets, (steps, exctime, totalheap, totalclosure, maxstkdepth, maxvstkdepth))
+  = (output, instr, frame, dataframe, usedslot, stack, vstack, dump, heap, cstore, offsets, (steps, exctime, totalheap, totalclosure_, maxstkdepth, maxvstkdepth))
     where
       tempList = map (hLookup heap) (hAddresses heap)
       subFunc (FClosure fcl) = length fcl
@@ -223,10 +224,10 @@ statGetAllcdclosure :: TimStats -> Int
 statGetAllcdclosure (steps, exctime, totalheap, totalclosure, maxstkdepth, maxvstkdepth)
   = totalclosure
 
--- Mark5で変更 (出力情報とデータフレームポインタを追加)
+-- Mark5で変更 (出力情報とデータフレームポインタを追加) Mark6で変更 (CodeStore型変更対応)
 statUpdMaxstkdpth :: TimState -> TimState
-statUpdMaxstkdpth (output, instr, frame, dataframe, usedslot, stack, vstack, dump, heap, cstore, (steps, exctime, totalheap, totalclosure, maxstkdepth, maxvstkdepth))
-  = (output, instr, frame, dataframe, usedslot, stack, vstack, dump, heap, cstore, (steps, exctime, totalheap, totalclosure, maxstkdepth', maxvstkdepth))
+statUpdMaxstkdpth (output, instr, frame, dataframe, usedslot, stack, vstack, dump, heap, cstore, offsets, (steps, exctime, totalheap, totalclosure, maxstkdepth, maxvstkdepth))
+  = (output, instr, frame, dataframe, usedslot, stack, vstack, dump, heap, cstore, offsets, (steps, exctime, totalheap, totalclosure, maxstkdepth', maxvstkdepth))
     where
       maxstkdepth' | curStackDepth > maxstkdepth = curStackDepth
                    | otherwise                   = maxstkdepth
@@ -236,10 +237,10 @@ statGetMaxstkdpth :: TimStats -> Int
 statGetMaxstkdpth (steps, exctime, totalheap, totalclosure, maxstkdepth, maxvstkdepth)
   = maxstkdepth
 
--- Mark5で変更 (出力情報とデータフレームポインタを追加)
+-- Mark5で変更 (出力情報とデータフレームポインタを追加) Mark6で変更 (CodeStore型変更対応)
 statUpdMaxvstkdpth :: TimState -> TimState
-statUpdMaxvstkdpth (output, instr, frame, dataframe, usedslot, stack, vstack, dump, heap, cstore, (steps, exctime, totalheap, totalclosure, maxstkdepth, maxvstkdepth))
-  = (output, instr, frame, dataframe, usedslot, stack, vstack, dump, heap, cstore, (steps, exctime, totalheap, totalclosure, maxstkdepth, maxvstkdepth_))
+statUpdMaxvstkdpth (output, instr, frame, dataframe, usedslot, stack, vstack, dump, heap, cstore, offsets, (steps, exctime, totalheap, totalclosure, maxstkdepth, maxvstkdepth))
+  = (output, instr, frame, dataframe, usedslot, stack, vstack, dump, heap, cstore, offsets, (steps, exctime, totalheap, totalclosure, maxstkdepth, maxvstkdepth_))
     where
       maxvstkdepth_ | curVstackDepth > maxvstkdepth = curVstackDepth
                     | otherwise                     = maxvstkdepth
@@ -267,20 +268,15 @@ compile program
      initialValueStack,      -- Value stack
      initialDump,            -- Dump
      initialHeap,            -- Initial heap  -- Mark6で変更
-     codeStore,              -- Compiled code for supercombinators  -- Mark6で変更
+     codeStore,              -- Heap address of global frame  -- Mark6で変更
+     offsets,                -- associative list of supercombinator name and its index  -- Mark6で追加
      statInitial)            -- Initial statistics
     where
       sc_defs = preludeDefs ++ program
       compiled_sc_defs = map (compileSC initial_env) sc_defs
-      -- compiled_code = compiled_sc_defs ++ compiledPrimitives
       compiled_code = compiledPrimitives ++ compiled_sc_defs
-      {-
-      initial_env = [(name, Label name) | (name, args, body) <- sc_defs] ++
-                    [(name, Label name) | (name, code) <- compiledPrimitives]
-      -}
       initial_env = [(name, Label name index) | (name, args, body) <- sc_defs, (name_, index) <- offsets, name == name_] ++
                     [(name, Label name index) | (name, code) <- compiledPrimitives, (name_, index) <- offsets, name == name_]
-      -- (initialHeap, codeStore) = allocateInitialHeap compiled_code
       (initialHeap, codeStore, offsets) = allocateInitialHeap compiled_code
       k = snd $ head [(name, offset) | (name, offset) <- offsets, name == "main"]
 
@@ -308,17 +304,13 @@ compiledPrimitives  -- Mark2で変更
     , ("~=",     [Take 2, Push (Code [Push (Code [Op NotEq, Return]), Enter (Arg 1)]), Enter (Arg 2)])
     , ("if",     [Take 3, Push (Code [Cond [Enter (Arg 2)] [Enter (Arg 3)]]), Enter (Arg 1)])
     -}
-    --   ("topCont",  [Switch [(1, []), (2, [Move 1 (Data 1), Move 2 (Data 2), Push (Label "headCont"), Enter (Arg 1)])]])
       ("topCont",  [Switch [(1, []), (2, [Move 1 (Data 1), Move 2 (Data 2), Push (Label "headCont" 2), Enter (Arg 1)])]])
-    -- , ("headCont", [Print, Push (Label "topCont"), Enter (Arg 2)])
     , ("headCont", [Print, Push (Label "topCont" 1), Enter (Arg 2)])
     ]
 
 -- Mark6で追加
--- allocateInitialHeap :: [(Name, [Instruction])] -> (TimHeap, CodeStore)
 allocateInitialHeap :: [(Name, [Instruction])] -> (TimHeap, CodeStore, ASSOC Name Int)
 allocateInitialHeap compiled_code
-  -- = (heap, (global_frame_addr, offsets))
   = (heap, global_frame_addr, offsets)
     where
       indexed_code = zip2 [1..] compiled_code
@@ -528,7 +520,7 @@ eval state
       rest_states | timFinal state = []
                   | otherwise      = eval next_state
       -- next_state = doAdmin (step state)
-      (_, _, _, _, _, _, _, _, heap, _, _) = step state  -- Mark5で変更 (出力情報とデータフレームポインタを追加)
+      (_, _, _, _, _, _, _, _, heap, _, _, _) = step state  -- Mark5で変更 (出力情報とデータフレームポインタを追加) Mark6で変更 (CodeStore型変更対応)
       -- next_state = (statUpdMaxstkdpth . statUpdAllcdclosure . statUpdAllcdheap . statUpdExectime . doAdmin) (step state)
       -- next_state' | hSize heap >= 1 = gc (step state)  -- gc有効化
       next_state' | hSize heap >= 1 = step state  -- gc無効化
@@ -538,24 +530,24 @@ eval state
 doAdmin :: TimState -> TimState
 doAdmin state = applyToStats statIncSteps state
 
--- Mark5で変更 (出力情報とデータフレームポインタを追加)
-timFinal (output, [], frame, dataframe, usedslot, stack, vstack, dump, heap, cstore, stats) = True
-timFinal state                                                                              = False
+-- Mark5で変更 (出力情報とデータフレームポインタを追加) Mark6で変更 (CodeStore型変更対応)
+timFinal (output, [], frame, dataframe, usedslot, stack, vstack, dump, heap, cstore, offsets, stats) = True
+timFinal state                                                                                       = False
 
--- Mark5で変更 (出力情報とデータフレームポインタを追加)
+-- Mark5で変更 (出力情報とデータフレームポインタを追加) Mark6で変更 (CodeStore型変更対応)
 applyToStats :: (TimStats -> TimStats) -> TimState -> TimState
-applyToStats stats_fun (output, instr, frame, dataframe, usedslot, stack, vstack, dump, heap, cstore, stats)
-  = (output, instr, frame, dataframe, usedslot, stack, vstack, dump, heap, cstore, stats_fun stats)
+applyToStats stats_fun (output, instr, frame, dataframe, usedslot, stack, vstack, dump, heap, cstore, offsets, stats)
+  = (output, instr, frame, dataframe, usedslot, stack, vstack, dump, heap, cstore, offsets, stats_fun stats)
 
--- Mark5で変更 (出力情報とデータフレームポインタを追加)
-step (output, (Take t n : instr), fptr, dfptr, usdsltnum, stack, vstack, dump, heap, cstore, stats)  -- 遷移規則 (4.x)  Mark3で変更
-  | (t >= n) && (length stack >= n) = (output, instr, fptr', dfptr, usdsltnum_, drop n stack, vstack, dump, heap', cstore, stats)
+-- Mark5で変更 (出力情報とデータフレームポインタを追加) Mark6で変更 (CodeStore型変更対応)
+step (output, (Take t n : instr), fptr, dfptr, usdsltnum, stack, vstack, dump, heap, cstore, offsets, stats)  -- 遷移規則 (4.x)  Mark3で変更
+  | (t >= n) && (length stack >= n) = (output, instr, fptr', dfptr, usdsltnum_, drop n stack, vstack, dump, heap', cstore, offsets, stats)
   | otherwise                       = error "Too small alloc area or too few args for Take instruction"
   where (heap', fptr') = fAlloc heap tmpFrame
         tmpFrame = (take n stack) ++ (take (t - n) (repeat ([], FrameNull)))
         usdsltnum_ = getUsedSlotNumber instr
-step (output, [Enter am], fptr, dfptr, usdsltnum, stack, vstack, dump, heap, cstore, stats)  -- 遷移規則 (4.6, 4.7, 4.8, 4.9)
-  = (output, instr', fptr', dfptr, usdsltnum_, stack, vstack, dump, heap, cstore, stats)
+step (output, [Enter am], fptr, dfptr, usdsltnum, stack, vstack, dump, heap, cstore, offsets, stats)  -- 遷移規則 (4.6, 4.7, 4.8, 4.9)
+  = (output, instr', fptr', dfptr, usdsltnum_, stack, vstack, dump, heap, cstore, offsets, stats)
     where (instr',fptr') = amToClosure am fptr dfptr heap cstore
           usdsltnum_ = case instr_ of
                        [] -> usdsltnum
@@ -566,13 +558,13 @@ step (output, [Enter am], fptr, dfptr, usdsltnum, stack, vstack, dump, heap, cst
                                        _ -> []
                        _ -> getUsedSlotNumber instr_
           instr_ = fst (amToClosure am fptr dfptr heap cstore)
-step (output, (Push am:instr), fptr, dfptr, usdsltnum, stack, vstack, dump, heap, cstore, stats)  -- 遷移規則 (4.2, 4.3, 4.4, 4.5, 4.21, 4.22)
-  = (output, instr, fptr, dfptr, usdsltnum, amToClosure am fptr dfptr heap cstore : stack, vstack, dump, heap, cstore, stats)
-step (output, [Return], fptr, dfptr, usdsltnum, [], n : vstack, (fptru, x, stack) : dump, heap, cstore, stats)  -- 遷移規則 (4.16)  Mark4で追加
-  = (output, [Return], fptr, dfptr, usdsltnum, stack, n : vstack, dump, newHeap, cstore, stats)
+step (output, (Push am:instr), fptr, dfptr, usdsltnum, stack, vstack, dump, heap, cstore, offsets, stats)  -- 遷移規則 (4.2, 4.3, 4.4, 4.5, 4.21, 4.22)
+  = (output, instr, fptr, dfptr, usdsltnum, amToClosure am fptr dfptr heap cstore : stack, vstack, dump, heap, cstore, offsets, stats)
+step (output, [Return], fptr, dfptr, usdsltnum, [], n : vstack, (fptru, x, stack) : dump, heap, cstore, offsets, stats)  -- 遷移規則 (4.16)  Mark4で追加
+  = (output, [Return], fptr, dfptr, usdsltnum, stack, n : vstack, dump, newHeap, cstore, offsets, stats)
     where newHeap = fUpdate heap fptru x (intCode, FrameInt n)
-step (output, [Return], fptr, dfptr, usdsltnum, (instr', fptr') : stack, vstack, dump, heap, cstore, stats)  -- 遷移規則 (4.16)  Mark4で番号のみ変更
-  = (output, instr', fptr', dfptr, usdsltnum_, stack, vstack, dump, heap, cstore, stats)
+step (output, [Return], fptr, dfptr, usdsltnum, (instr', fptr') : stack, vstack, dump, heap, cstore, offsets, stats)  -- 遷移規則 (4.16)  Mark4で番号のみ変更
+  = (output, instr', fptr', dfptr, usdsltnum_, stack, vstack, dump, heap, cstore, offsets, stats)
     where usdsltnum_ = case instr' of
                        [] -> usdsltnum
                        Take _ _ : _ -> case fptr of
@@ -598,14 +590,14 @@ step (output, [Return], fptr, dfptr, usdsltnum, (instr', fptr') : stack, vstack,
                                   instr_ に Push (Code _) が含まれていたら、fptr' が指すフレームに含まれる全スロットを usdsltnum_ にする。
                                   そうでなかったら、getUsedSlotNumber instr_ の戻り値を usdsltnum_ にする。
                                 -}
-step (output, (PushV (IntVConst n) : instr), fptr, dfptr, usdsltnum, stack, vstack, dump, heap, cstore, stats)  -- 遷移規則 (4.14)
-  = (output, instr, fptr, dfptr, usdsltnum, stack, n : vstack, dump, heap, cstore, stats)
-step (output, (PushV FramePtr : instr), (FrameInt n), dfptr, usdsltnum, stack, vstack, dump, heap, cstore, stats)  -- 遷移規則 (4.12)
-  = (output, instr, (FrameInt n), dfptr, usdsltnum, stack, n : vstack, dump, heap, cstore, stats)
-step (output, (Op Neg : instr), fptr, dfptr, usdsltnum, stack, n : vstack, dump, heap, cstore, stats)  -- 遷移規則 (4.10)
-  = (output, instr, fptr, dfptr, usdsltnum, stack, -n : vstack, dump, heap, cstore, stats)
-step (output, (Op op : instr), fptr, dfptr, usdsltnum, stack, n1 : n2 : vstack, dump, heap, cstore, stats)  -- 遷移規則 (4.10)
-  = (output, instr, fptr, dfptr, usdsltnum, stack, result : vstack, dump, heap, cstore, stats)
+step (output, (PushV (IntVConst n) : instr), fptr, dfptr, usdsltnum, stack, vstack, dump, heap, cstore, offsets, stats)  -- 遷移規則 (4.14)
+  = (output, instr, fptr, dfptr, usdsltnum, stack, n : vstack, dump, heap, cstore, offsets, stats)
+step (output, (PushV FramePtr : instr), (FrameInt n), dfptr, usdsltnum, stack, vstack, dump, heap, cstore, offsets, stats)  -- 遷移規則 (4.12)
+  = (output, instr, (FrameInt n), dfptr, usdsltnum, stack, n : vstack, dump, heap, cstore, offsets, stats)
+step (output, (Op Neg : instr), fptr, dfptr, usdsltnum, stack, n : vstack, dump, heap, cstore, offsets, stats)  -- 遷移規則 (4.10)
+  = (output, instr, fptr, dfptr, usdsltnum, stack, -n : vstack, dump, heap, cstore, offsets, stats)
+step (output, (Op op : instr), fptr, dfptr, usdsltnum, stack, n1 : n2 : vstack, dump, heap, cstore, offsets, stats)  -- 遷移規則 (4.10)
+  = (output, instr, fptr, dfptr, usdsltnum, stack, result : vstack, dump, heap, cstore, offsets, stats)
     where
       result = case op of
                Add   -> n1 + n2
@@ -618,12 +610,12 @@ step (output, (Op op : instr), fptr, dfptr, usdsltnum, stack, n1 : n2 : vstack, 
                LtEq  -> if n1 <= n2 then 0 else 1
                Eq    -> if n1 == n2 then 0 else 1
                NotEq -> if n1 /= n2 then 0 else 1
-step (output, [Cond i1 i2], fptr, dfptr, usdsltnum, stack, n : vstack, dump, heap, cstore, stats)  -- 遷移規則 (4.13)
-  = (output, i, fptr, dfptr, usdsltnum, stack, vstack, dump, heap, cstore, stats)
+step (output, [Cond i1 i2], fptr, dfptr, usdsltnum, stack, n : vstack, dump, heap, cstore, offsets, stats)  -- 遷移規則 (4.13)
+  = (output, i, fptr, dfptr, usdsltnum, stack, vstack, dump, heap, cstore, offsets, stats)
     where i | n == 0    = i1
             | otherwise = i2
-step (output, (Move i (Data n) : instr), fptr, dfptr, usdsltnum, stack, vstack, dump, heap, cstore, stats)  -- 遷移規則 (4.x)  Mark5で追加する必要ありそう。
-  = (output, instr, fptr, dfptr, usdsltnum, stack, vstack, dump, newHeap, cstore, stats)
+step (output, (Move i (Data n) : instr), fptr, dfptr, usdsltnum, stack, vstack, dump, heap, cstore, offsets, stats)  -- 遷移規則 (4.x)  Mark5で追加する必要ありそう。
+  = (output, instr, fptr, dfptr, usdsltnum, stack, vstack, dump, newHeap, cstore, offsets, stats)
     where
       curFrameSize = case fptr of
                      FrameAddr addr -> length f
@@ -638,8 +630,8 @@ step (output, (Move i (Data n) : instr), fptr, dfptr, usdsltnum, stack, vstack, 
       newHeap | i <= curFrameSize && n <= curDataFrameSize = fUpdate heap fptr i (fGet heap dfptr n)
               | otherwise = error ("Move instruction argument slot number " ++ show i ++ " or data slot number " ++ show n ++
                                    " exceeds frame size " ++ show curFrameSize ++ " or data frame size " ++ show curDataFrameSize)
-step (output, (Move i a : instr), fptr, dfptr, usdsltnum, stack, vstack, dump, heap, cstore, stats)  -- 遷移規則 (4.x)  Mark3で追加
-  = (output, instr, fptr, dfptr, usdsltnum, stack, vstack, dump, newHeap, cstore, stats)
+step (output, (Move i a : instr), fptr, dfptr, usdsltnum, stack, vstack, dump, heap, cstore, offsets, stats)  -- 遷移規則 (4.x)  Mark3で追加
+  = (output, instr, fptr, dfptr, usdsltnum, stack, vstack, dump, newHeap, cstore, offsets, stats)
     where
       curFrameSize = case fptr of
                      FrameAddr addr -> length f
@@ -649,19 +641,19 @@ step (output, (Move i a : instr), fptr, dfptr, usdsltnum, stack, vstack, dump, h
       -- newHeap | i <= curFrameSize = fUpdate heap fptr i (amToClosure a fptr heap cstore)
       newHeap | i <= curFrameSize = fUpdate heap fptr i (amToClosure a fptr dfptr heap cstore)
               | otherwise = error ("Move instruction argument slot number " ++ show i ++ " exceeds frame size " ++ show curFrameSize)
-step (output, (PushMarker x : instr), fptr, dfptr, usdsltnum, stack, vstack, dump, heap, cstore, stats)  -- 遷移規則 (4.16)  Mark4で追加
-  = (output, instr, fptr, dfptr, usdsltnum, [], vstack, (fptr, x, stack) : dump, heap, cstore, stats)
-step (output, (UpdateMarkers n : instr), fptr, dfptr, usdsltnum, stack, vstack, dump, heap, cstore, stats)  -- 遷移規則 (4.17)  Mark4で追加
-  | length stack >= n = (output, instr, fptr, dfptr, usdsltnum, stack, vstack, dump, heap, cstore, stats)
-  | otherwise         = (output, (UpdateMarkers n : instr), fptr, dfptr, usdsltnum, newStack, vstack, newDump, newHeap, cstore, stats)
+step (output, (PushMarker x : instr), fptr, dfptr, usdsltnum, stack, vstack, dump, heap, cstore, offsets, stats)  -- 遷移規則 (4.16)  Mark4で追加
+  = (output, instr, fptr, dfptr, usdsltnum, [], vstack, (fptr, x, stack) : dump, heap, cstore, offsets, stats)
+step (output, (UpdateMarkers n : instr), fptr, dfptr, usdsltnum, stack, vstack, dump, heap, cstore, offsets, stats)  -- 遷移規則 (4.17)  Mark4で追加
+  | length stack >= n = (output, instr, fptr, dfptr, usdsltnum, stack, vstack, dump, heap, cstore, offsets, stats)
+  | otherwise         = (output, (UpdateMarkers n : instr), fptr, dfptr, usdsltnum, newStack, vstack, newDump, newHeap, cstore, offsets, stats)
                         where
                           (fptru, x, stack_) : newDump = dump
                           newStack                     = stack ++ stack_
                           newHeap                      = fUpdate heap fptru x (instr_, FrameAddr fptr_)
                           instr_                       = foldr (:) (UpdateMarkers n : instr) (map Push (map Arg (reverse [1..(length stack)])))
                           (_, (fptr_ : _), _)          = heap
-step (output, [Switch brchs], fptr, dfptr, usdsltnum, stack, vstack, dump, heap, cstore, stats)  -- 遷移規則 (4.18)  Mark5で追加
-  = (output, instr, fptr, dfptr, usdsltnum, stack, vstack_, dump, heap, cstore, stats)
+step (output, [Switch brchs], fptr, dfptr, usdsltnum, stack, vstack, dump, heap, cstore, offsets, stats)  -- 遷移規則 (4.18)  Mark5で追加
+  = (output, instr, fptr, dfptr, usdsltnum, stack, vstack_, dump, heap, cstore, offsets, stats)
     where
       t | length vstack > 0 = head vstack
         | otherwise         = error "vstack is empty."
@@ -669,9 +661,9 @@ step (output, [Switch brchs], fptr, dfptr, usdsltnum, stack, vstack, dump, heap,
       tmpList = [instr_ | (t_, instr_) <- brchs, t_ == t]
       instr | length tmpList == 1 = head tmpList
             | otherwise           = error "Switch instrustion error."
-step (output, [ReturnConstr t], fptr, dfptr, usdsltnum, (instr', fptr') : stack, vstack, dump, heap, cstore, stats)  -- 遷移規則 (4.19)  Mark5で追加
+step (output, [ReturnConstr t], fptr, dfptr, usdsltnum, (instr', fptr') : stack, vstack, dump, heap, cstore, offsets, stats)  -- 遷移規則 (4.19)  Mark5で追加
   -- = (output, newInstr, fptr', fptr, usdsltnum_, stack, t : vstack, dump, heap, cstore, stats)
-  = (output, newInstr, fptr', fptr, usdsltnum_, stack, t : vstack, dump, newHeap, cstore, stats)
+  = (output, newInstr, fptr', fptr, usdsltnum_, stack, t : vstack, dump, newHeap, cstore, offsets, stats)
     where usdsltnum_ = case instr' of
                        [] -> usdsltnum
                        Take _ _ : _ -> case fptr of
@@ -711,11 +703,11 @@ step (output, [ReturnConstr t], fptr, dfptr, usdsltnum, (instr', fptr') : stack,
                     (instrHeadCont, _) = amToClosure (Label "headCont" 2) fptr dfptr newHeap3 cstore  -- Mark6で変更
                     -- newHeap4 = fUpdate newHeap3 (FrameAddr fg) (codeLookup g "headCont") (instrHeadCont, (FrameAddr addr2))
                     newHeap4 = fUpdate newHeap3 (FrameAddr fg) 2 (instrHeadCont, (FrameAddr addr2))  -- Mark6で変更
-step (output, [ReturnConstr t], fptr, dfptr, usdsltnum, [], vstack, (fptru, x, stack) : dump, heap, cstore, stats)  -- 遷移規則 (4.20)  Mark5で追加
-  = (output, [ReturnConstr t], fptr, dfptr, usdsltnum, stack, vstack, dump, newHeap, cstore, stats)
+step (output, [ReturnConstr t], fptr, dfptr, usdsltnum, [], vstack, (fptru, x, stack) : dump, heap, cstore, offsets, stats)  -- 遷移規則 (4.20)  Mark5で追加
+  = (output, [ReturnConstr t], fptr, dfptr, usdsltnum, stack, vstack, dump, newHeap, cstore, offsets, stats)
     where newHeap = fUpdate heap fptru x ([ReturnConstr t], fptr)
-step (output, (Print : instr), fptr, dfptr, usdsltnum, stack, vstack, dump, heap, cstore, stats)  -- 遷移規則 (4.x)  Mark5で追加
-  = (newOutput, instr, fptr, dfptr, usdsltnum, stack, newVstack, dump, heap, cstore, stats)
+step (output, (Print : instr), fptr, dfptr, usdsltnum, stack, vstack, dump, heap, cstore, offsets, stats)  -- 遷移規則 (4.x)  Mark5で追加
+  = (newOutput, instr, fptr, dfptr, usdsltnum, stack, newVstack, dump, heap, cstore, offsets, stats)
     where
       newVstack | length vstack > 0 = tail vstack
                 | otherwise         = error "Print : vstack is empty."
@@ -731,10 +723,10 @@ amToClosure (Data n)     fptr dfptr heap cstore = fGet heap dfptr n            -
 
 intCode = [PushV FramePtr, Return]  -- Mark2で変更
 
--- Mark5で変更 (出力情報とデータフレームポインタを追加)
+-- Mark5で変更 (出力情報とデータフレームポインタを追加) Mark6で変更 (CodeStore型変更対応)
 gc :: TimState -> TimState
-gc (output, instr, fptr, dfptr, usdsltnum, stack, vstack, dump, heap, cstore, stats)
-  = (output, instr, fptr, dfptr, usdsltnum, stack, vstack, dump, newHeap, cstore, stats)
+gc (output, instr, fptr, dfptr, usdsltnum, stack, vstack, dump, heap, cstore, offsets, stats)
+  = (output, instr, fptr, dfptr, usdsltnum, stack, vstack, dump, newHeap, cstore, offsets, stats)
     where
       adrlst1 = findStackRoots stack fptr heap usdsltnum
       adrlst2 = findFrmPtrRoots_ fptr heap usdsltnum
@@ -890,7 +882,7 @@ showResults states
       showState last_state, iNewline, iNewline, showStats last_state
     ])
     where last_state = last states
-          tempList = [output | (output, _, _, _, _, _, _, _, _, _, _) <- states]
+          tempList = [output | (output, _, _, _, _, _, _, _, _, _, _, _) <- states]
           subFuncForShowResults [] = []
           subFuncForShowResults [x] = []
           subFuncForShowResults (x1 : x2 : xs) | length x1 < length x2 = " " ++ (drop (length x1) x2) ++ "\n" ++ subFuncForShowResults (x2 : xs)
@@ -899,35 +891,25 @@ showResults states
 
 -- Mark5で変更 (出力情報とデータフレームポインタを追加) Mark6で変更 (CodeStore型変更対応)
 showSCDefns :: TimState -> Iseq
-showSCDefns (output, instr, fptr, dfptr, usdsltnum, stack, vstack, dump, heap, cstore, stats)
+showSCDefns (output, instr, fptr, dfptr, usdsltnum, stack, vstack, dump, heap, cstore, offsets, stats)
   = iInterleave iNewline (map showSC xs)
-    {-
-    where (fg, g) = cstore
-          xs = subFunc g
-          subFunc [] = []
-          subFunc ((l, n) : gs) = (l, il) : subFunc gs
-                                  where il = fst $ fGet heap (FrameAddr fg) n
-    -}
-    where fg = cstore
-          xs = map fst global_frame
-          FClosure global_frame = hLookup heap fg
+    where fg = FrameAddr cstore
+          xs = map subFuncForShowSCDefns offsets
+          subFuncForShowSCDefns (name, index) = (name, fst $ fGet heap fg index)
 
--- showSC :: (Name, [Instruction]) -> Iseq
-showSC :: ([Instruction]) -> Iseq
--- showSC (name, il)
-showSC il
+showSC :: (Name, [Instruction]) -> Iseq
+showSC (name, il)
   = iConcat [
-      -- iStr "Code for ", iStr name, iStr ":", iNewline,
+      iStr "Code for ", iStr name, iStr ":", iNewline,
       iStr " ", showInstructions Full il, iNewline, -- iNewline
-      -- iStr "Used slot number for ", iStr name, iStr ":", iNewline,
-      iStr "Used slot number ", iStr ":", iNewline,
+      iStr "Used slot number for ", iStr name, iStr ":", iNewline,
       iStr " ", showUsedSlotNumber il, iNewline,
       iNewline
     ]
 
--- Mark5で変更 (出力情報とデータフレームポインタを追加)
+-- Mark5で変更 (出力情報とデータフレームポインタを追加) Mark6で変更 (CodeStore型変更対応)
 showState :: TimState -> Iseq
-showState (output, instr, fptr, dfptr, usdsltnum, stack, vstack, dump, heap, cstore, stats)
+showState (output, instr, fptr, dfptr, usdsltnum, stack, vstack, dump, heap, cstore, offsets, stats)
   = iConcat [
       iStr "Code: ", showInstructions Terse instr, iNewline,
       showFrame heap fptr,
@@ -1010,9 +992,9 @@ showFramePtr FrameNull     = iStr "null"
 showFramePtr (FrameAddr a) = iStr (show a)
 showFramePtr (FrameInt n)  = iStr "int " `iAppend` iNum n
 
--- Mark5で変更 (出力情報とデータフレームポインタを追加)
+-- Mark5で変更 (出力情報とデータフレームポインタを追加) Mark6で変更 (CodeStore型変更対応)
 showStats :: TimState -> Iseq
-showStats (output, instr, fptr, dfptr, usdsltnum, stack, vstack, dump, heap, code, stats)
+showStats (output, instr, fptr, dfptr, usdsltnum, stack, vstack, dump, heap, code, offsets, stats)
   = iConcat [ iStr "Steps taken = ", iNum (statGetSteps stats), iNewline,
               iStr "No of frames allocated = ", iNum (hSize heap),
               iNewline
@@ -1078,12 +1060,12 @@ showArg d (Data n)     = (iStr "Data ")     `iAppend` (iNum n)  -- Mark5で追�
 
 nTerse = 3
 
--- Mark5で変更 (出力情報とデータフレームポインタを追加)
+-- Mark5で変更 (出力情報とデータフレームポインタを追加) Mark6で変更 (CodeStore型変更対応)
 showCompiledCode :: String -> String
 showCompiledCode coreprg
   = show codes
     where
-      (_, _, _, _, _, _, _, _, _, codes, _) = compile $ parse coreprg
+      (_, _, _, _, _, _, _, _, _, codes, _, _) = compile $ parse coreprg
 
 showUsedSlotNumber :: [Instruction] -> Iseq
 showUsedSlotNumber []
