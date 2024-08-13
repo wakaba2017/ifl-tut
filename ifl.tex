@@ -8899,23 +8899,23 @@ $\mathcal{SC}$ スキームと $\mathcal{R}$ スキームのみが影響を受�
 \vskip\baselineskip
 
 \begin{tabular} {|l|} \hline
-	$U \llbracket e \rrbracket ~ u ~ \rho ~ d$ はペア $(d', ~ am)$ です。       \\
-	ここで、$am$ は環境 $\rho$ における式 $e$ の TIM アドレッシングモードです。 \\
-	$am$ によってアドレス指定されたクロージャがEnterされると、                   \\
-	現在のフレームのスロット $u$ が通常の形式で更新されます。                   \\
-	このコードは、フレームの最初の $d$ スロットが占有されていると想定しており、 \\
-	スロット $(d + 1, ~ \ldots, ~ d')$ を使用します。                           \\
+	$\mathcal{U} \llbracket e \rrbracket ~ u ~ \rho ~ d$ はペア $(d', ~ am)$ です。  \\
+	ここで、$am$ は環境 $\rho$ における式 $e$ の TIM アドレッシングモードです。      \\
+	$am$ によってアドレス指定されたクロージャがEnterされると、                       \\
+	現在のフレームのスロット $u$ が、そのノーマルフォーム(※評価結果)で更新されます。 \\
+	このコードは、フレームの最初の $d$ スロットが占有されていると想定しており、      \\
+	スロット $(d + 1, ~ \ldots, ~ d')$ を使用します。                                \\
 	\\
 	\begin{tabular}{r c l}
-		$U \llbracket e \rrbracket ~ u ~ \rho ~ d$ & $=$ & $(d', ~ \texttt{Code} ~ (\texttt{PushMarker} ~ u ~ \texttt{:} ~ is))$ \\
-		                                           &     & ここで                                                                \\
-		                                           &     & $(d', ~ is) = \mathcal{R} \llbracket e \rrbracket ~ \rho ~ d$         \\
-		                                           &     & です。
+		$\mathcal{U} \llbracket e \rrbracket ~ u ~ \rho ~ d$ & $=$ & ($d'$, \texttt{Code} (\texttt{PushMarker} $u$ \texttt{:} $is$)) \\
+		                                                     &     & ここで                                                          \\
+		                                                     &     & $(d', ~ is) = \mathcal{R} \llbracket e \rrbracket ~ \rho ~ d$   \\
+		                                                     &     & です。
 	\end{tabular}
 	\\ \hline
 	\begin{tabular}{r c l}
 		\multicolumn{3}{l}{$\mathcal{R} \llbracket \texttt{let} ~ x_1 ~ \texttt{=} ~ e_1\texttt{;} ~  \ldots \texttt{;} ~ x_n ~ \texttt{=} ~ e_n ~ \texttt{in} ~ e \rrbracket ~ \rho ~ d$} \\
-		 & $=$ & $(d', ~ \left[ \texttt{Move} ~ (d + 1) ~ am_1, ~ \ldots, ~ \texttt{Move} ~ (d + n) ~ am_n \right]$ ~ \texttt{++} ~ is)                                                    \\
+		 & $=$ & ($d'$, $\left[ \texttt{Move} ~ (d + 1) ~ am_1, ~ \ldots, ~ \texttt{Move} ~ (d + n) ~ am_n \right]$ ~ \texttt{++} $is$)                                                    \\
 		 &     & ここで                                                                                                                                                                    \\
 		 &     & $(d_1, ~ am_1) = \mathcal{U} \llbracket e_1 \rrbracket ~ (d + 1) ~ \rho ~ (d + n)$                                                                                        \\
 		 &     & $(d_2, ~ am_2) = \mathcal{U} \llbracket e_2 \rrbracket ~ (d + 2) ~ \rho ~ d_1$                                                                                            \\
@@ -9012,14 +9012,16 @@ $\mathcal{SC}$ スキームと $\mathcal{R}$ スキームのみが影響を受�
 	$\mathcal{R} \llbracket e \rrbracket ~ \rho$は、環境$\rho$の式$e$の値をスタック上の引数に適用するTIMコードです。 \\
 	\\
 	\begin{tabular}{l c l}
-		$\mathcal{R} \llbracket e ~ a \rrbracket ~ \rho ~ d$             & $=$ & ($d_1$, \texttt{Push} ($\mathcal{A} \llbracket a \rrbracket ~ \rho$) \texttt{:} $is$)                                                            \\
-		                                                                 &     & ここで、$a$ はスーパーコンビネータ、局所変数、                                                                                                   \\
-		                                                                 &     & または整数であり、$d_1, ~ is$は以下の通りです。                                                                                                  \\
-		                                                                 &     & $(d_1, is) = \mathcal{R} \llbracket e \rrbracket ~ \rho ~ d$                                                                                     \\
-		$\mathcal{R} \llbracket e_{fun} ~ e_{arg} \rrbracket ~ \rho ~ d$ & $=$ & ($d_2$, \texttt{Move} (d + 1) $am_{arg}$ \texttt{:} \texttt{Push} (\texttt{Code} [\texttt{Enter} (\texttt{Arg} (d + 1))]) \texttt{:} $is_{fun}$) \\
-		                                                                 &     & ここで、$d_1, ~ d_2, ~ am_{arg}, ~ is_{fum}$は以下の通りです。                                                                                   \\
-		                                                                 &     & $(d_1, am_{arg}) = \mathcal{U} \llbracket e_{arg} \rrbracket ~ (d + 1) ~ \rho ~ (d + 1)$                                                         \\
-		                                                                 &     & $(d_2, is_{fun}) = \mathcal{R} \llbracket e_{fun} \rrbracket ~ \rho ~ d_1$                                                                       \\
+		\multicolumn{3}{l}{$\mathcal{R} \llbracket e ~ a \rrbracket ~ \rho ~ d$}                                                                                  \\
+		 & $=$ & ($d_1$, \texttt{Push} ($\mathcal{A} \llbracket a \rrbracket ~ \rho$) \texttt{:} $is$)                                                            \\
+		 &     & ここで、$a$ はスーパーコンビネータ、局所変数、                                                                                                   \\
+		 &     & または整数であり、$d_1, ~ is$は以下の通りです。                                                                                                  \\
+		 &     & $(d_1, is) = \mathcal{R} \llbracket e \rrbracket ~ \rho ~ d$                                                                                     \\
+		\multicolumn{3}{l}{$\mathcal{R} \llbracket e_{fun} ~ e_{arg} \rrbracket ~ \rho ~ d$}                                                                      \\
+		 & $=$ & ($d_2$, \texttt{Move} (d + 1) $am_{arg}$ \texttt{:} \texttt{Push} (\texttt{Code} [\texttt{Enter} (\texttt{Arg} (d + 1))]) \texttt{:} $is_{fun}$) \\
+		 &     & ここで、$d_1, ~ d_2, ~ am_{arg}, ~ is_{fum}$は以下の通りです。                                                                                   \\
+		 &     & $(d_1, am_{arg}) = \mathcal{U} \llbracket e_{arg} \rrbracket ~ (d + 1) ~ \rho ~ (d + 1)$                                                         \\
+		 &     & $(d_2, is_{fun}) = \mathcal{R} \llbracket e_{fun} \rrbracket ~ \rho ~ d_1$                                                                       \\
 	\end{tabular}
 	\\ \hline
 	\begin{tabular}{r c l l}
@@ -9331,13 +9333,14 @@ Return 命令が空のスタックを見つけると、更新を実行し、ダ�
 
 \begin{tabular} {|l|} \hline
 	\begin{tabular}{l c l}
-		$\mathcal{R} \llbracket \texttt{Pack\{} t, ~ a \texttt{\}} \rrbracket ~ \rho ~ d$                       & $=$ & ($d$, [\texttt{UpdateMarkers} $a$, \texttt{Take} $a$ $a$, \texttt{ReturnConstr} $t$])                      \\
-		$\mathcal{R} \llbracket \texttt{case} ~ e ~ \texttt{of} ~ alt_1 ~ \ldots ~ alt_n \rrbracket ~ \rho ~ d$ & $=$ & ($d'$, \texttt{Push} (\texttt{Code} [\texttt{Switch} [$branch_1 ~ \ldots ~ branch_n$]]) \texttt{:} $is_e$) \\
-		                                                                                                        &     & ここで、$d_1, ~ \ldots, ~ d_n, ~ d', ~ is_e$は以下の通りです。                                             \\
-		                                                                                                        &     & $(d_1, ~ branch_1) = \mathcal{E} \llbracket alt_1 \rrbracket ~ \rho ~ d)$                                  \\
-		                                                                                                        &     & $\dots$                                                                                                    \\
-		                                                                                                        &     & $(d_n, ~ branch_n) = \mathcal{E} \llbracket alt_n \rrbracket ~ \rho ~ d)$                                  \\
-		                                                                                                        &     & $(d', ~ is_e) = \mathcal{R} \llbracket e \rrbracket ~ \rho ~ max(d_1, ~ \ldots, ~ d_n)$                    \\
+		$\mathcal{R} \llbracket \texttt{Pack\{} t, ~ a \texttt{\}} \rrbracket ~ \rho ~ d$ & $=$ & ($d$, [\texttt{UpdateMarkers} $a$, \texttt{Take} $a$ $a$, \texttt{ReturnConstr} $t$])                      \\
+		\multicolumn{3}{l}{$\mathcal{R} \llbracket \texttt{case} ~ e ~ \texttt{of} ~ alt_1 ~ \ldots ~ alt_n \rrbracket ~ \rho ~ d$}                                                                          \\
+		                                                                                  & $=$ & ($d'$, \texttt{Push} (\texttt{Code} [\texttt{Switch} [$branch_1 ~ \ldots ~ branch_n$]]) \texttt{:} $is_e$) \\
+		                                                                                  &     & ここで、$d_1, ~ \ldots, ~ d_n, ~ d', ~ is_e$は以下の通りです。                                             \\
+		                                                                                  &     & $(d_1, ~ branch_1) = \mathcal{E} \llbracket alt_1 \rrbracket ~ \rho ~ d)$                                  \\
+		                                                                                  &     & $\dots$                                                                                                    \\
+		                                                                                  &     & $(d_n, ~ branch_n) = \mathcal{E} \llbracket alt_n \rrbracket ~ \rho ~ d)$                                  \\
+		                                                                                  &     & $(d', ~ is_e) = \mathcal{R} \llbracket e \rrbracket ~ \rho ~ max(d_1, ~ \ldots, ~ d_n)$                    \\
 	\end{tabular}
 	\\ \hline
 	$\mathcal{E} \llbracket alt \rrbracket ~ \rho ~ d$ ($alt$ は \texttt{case} の選択肢) はペア $(d', ~ branch)$ です。 \\
@@ -9346,12 +9349,12 @@ Return 命令が空のスタックを見つけると、更新を実行し、ダ�
 	スロット $(d + 1, ~ \ldots, ~ d')$ を使用します。                                                                   \\
 	\\
 	\begin{tabular}{l c l}
-		$\mathcal{E} \llbracket \texttt{<} t \texttt{>} ~ x_1 ~ \ldots ~ x_n ~ \texttt{->} ~ body \rrbracket ~ \rho ~ d$ & $=$ & ($d'$, $t$ \texttt{->} ($is_{moves}$ \texttt{++} $is_{body}$))                                            \\
-		                                                                                                                 &     & ここで、$d', ~ is_{moves}, ~ is_{body}$は以下の通りです。                                                 \\
-		                                                                                                                 &     & $is_{moves}$ = [\texttt{Move} (d + 1) (\texttt{Data} 1), \ldots, \texttt{Move} (d + n) (\texttt{Data} n)] \\
-		                                                                                                                 &     & $\dots$                                                                                                   \\
-		                                                                                                                 &     & $(d', ~ is_{body}) = \mathcal{R} \llbracket body \rrbracket ~ \rho' ~ (d + n)$                            \\
-		                                                                                                                 &     & $\rho' = [x_1 \mapsto \texttt{Arg} ~ (d + 1), ~ \ldots, ~ x_n \mapsto \texttt{Arg} ~ (d + n)]$            \\
+		\multicolumn{3}{l}{$\mathcal{E} \llbracket \texttt{<} t \texttt{>} ~ x_1 ~ \ldots ~ x_n ~ \texttt{->} ~ body \rrbracket ~ \rho ~ d$} \\
+		 & $=$ & ($d'$, $t$ \texttt{->} ($is_{moves}$ \texttt{++} $is_{body}$))                                                              \\
+		 &     & ここで、$d', ~ is_{moves}, ~ is_{body}$は以下の通りです。                                                                   \\
+		 &     & $is_{moves}$ = [\texttt{Move} (d + 1) (\texttt{Data} 1), \ldots, \texttt{Move} (d + n) (\texttt{Data} n)]                   \\
+		 &     & $(d', ~ is_{body}) = \mathcal{R} \llbracket body \rrbracket ~ \rho' ~ (d + n)$                                              \\
+		 &     & $\rho' = [x_1 \mapsto \texttt{Arg} ~ (d + 1), ~ \ldots, ~ x_n \mapsto \texttt{Arg} ~ (d + n)]$                              \\
 	\end{tabular}
 	\\ \hline
 \end{tabular}
@@ -9635,6 +9638,146 @@ CAFの適切な更新を Mark 4 または Mark 5 TIM に追加するには、次
 \subsection{まとめ}
 
 最終的な TIM コンパイルスキームを図 4.7 と 4.8 にまとめます。
+\vskip\baselineskip
+
+\begin{tabular} {|l|} \hline
+	$\mathcal{SC} \llbracket def \rrbracket ~ \rho$は、環境$\rho$でコンパイルされたスーパーコンビネータ定義$def$の \\
+	TIMコードです。                                                                                                \\
+	\\
+	\begin{tabular}{r c l}
+		$\mathcal{SC} \llbracket f ~ x_1 ~ \ldots ~ x_n ~ \texttt{=} ~ e \rrbracket ~ \rho$ & $=$ & \texttt{UpdateMarkers} $n$ \texttt{:} \texttt{Take} $d'$ $n$ \texttt{:} $is$                                                          \\
+		                                                                                    &     & ここで                                                                                                                                \\
+		                                                                                    &     & $(d', ~ is) = \mathcal{R} \llbracket e \rrbracket ~ \rho[x_1 \mapsto \texttt{Arg} ~ 1, ~ \ldots, ~ x_n \mapsto \texttt{Arg} ~ n] ~ n$ \\
+		                                                                                    &     & です。
+	\end{tabular}
+	\\ \hline
+	$\mathcal{R} \llbracket e \rrbracket ~ \rho ~ d$は、ペア$(d', ~ is)$です。                                     \\
+	ここで、$is$は、環境$\rho$で式$e$の値をスタック上の引数に適用するTIMコードです。                               \\
+	このコードは、フレームの最初の $d$ スロットが占有されていると想定しており、                                    \\
+	スロット $(d + 1 ~ ... ~ d')$ を使用します。                                                                   \\
+	\\
+	\begin{tabular}{r c l}
+		$\mathcal{R} \llbracket e \rrbracket ~ \rho ~ d$                 & $=$ & $\mathcal{B} \llbracket e \rrbracket ~ \rho ~ d$ [\texttt{Return}]                                                                            \\
+		                                                                 &     & ここで、$e$は整数または算術式です。                                                                                                           \\
+		\\
+		$\mathcal{R} \llbracket a \rrbracket ~ \rho ~ d$                 & $=$ & $(d', ~ \left[ \texttt{Enter} ~ (\mathcal{A} \llbracket a \rrbracket ~ \rho) \right])$                                                        \\
+		                                                                 &     & ここで、$a$ はスーパーコンビネータ                                                                                                            \\
+		                                                                 &     & またはローカル変数です。                                                                                                                      \\
+		\\
+		$\mathcal{R} \llbracket e ~ a \rrbracket ~ \rho ~ d$             & $=$ & ($d_1$, \texttt{Push} ($\mathcal{A} \llbracket e_2 \rrbracket ~ \rho$) \texttt{:} $is$)                                                       \\
+		                                                                 &     & ここで、$a$ はスーパーコンビネータ、                                                                                                          \\
+		                                                                 &     & ローカル変数、または整数であり、                                                                                                              \\
+		                                                                 &     & $d_1, ~ is$ は以下の通りです。                                                                                                                \\
+		                                                                 &     & $(d_1, ~ is) = \mathcal{R} \llbracket e \rrbracket ~ \rho ~ d$                                                                                \\
+		                                                                 &     & です。                                                                                                                                        \\
+		\\
+		$\mathcal{R} \llbracket e_{fun} ~ e_{arg} \rrbracket ~ \rho ~ d$ & $=$ & ($d_2$, \texttt{Move} ($d + 1$) $am_{arg}$ \texttt{:} \texttt{Push} ($\mathcal{I} \llbracket d + 1 \rrbracket ~ \rho$) \texttt{:} $is_{fun}$) \\
+		                                                                 &     & ここで $d_2, ~ is_{fun}$ は以下の通りです。                                                                                                   \\
+		                                                                 &     & $(d_1, ~ am_{arg}) = \mathcal{U} \llbracket e_{arg} \rrbracket ~ (d + 1) ~ \rho ~ (d + 1)$                                                    \\
+		                                                                 &     & $(d_2, ~ is_{fun}) = \mathcal{R} \llbracket e_{fun} \rrbracket ~ \rho ~ d_1$                                                                  \\
+		                                                                 &     & です。                                                                                                                                        \\
+	\end{tabular}
+	\\ \hline
+\end{tabular}
+\vskip\baselineskip
+
+\begin{tabular} {|l|} \hline
+	\begin{tabular}{r c l}
+		\multicolumn{3}{l}{$\mathcal{R} \llbracket \texttt{let} ~ x_1 ~ \texttt{=} ~ e_1\texttt{;} ~  \ldots \texttt{;} ~ x_n ~ \texttt{=} ~ e_n ~ \texttt{in} ~ e \rrbracket ~ \rho ~ d$} \\
+		 & $=$ & $(d', ~ \left[ \texttt{Move} ~ (d + 1) ~ am_1, ~ \ldots, ~ \texttt{Move} ~ (d + n) ~ am_n \right]$ ~ \texttt{++} ~ is)                                                    \\
+		 &     & ここで $am_1, ~ \ldots, ~ am_n, ~ is$ は以下の通りです。                                                                                                                  \\
+		 &     & $(d_1, ~ am_1) = \mathcal{U} \llbracket e_1 \rrbracket ~ (d + 1) ~ \rho ~ (d + n)$                                                                                        \\
+		 &     & $(d_2, ~ am_2) = \mathcal{U} \llbracket e_2 \rrbracket ~ (d + 2) ~ \rho ~ d_1$                                                                                            \\
+		 &     & $\ldots$                                                                                                                                                                  \\
+		 &     & $(d_n, ~ am_n) = \mathcal{U} \llbracket e_n \rrbracket ~ \rho ~ d_{n - 1}$                                                                                                \\
+		 &     & $\rho' = \rho \left[x_1 ~ \mapsto ~ \mathcal{U} \llbracket d + 1 \rrbracket, ~ \ldots , ~ x_n ~ \mapsto ~ \mathcal{U} \llbracket d + n \rrbracket \right]$                \\
+		 &     & $(d', ~ is) = \mathcal{R} \llbracket e \rrbracket ~ \rho' ~ d_n$                                                                                                          \\
+		 &     & です。                                                                                                                                                                    \\
+		\\
+		\multicolumn{3}{l}{\texttt{letrec} の場合も同様ですが、$\mathcal{U} \llbracket \rrbracket$ の呼び出しに $\rho$ ではなく}                                                           \\
+		\multicolumn{3}{l}{$\rho'$ が渡される点が異なります。}                                                                                                                             \\
+		\\
+		\multicolumn{3}{l}{$\mathcal{R} \llbracket \texttt{Pack\{} t, ~ a \texttt{\}} \rrbracket ~ \rho ~ d$}                                                                              \\
+		 & $=$ & ($d$, [\texttt{UpdateMarkers} $a$, \texttt{Take} $a$ $a$, \texttt{ReturnConstr} $t$])                                                                                     \\
+		\\
+		\multicolumn{3}{l}{$\mathcal{R} \llbracket \texttt{case} ~ e ~ \texttt{of} ~ alt_1 ~ \ldots ~ alt_n \rrbracket ~ \rho ~ d$}                                                        \\
+		 & $=$ & ($d'$, \texttt{Push} (\texttt{Code} [\texttt{Switch} [$branch_1 ~ \ldots ~ branch_n$]]) \texttt{:} $is_e$)                                                                \\
+		 &     & ここで、$d_1, ~ \ldots, ~ d_n, ~ d', ~ is_e$は以下の通りです。                                                                                                            \\
+		 &     & $(d_1, ~ branch_1) = \mathcal{E} \llbracket alt_1 \rrbracket ~ \rho ~ d)$                                                                                                 \\
+		 &     & $\dots$                                                                                                                                                                   \\
+		 &     & $(d_n, ~ branch_n) = \mathcal{E} \llbracket alt_n \rrbracket ~ \rho ~ d)$                                                                                                 \\
+		 &     & $(d', ~ is_e) = \mathcal{R} \llbracket e \rrbracket ~ \rho ~ max(d_1, ~ \ldots, ~ d_n)$                                                                                   \\
+	\end{tabular}
+	\\ \hline
+	$\mathcal{E} \llbracket alt \rrbracket ~ \rho ~ d$ ($alt$ は \texttt{case} の選択肢) はペア $(d', ~ branch)$ であり、 \\
+	$branch$ は、環境 $\rho$ でコンパイルされた \texttt{Switch} の選択肢です。                                            \\
+	コードは、フレームの最初の $d$ スロットが占有されていると想定し、                                                     \\
+	スロット $(d + 1, ~ \ldots, ~ d')$ を使用します。                                                                     \\
+	\\
+	\begin{tabular}{l c l}
+		\multicolumn{3}{l}{$\mathcal{E} \llbracket \texttt{<} t \texttt{>} ~ x_1 ~ \ldots ~ x_n ~ \texttt{->} ~ body \rrbracket ~ \rho ~ d$} \\
+		 & $=$ & ($d'$, $t$ \texttt{->} ($is_{moves}$ \texttt{++} $is_{body}$))                                                              \\
+		 &     & ここで、$d', ~ is_{moves}, ~ is_{body}$は以下の通りです。                                                                   \\
+		 &     & $is_{moves}$ = [\texttt{Move} (d + 1) (\texttt{Data} 1), \ldots, \texttt{Move} (d + n) (\texttt{Data} n)]                   \\
+		 &     & $(d', ~ is_{body}) = \mathcal{R} \llbracket body \rrbracket ~ \rho' ~ (d + n)$                                              \\
+		 &     & $\rho' = [x_1 \mapsto \texttt{Arg} ~ (d + 1), ~ \ldots, ~ x_n \mapsto \texttt{Arg} ~ (d + n)]$                              \\
+	\end{tabular}
+	\\ \hline
+\end{tabular}
+\vskip\baselineskip
+
+\begin{tabular} {|l|} \hline
+	$\mathcal{U} \llbracket e \rrbracket ~ u ~ \rho ~ d$ はペア $(d', ~ am)$ です。                        \\
+	ここで、$am$ は環境 $\rho$ における式 $e$ の TIM アドレッシングモードです。                            \\
+	$am$ によってアドレス指定されたクロージャがEnterされると、                                             \\
+	現在のフレームのスロット $u$ が、そのノーマルフォーム(※評価結果)で更新されます。                       \\
+	このコードは、フレームの最初の $d$ スロットが占有されていると想定しており、                            \\
+	スロット $(d + 1, ~ \ldots, ~ d')$ を使用します。                                                      \\
+	\\
+	\begin{tabular}{r c l}
+		$\mathcal{U} \llbracket n \rrbracket ~ u ~ \rho ~ d$ & $=$ & $(d, ~ \texttt{IntConst} ~ n)$                                  \\
+		                                                     &     & ここで、$n$ は整数定数です。                                    \\
+		\\
+		$\mathcal{U} \llbracket e \rrbracket ~ u ~ \rho ~ d$ & $=$ & ($d'$, \texttt{Code} (\texttt{PushMarker} $u$ \texttt{:} $is$)) \\
+		                                                     &     & ここで $e$ は整数定数以外であり、$d', ~ is$ は以下の通りです。  \\
+		                                                     &     & $(d', ~ is) = \mathcal{R} \llbracket e \rrbracket ~ \rho ~ d$   \\
+	\end{tabular}
+	\\ \hline
+	$\mathcal{A} \llbracket e \rrbracket ~ \rho$は、環境$\rho$における式$e$のTIMアドレッシングモードです。 \\
+	\\
+	\begin{tabular}{r c l l}
+		$\mathcal{A} \llbracket n \rrbracket ~ \rho ~ d$ & $=$ & $(d, ~ \texttt{IntConst} ~ n)$ & ここで、$n$ は数値です。                           \\
+		\\
+		$\mathcal{A} \llbracket x \rrbracket ~ \rho ~ d$ & $=$ & $(d, ~ \rho ~ x)$              & ここで、$x$ は $\rho$ によって束縛される変数です。 \\
+	\end{tabular}
+	\\ \hline
+	$\mathcal{I} \llbracket d \rrbracket$ はオフセット $d$ のフレームの間接アドレッシングモードです。      \\
+	\\
+	$\mathcal{I} \llbracket d \rrbracket$ = \texttt{Code} [\texttt{Enter} (\texttt{Arg} $d$)]
+	\\ \hline
+	$\mathcal{B} \llbracket e \rrbracket ~ \rho ~ d ~ cont$ はペア $(d', ~ is)$ です。                     \\
+	ここで、$is$ は環境 $\rho$ で $e$ を評価し、                                                           \\
+	その値(整数である必要があります)を値スタックの一番上に置き、                                           \\
+	コードシーケンス $cont$ を続ける TIM コードです。                                                      \\
+	コードは、フレームの最初の $d$ スロットが占有されていると想定し、                                      \\
+	スロット $(d + 1, \ldots, ~ d')$ を使用します。                                                        \\
+	\\
+	\begin{tabular}{r c l}
+		$\mathcal{B} \llbracket e_1 \texttt{+} ~ e_2 \rrbracket ~ \rho ~ d ~ cont$ & $=$                                                                   & $\mathcal{B} \llbracket e_2 \rrbracket ~ \rho ~ d_1 ~ is_1$                                      \\
+		                                                                           & $=$                                                                   & $(d_1, ~ is_1) = \mathcal{B} \llbracket e_1 \rrbracket ~ \rho ~ d ~ (\texttt{Op Add :} ~ cont))$ \\
+		                                                                           & \multicolumn {2} {l} {$\ldots$および他の算術プリミティブの同様の規則}                                                                                                    \\
+		\\
+		$\mathcal{B} \llbracket n \rrbracket ~ \rho ~ d ~ cont$                    & $=$                                                                   & ($d$, \texttt{PushV} (\texttt{IntVConst} $n$) \texttt{:} $cont$)                                 \\
+		                                                                           &                                                                       & ここで、$n$は数値です。                                                                          \\
+		\\
+		$\mathcal{B} \llbracket e \rrbracket ~ \rho ~ d ~ cont$                    & $=$                                                                   & ($d'$, \texttt{Push} (\texttt{Code} $cont$) \texttt{:} $is$)                                     \\
+		                                                                           &                                                                       & ここで、$e$ は数値以外であり、$d', ~ is$ は以下の通りです。                                      \\
+		                                                                           &                                                                       & $(d', ~ is) = \mathcal{R} \llbracket e \rrbracket ~ \rho ~ d$
+	\end{tabular}
+	\\ \hline
+\end{tabular}
+\vskip\baselineskip
+
 明らかな疑問は、「TIMはGマシンより優れているのか、それとも劣っているのか?」ということです。
 答えるのは難しいです。
 私たちのプロトタイプは、設計の選択を検討するのには非常に役立ちますが、本格的なパフォーマンスの比較には全く役に立ちません。
@@ -9733,20 +9876,22 @@ CAFの適切な更新を Mark 4 または Mark 5 TIM に追加するには、次
 おそらくこれは次のように特徴づけることができます。
 
 \begin{quote}
-  並列命令型プログラムは、並列関数型プログラムでは言及すらしないリソース割り当ての決定を詳細に指定します。
+	並列命令型プログラムは、並列関数型プログラムでは言及すらしないリソース割り当ての決定を詳細に指定します。
 \end{quote}
 
 これは、マシンがリソース割り当ての決定を自動的に行うことができる必要があることを意味します。
 これらの決定が最適でない場合には、実行効率を損なうことになり、その代償を支払うことになります。
+\vskip\baselineskip
 
 \textbf{アノテーション}
+\vskip\baselineskip
 
 関数型言語によって提供される高度な抽象化により、コンパイル時および実行時のリソースアロケータに大きな要求が課されます。
 すべてのリソース割り当ての決定をシステムに任せるのではなく、新しい並列スレッドを開始するアノテーション \texttt{par} を導入します。
 アノテーションは、プログラムテキストの意味を保持する装飾です。 \texttt{par} の場合、次の構文と意味になります。
 
 \[
-  \texttt{par} ~ E_1 ~ E_2 =  E_1 ~ E_2
+	\texttt{par} ~ E_1 ~ E_2 =  E_1 ~ E_2
 \]
 
 つまり、\texttt{par} は関数適用の同義語です。
@@ -9770,12 +9915,14 @@ CAFの適切な更新を Mark 4 または Mark 5 TIM に追加するには、次
 実際、これには多くの利点があります。
 
 \begin{itemize}
-  \item プログラムカウンタには連続的な概念はありません。グラフの簡約は分散化され、配布されます。
-  \item 簡約はグラフ内の多くの場所で同時に実行される可能性があり、スケジュールされた相対的な順序が結果に影響することはありません。
-  \item すべての通信と同期はグラフを介して行われます。
+	\item プログラムカウンタには連続的な概念はありません。グラフの簡約は分散化され、配布されます。
+	\item 簡約はグラフ内の多くの場所で同時に実行される可能性があり、スケジュールされた相対的な順序が結果に影響することはありません。
+	\item すべての通信と同期はグラフを介して行われます。
 \end{itemize}
+\vskip\baselineskip
 
 \textbf{並列モデル}
+\vskip\baselineskip
 
 \textbf{タスク}は、特定のサブグラフを WHNF に還元することを目的とした逐次計算です。
 いつでも、実行できるタスクが多数存在する可能性があります。 このスパークされたタスクのコレクションは、\textbf{スパークプール}と呼ばれます。
@@ -9795,9 +9942,9 @@ CAFの適切な更新を Mark 4 または Mark 5 TIM に追加するには、次
 親タスクが、タスクがスパークされたサブグラフの値を必要とする場合、考慮すべきケースが 3 つあります。
 
 \begin{itemize}
-  \item 子タスクはまだ開始されていません。
-  \item 子タスクは開始されましたが、まだ停止していません。
-  \item 子タスクが完了しました。
+	\item 子タスクはまだ開始されていません。
+	\item 子タスクは開始されましたが、まだ停止していません。
+	\item 子タスクが完了しました。
 \end{itemize}
 
 最初のケースでは、親タスクは、あたかも子タスクが存在しないかのようにグラフを評価できます。
@@ -9812,13 +9959,271 @@ CAFの適切な更新を Mark 4 または Mark 5 TIM に追加するには、次
 それ以外の場合はすべて、親の実行は妨げられることなく続行されます。
 ブロックメカニズムがタスク間通信および同期の\textbf{唯一の}形式であることに注意してください。
 グラフの一部が WHNF に対して評価されると、任意の数のタスクが競合することなく同時にそれを検査できます。
+\vskip\baselineskip
+
+\textbf{例}
+\vskip\baselineskip
+
+最も単純な並列プログラムのサンプル実行から始めます。
+
+\begin{verbatim}
+  main = par I (I 3)
+\end{verbatim}
+
+後で説明するように、恒等関数の2つの縮小は並行して行われる。
+\vskip\baselineskip
+
+優れたコンパイラは、\texttt{main} スーパーコンビネータに対して次のコードを生成します。\footnote{コンパイラが十分に洗練されていない場合、このコードを生成しない可能性があります。}
+
+\begin{verbatim}
+  e1 ++ par
+  where e1  = [Pushint 3, Pushglobal "I", Mkap, Push 0]
+        par = [Par, Pushglobal "I", Mkap, Update 0, Pop 0, Unwind]
+\end{verbatim}
+
+最初は、実行中のタスクは1つだけで、部分式 \texttt{(I 3)} を構築しています。
+コードシーケンス \texttt{e1} を実行した後、マシンは図 5.1 の図 (a) に示す状態になります。
+\vskip\baselineskip
+
+\texttt{e1} を実行した後、マシンは \texttt{Par} 命令に遭遇します。
+これにより、スタックの先頭から指定されたノードを評価するための新しいタスクが作成されます。
+新しいタスク \texttt{Task 2} と呼びます。元のタスクは \texttt{Task 1} と呼ばれます。
+この状況は、図 5.1 の図 (b) に示されています。
+\vskip\baselineskip
+
+\includegraphics*[scale=0.5]{Fig_5-1.png}
+
+図 (c) (図 5.2) では、\texttt{Task 1} が評価を続行しており、\texttt{Pushglobal I} 命令を実行していることがわかります。
+新しく作成されたタスク (\texttt{Task 2}) は、コードシーケンス:\texttt{[Unwind]} で始まります。したがって、評価するように割り当てられたグラフのアンワインドを開始します。
+図 (d) は、\texttt{Task 1} が \texttt{main} の本体のインスタンス化を完了し、\texttt{Task 2} がアンワインドを完了していることを示しています。
+\vskip\baselineskip
+
+\includegraphics*[scale=0.5]{Fig_5-2.png}
+
+本体がインスタンス化されると、\texttt{Task 1} は \texttt{main} である redex ノードを上書きします。
+\texttt{Task 2} は \texttt{Push 0} 命令を実行します。これは \texttt{I} スーパーコンビネータのコードの最初の命令です。
+これは図 (e) に示されています (図5.3)。
+図 (f) では、\texttt{Task 1} がスパインを巻き戻し始め、\texttt{Task 2} が更新を実行していることがわかります。
+\vskip\baselineskip
+
+\includegraphics*[scale=0.5]{Fig_5-3.png}
+
+図 5.4 では、\texttt{Task 2} が完了するまで実行されています。
+\texttt{Task 1} の残りの実行は、シーケンシャル G マシンと同じなので省略します。
+\vskip\baselineskip
+
+\includegraphics*[scale=0.5]{Fig_5-4.png}
+
+これで、並列 G マシンの同時タスク実行の概要は終了です。
+最小限の並列 G マシンを提供します。
 \newpage
 
-\subsection{Mark 1: A minimal parallel G-machine}
-\subsubsection{Data type definitions}
-\subsubsection{The evaluator}
-\subsubsection{Compiling a program}
-\subsubsection{Printing the results}
+\subsection{Mark 1: 最小限の並列Gマシン}
+
+最初に紹介するマシンは、第3章のGマシンのいずれか (Mark 1 を除く) をベースにすることができます。
+更新を確実に行うには、この制限が必要です。
+この基本マシンに、並列処理のための機構を追加する必要があります。
+次の基本的な仮定を立てます。
+
+\begin{enumerate}
+	\item すべてのプロセッサがアクセスできる共有グローバル グラフがあります。
+	\item プロセッサの数は無限です。つまり、タスクを実行できるプロセッサが常に存在します。
+	\item グラフ ノードはロックされません。つまり、異なるタスクが同じ式を再評価する可能性があります。
+\end{enumerate}
+
+\subsubsection{データ型の定義}
+
+この章では、状態アクセス関数を多用します。
+特に興味深いものではありませんが、完全性を保つためにこのセクションに含めています。
+\vskip\baselineskip
+
+並列マシンでは、状態 \texttt{pgmState} は、グローバルコンポーネント \texttt{pgmGlobalState} とローカルコンポーネント \texttt{pgmLocalState} の 2 つのコンポーネントに分割されます。
+\texttt{pgmLocalState} には、プログラムを実行するプロセッサが含まれます。
+\texttt{pgmGlobalState} には、プロセッサによって操作されるグローバル データ構造 (最も頻繁に使用されるのはヒープ) が含まれます。
+
+\begin{verbatim}
+  type PgmState = (PgmGlobalState,   -- Current global state
+                   [PgmLocalState])  -- Current states of processors
+\end{verbatim}
+\vskip\baselineskip
+
+\textbf{グローバル状態コンポーネント}
+\vskip\baselineskip
+
+並列実装のベースとして使用できる可能性のあるすべてのマシンに対応するために、グローバル状態は5つのコンポーネントで構成されます。
+プログラムの評価に対する回答として出力される出力である \texttt{gmOutput}、
+ヒープである \texttt{gmHeap}、
+各スーパーコンビネータのヒープ内の一意のノードを指すために使用される \texttt{gmGlobals}、
+タスクプールであり、タスクの実行を開始する前にタスクを保持するために使用される \texttt{gmSparks}、
+およびグローバルクロックである \texttt{gmStats} です。
+
+\begin{verbatim}
+  type PgmGlobalState = (GmOutput,  -- output stream
+                         GmHeap,    -- Heap of nodes
+                         GmGlobals, -- Global addresses in heap
+                         GmSparks,  -- Sparked task pool
+                         GmStats)   -- Statistics
+\end{verbatim}
+
+これらの各コンポーネントを順番に検討します。
+
+\begin{itemize}
+	\item \texttt{gmOutput} コンポーネントは、Mark 6 G-machine で導入されました (セクション3.8を参照)。
+	      これは、構造化データを生成できるプログラムの実行結果を蓄積するために使用され、単なる文字列です。
+	      \begin{verbatim}
+          type GmOutput = [Char]
+        \end{verbatim}
+	      \texttt{pgmState} から \texttt{gmOutput} を取得する関数は \texttt{pgmGetOutput} です。
+	      \begin{verbatim}
+          pgmGetOutput :: PgmState -> GmOutput
+          pgmGetOutput ((o, heap, globals, sparks, stats), locals) = o
+        \end{verbatim}
+	\item ヒープ データ構造は、シーケンシャル G マシンで使用したものと同じです。
+	      \begin{verbatim}
+          type GmHeap = Heap Node
+        \end{verbatim}
+	      \texttt{pgmState} からヒープを取得するには、\texttt{pgmGetHeap} 関数を使用します。
+	      \begin{verbatim}
+          pgmGetHeap :: PgmState -> GmHeap
+          pgmGetHeap ((o, heap, globals, sparks, stats), locals) = heap
+        \end{verbatim}
+	\item ヒープ内のグローバルノードのアドレスは \texttt{gmGlobals} に格納されます。
+	      これもシーケンシャルGマシンで使用したのと同じ構造です。
+	      \begin{verbatim}
+          type GmGlobals = ASSOC Name Addr
+        \end{verbatim}
+	      \texttt{pgmState} から \texttt{gmGlobals} を取得するには、\texttt{pgmGetGlobals} 関数を使用します。
+	      \begin{verbatim}
+          pgmGetGlobals :: PgmState -> GmGlobals
+          pgmGetGlobals ((o, heap, globals, sparks, stats), locals) = globals
+        \end{verbatim}
+	\item スパークプールは、\texttt{gmSparks} コンポーネントによって表されます。
+	      これは、\texttt{par} アノテーションによって同時に評価する必要があるとマークされたグラフ内のノードのアドレスを保持します。
+	      \begin{verbatim}
+          type GmSparks = [Addr]
+        \end{verbatim}
+	      このコンポーネントへのアクセスは、関数 \texttt{pgmGetSparks} を使用して実現されます。
+	      \begin{verbatim}
+          pgmGetSparks :: PgmState -> GmSparks
+          pgmGetSparks ((o, heap, globals, sparks, stats), locals) = sparks
+        \end{verbatim}
+	\item 最後に、並列Gマシンでは、グローバルコンポーネントに蓄積された統計情報を保持します。
+	      これは数値のリストとして表され、マシン内の各タスクが完了するまでに実行された時間の詳細を示します。
+	      \begin{verbatim}
+          type GmStats = [Int]
+        \end{verbatim}
+	      このコンポーネントへのアクセスは、\texttt{pgmGetStats} を使用して行われます。
+	      \begin{verbatim}
+          pgmGetStats :: PgmState -> GmStats
+          pgmGetStats ((o, heap, globals, sparks, stats), locals) = stats
+        \end{verbatim}
+\end{itemize}
+\vskip\baselineskip
+
+\textbf{ローカル状態コンポーネント}
+\vskip\baselineskip
+
+並列Gマシンのローカルコンポーネントはプロセッサのリストで構成されます。
+プロセッサはタスクとして表されます。
+
+ここでも、並列マシンを任意のGマシンをベースとして実行できるようにするために、各プロセッサの状態を5要素のタプルにします。
+
+\begin{verbatim}
+  type PgmLocalState = (GmCode,   -- Instruction stream
+                        GmStack,  -- Pointer stack
+                        GmDump,   -- Stack of dump items
+                        GmVStack, -- Value stack
+                        GmClock)  -- Number of ticks the task has been active
+\end{verbatim}
+
+ここで、各コンポーネントを順番に検討します。
+
+\begin{itemize}
+  \item コードシーケンスは単なる命令のリストです。
+        \begin{verbatim}
+          type GmCode = [Instruction]
+        \end{verbatim} 
+  \item シーケンシャルGマシンと同様に、スタックはヒープ内のアドレスのリストです。
+        \begin{verbatim}
+          type GmStack = [Addr]
+        \end{verbatim}
+  \item 並列実装のベースとして Mark 4 Gマシン (またはそれ以降のマーク) を使用している場合は、ダンプが必要です。
+        これは、それぞれが \texttt{gmDumpItem} 型のダンプ項目のスタックとして使用されます。
+        \begin{verbatim}
+          type GmDump = [GmDumpItem]
+          type GmDumpItem = (GmCode, GmStack)
+        \end{verbatim}
+  \item 実装のベースとして Mark 7 Gマシンを使用した場合は、プロセッサごとにVスタックが必要になります。
+        \begin{verbatim}
+          type GmVStack = [Int]
+        \end{verbatim}
+  \item また、各プロセッサにクロックも提供します。
+        これにより、タスクが実行した命令の数を記録します。
+        \begin{verbatim}
+          type GmClock = Int
+        \end{verbatim}
+\end{itemize}
+\vskip\baselineskip
+
+\textbf{状態アクセス関数}
+\vskip\baselineskip
+
+並列マシンの状態アクセス関数はすでにいくつか定義されていますが、さらにいくつか定義しておくと便利です。
+各プロセッサは1つの状態遷移を行い、その間はシーケンシャルマシンのように動作します。
+状態 \texttt{gmState} を、現在のマシン状態のグローバルコンポーネントと単一のプロセッサ状態からなるペアにすると、
+シーケンシャルGマシンの状態コンポーネントのスーパーセットが得られます。
+
+\begin{verbatim}
+  type GmState = (PgmGlobalState, PgmLocalState)
+\end{verbatim}
+
+したがって、シーケンシャル マシンで使用した状態アクセス関数を、新しいタイプの状態で動作するように単純に再定義できます。
+グローバル \texttt{put} 関数の型シグネチャは次のとおりです。
+
+\begin{verbatim}
+  putOutput :: GmOutput -> GmState -> GmState
+  putHeap :: GmHeap -> GmState -> GmState
+  putSparks :: GmSparks -> GmState -> GmState
+  putStats :: GmStats -> GmState -> GmState
+\end{verbatim}
+
+対応する \texttt{get} 関数の型シグネチャは次の通りです。
+
+\begin{verbatim}
+  getOutput :: GmState -> GmOutput
+  getHeap :: GmState -> GmHeap
+  getGlobals :: GmState -> GmGlobals
+  getSparks :: GmState -> GmSparks
+  getStats :: GmState -> GmStats
+\end{verbatim}
+
+プロセッサのローカルコンポーネントにアクセスするには、次の型シグネチャを持つ関数を配置する必要があります。
+
+\begin{verbatim}
+  putCode :: GmCode -> GmState -> GmState
+  putStack :: GmStack -> GmState -> GmState
+  putDump :: GmDump -> GmState -> GmState
+  putVStack :: GmVStack -> GmState -> GmState
+  putClock :: GmClock -> GmState -> GmState
+\end{verbatim}
+
+\texttt{get} 関数の型シグネチャは次の通りです。
+
+\begin{verbatim}
+  getCode :: GmState -> GmCode
+  getStack :: GmState -> GmStack
+  getDump :: GmState -> GmDump
+  getVStack :: GmState -> GmVStack
+  getClock :: GmState -> GmClock
+\end{verbatim}
+
+\begin{description}
+	\item[演習 5.1] 上記の型を使用してアクセス関数を記述します。
+\end{description}
+
+\subsubsection{評価器}
+\subsubsection{プログラムのコンパイル}
+\subsubsection{結果の表示}
 \newpage
 
 \subsection{Mark 2: The evaluate-and-die model}
