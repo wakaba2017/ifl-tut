@@ -10364,6 +10364,120 @@ Mark 4 以降のGマシンに基づく場合は以下を使用します。
 \end{description}
 
 \subsubsection{プログラムのコンパイル}
+
+\texttt{par} 関数のコンパイル済みプリミティブを提供することで、シーケンシャルマシン (Mark 7 を除く) のいずれかに基づく並列マシン用のシンプルなコンパイラを構築できます。
+Mark 7 ベースのマシンでは、より広範な変更が必要です。
+\vskip\baselineskip
+
+他に必要な変更は \texttt{compile} 関数にあります。
+ここでは、さまざまなコンポーネントがさまざまな場所に存在するようになり、もちろんプロセッサの数も増えました。
+新しい定義は次のとおりです。
+
+\begin{verbatim}
+  compile :: CoreProgram -> PgmState
+  compile program
+    = (([], heap, globals, [], []), [initialTask addr])
+      where (heap, globals) = buildInitialHeap program
+            addr = aLookup globals "main" (error "main undefined")
+\end{verbatim}
+
+これにより、シーケンシャルGマシンで使用されるように、グローバルコンポーネントがヒープとグローバルマップを保持するよう設定されます。
+また、実行を開始するために、ローカルコンポーネントにタスクを配置します。
+
+\begin{verbatim}
+  initialTask :: Addr -> PgmLoccalState
+  initialTask addr = (initialCode, [addr], [], [], 0)
+\end{verbatim}
+
+Mark 2 または Mark 3 シーケンシャルGマシンをベースとして使用する場合は、\texttt{initialCode} を次のように定義する必要があります。
+
+\begin{verbatim}
+  initialCode :: GmCode
+  initialCode = [Unwind]
+\end{verbatim}
+
+Mark 4 または Mar 5 マシンの場合、これは次のように変更されます。
+
+\begin{verbatim}
+  initialCode = [Eval]
+\end{verbatim}
+
+また、データ構造を処理するために、Mark 6 および Mark 7 マシンの \texttt{initialCode} は次のようになります。
+
+\begin{verbatim}
+  initialCode = [Eval, Print]
+\end{verbatim}
+
+ここで、マシンの基本機能に \texttt{par} を追加する方法を検討します。
+まず、シーケンシャルGマシン Mark 2 から 6 に基づくマシンを検討します。
+\vskip\baselineskip
+
+\textbf{Mark 2-6 Gマシンをベースとして}
+\vskip\baselineskip
+
+\texttt{compiledPrimitives} の定義には、次の内容を含める必要があります。
+
+\begin{verbatim}
+  ("par", 2, [Push 1, Push 1, Mkap, Push 2, Par, Update 2, Pop 2, Unwind])
+\end{verbatim}
+
+このかなり難解なコードは、関数 \texttt{par} が 2 つの引数 $E_1$ と $E_2$ に適用されたときに、次のタスクを実行します。
+
+\begin{enumerate}
+  \item まず、$E_1$ を $E_2$ に適用します。これがシーケンスの役割です。
+        \begin{verbatim}
+        	[Push 1, Push 1, Mkap]
+        \end{verbatim}
+  \item 次に、\texttt{Push 2} は $E_2$ へのポインタのコピーを作成します。
+        次に、\texttt{Par} 命令がこのアドレスをスパークプールに追加します。
+  \item 最後に、インスタンス化後に通常の更新と整理を実行します。
+\end{enumerate}
+\vskip\baselineskip
+
+\textbf{マーク7 Gマシンをベースに}
+\vskip\baselineskip
+
+上で述べたように、これは少しトリッキーな操作です。
+\texttt{par} を含む特殊なケースを認識するために、コンパイラ関数 \texttt{compileR} と \texttt{compileE} を変更する必要があります。
+まず、\texttt{compileR} に次のケースを追加する必要があります。
+
+\begin{verbatim}
+  compileR (EAp (EAp (EVar "par") e1) e2) args
+    = compileC e2 args ++ [Push 0, Par] ++
+      compileC e1 (argOffset 1 args) ++ [Mkap, Update n, Pop n, Unwind]
+      where n = #args
+\end{verbatim}
+
+これは $\mathcal{C}$ スキームを使用して \texttt{e2} をコンパイルし、その後スパークします。
+式 \texttt{e1} は、アプリケーションノードを作成する前に $\mathcal{C}$ スキームを使用してコンパイルされます。
+最後に、スタックの更新と整理を実行します。
+\vskip\baselineskip
+
+次に、\texttt{compileE} を修正して、次のケースを作成します。
+
+\begin{verbatim}
+  compileE (EAp (EAp (EVar "par") e1) e2) args
+    = compileC e2 args ++ [Push 0, Par] ++
+      compileC e1 (argOffset 1 args) ++ [Mkap, Eval]
+\end{verbatim}
+
+これは、作成されるアプリケーションノードを WHNF に強制するために \texttt{Eval} を使用するという点でのみ、\texttt{compileR} の場合と異なります。
+\vskip\baselineskip
+
+コンパイラにこれら2つの変更を加えたら、プリミティブに次のコードを追加するだけで十分です。
+
+\begin{verbatim}
+  ("par", ["x","y"], (EAp (EAp (EVar "par") (EVar "x")) (EVar "y")))
+\end{verbatim}
+
+このアプローチは、Mark 5 または Mark 6 ベースのマシンでも使用できることに注意してください。
+
+\begin{description}
+  \item[演習 5.3] \texttt{par} 関数が定義されるようにコンパイラを変更します。
+
+  \item[演習 5.4] \texttt{compileR} および \texttt{compileE} の特殊なケースで、最初の引数を構築する前に2番目の引数のグラフのスパークを実行するのはなぜですか?
+\end{description}
+
 \subsubsection{結果の表示}
 \newpage
 
