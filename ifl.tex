@@ -7215,9 +7215,10 @@ Program ctr: f-code                 x | x-code| x-frm |
 \texttt{Take} $n$ は、スタックの上位 $n$ 個の要素を新しいフレームに形成し、現在のフレームポインタがそれを指すようにします。
 \vskip\baselineskip
 
-\begin{tabular} {|c|l r l r l l|} \hline
-	(4.1) &                   & \texttt{Take} $n$ : $i$ & $f$  & $c_1$ : $\ldots$ : $c_n$ : $s$ & $h$                                            & $c$ \\
-	      & $\Longrightarrow$ & $i$                     & $f'$ & $s$                            & $h$[$f'$ : $\langle c_1, \ldots, c_n \rangle$] & $c$ \\ \hline
+(4.1) \\
+\begin{tabular} {|l r l r l l|} \hline
+	                  & \texttt{Take} $n$ : $i$ & $f$  & $c_1$ : $\ldots$ : $c_n$ : $s$ & $h$                                            & $c$ \\
+	$\Longrightarrow$ & $i$                     & $f'$ & $s$                            & $h$[$f'$ : $\langle c_1, \ldots, c_n \rangle$] & $c$ \\ \hline
 \end{tabular}
 \vskip\baselineskip
 
@@ -7233,9 +7234,10 @@ Program ctr: f-code                 x | x-code| x-frm |
 \texttt{Push} (\texttt{Arg} $n$) 命令は、現在のフレームから $n$ 番目のクロージャをフェッチし、それをスタックにプッシュします。
 \vskip\baselineskip
 
-\begin{tabular} {|c|l r l r l l|} \hline
-	(4.2) &                   & \texttt{Push} (\texttt{Arg} $k$) : $i$ & $f$ & $s$                  & $h$[$f$ : $\langle (i_1, f_1), \ldots, (i_k, f_k), \ldots, (i_n, f_n) \rangle$] & $c$ \\
-	      & $\Longrightarrow$ & $i$                                    & $f$ & ($i_k$, $f_k$) : $s$ & $h$                                                                             & $c$ \\ \hline
+(4.2) \\
+\begin{tabular} {|l r l r l l|} \hline
+	                  & \texttt{Push} (\texttt{Arg} $k$) : $i$ & $f$ & $s$                  & $h$[$f$ : $\langle (i_1, f_1), \ldots, (i_k, f_k), \ldots, (i_n, f_n) \rangle$] & $c$ \\
+	$\Longrightarrow$ & $i$                                    & $f$ & ($i_k$, $f_k$) : $s$ & $h$                                                                             & $c$ \\ \hline
 \end{tabular}
 \vskip\baselineskip
 
@@ -7243,9 +7245,10 @@ Program ctr: f-code                 x | x-code| x-frm |
 このコードポインタと現在のフレームポインタで構成されるクロージャをプッシュします。
 \vskip\baselineskip
 
-\begin{tabular} {|c|l r l r l l|} \hline
-	(4.3) &                   & \texttt{Push} (\texttt{Label} $l$) : $i$ & $f$ & $s$               & $h$ & $c$[$l$ : $i'$] \\
-	      & $\Longrightarrow$ & $i$                                      & $f$ & ($i'$, $f$) : $s$ & $h$ & $c$             \\ \hline
+(4.3) \\
+\begin{tabular} {|l r l r l l|} \hline
+	                  & \texttt{Push} (\texttt{Label} $l$) : $i$ & $f$ & $s$               & $h$ & $c$[$l$ : $i'$] \\
+	$\Longrightarrow$ & $i$                                      & $f$ & ($i'$, $f$) : $s$ & $h$ & $c$             \\ \hline
 \end{tabular}
 \vskip\baselineskip
 
@@ -7269,9 +7272,10 @@ Program ctr: f-code                 x | x-code| x-frm |
 適切な状態遷移規則は次のとおりです。
 \vskip\baselineskip
 
-\begin{tabular} {|c|l r l r l l|} \hline
-	(4.4) &                   & \texttt{Push} (\texttt{Code} $i'$) : $i$ & $f$ & $s$               & $h$ & $c$ \\
-	      & $\Longrightarrow$ & $i$                                      & $f$ & ($i'$, $f$) : $s$ & $h$ & $c$ \\ \hline
+(4.4) \\
+\begin{tabular} {|l r l r l l|} \hline
+	                  & \texttt{Push} (\texttt{Code} $i'$) : $i$ & $f$ & $s$               & $h$ & $c$ \\
+	$\Longrightarrow$ & $i$                                      & $f$ & ($i'$, $f$) : $s$ & $h$ & $c$ \\ \hline
 \end{tabular}
 \vskip\baselineskip
 
@@ -7292,9 +7296,10 @@ Program ctr: f-code                 x | x-code| x-frm |
 ここで、\texttt{intCode} は整数クロージャの (まだ未定の) コードシーケンスです。
 \vskip\baselineskip
 
-\begin{tabular} {|c|l r l r l l|} \hline
-	(4.5) &                   & \texttt{Push} (\texttt{IntConst} $n$) : $i$ & $f$ & $s$                           & $h$ & $c$ \\
-	      & $\Longrightarrow$ & $i$                                         & $f$ & (\texttt{intCode}, $n$) : $s$ & $h$ & $c$ \\ \hline
+(4.5) \\
+\begin{tabular} {|l r l r l l|} \hline
+	                  & \texttt{Push} (\texttt{IntConst} $n$) : $i$ & $f$ & $s$                           & $h$ & $c$ \\
+	$\Longrightarrow$ & $i$                                         & $f$ & (\texttt{intCode}, $n$) : $s$ & $h$ & $c$ \\ \hline
 \end{tabular}
 \vskip\baselineskip
 
@@ -7313,27 +7318,31 @@ Program ctr: f-code                 x | x-code| x-frm |
 モードでは、\texttt{Push}/\texttt{Enter} 関係から直接に従います。
 \vskip\baselineskip
 
-\begin{tabular} {|c|l r l r l l|} \hline
-	(4.6) &                   & [\texttt{Enter} (\texttt{Label} $l$)] & $f$ & $s$ & $h$ & $c$[$l$ : $i$] \\
-	      & $\Longrightarrow$ & $i$                                   & $f$ & $s$ & $h$ & $c$            \\ \hline
+(4.6) \\
+\begin{tabular} {|l r l r l l|} \hline
+	                  & [\texttt{Enter} (\texttt{Label} $l$)] & $f$ & $s$ & $h$ & $c$[$l$ : $i$] \\
+	$\Longrightarrow$ & $i$                                   & $f$ & $s$ & $h$ & $c$            \\ \hline
 \end{tabular}
 \vskip\baselineskip
 
-\begin{tabular} {|c|l r l r l l|} \hline
-	(4.7) &                   & [\texttt{Enter} (\texttt{Arg} $k$)] & $f$   & $s$ & $h$[$f$ : $\langle (i_1, f_1), \ldots, (i_k, f_k), \ldots, (i_n, f_n) \rangle$] & $c$ \\
-	      & $\Longrightarrow$ & $i_k$                               & $f_k$ & $s$ & $h$                                                                             & $c$ \\ \hline
+(4.7) \\
+\begin{tabular} {|l r l r l l|} \hline
+	                  & [\texttt{Enter} (\texttt{Arg} $k$)] & $f$   & $s$ & $h$[$f$ : $\langle (i_1, f_1), \ldots, (i_k, f_k), \ldots, (i_n, f_n) \rangle$] & $c$ \\
+	$\Longrightarrow$ & $i_k$                               & $f_k$ & $s$ & $h$                                                                             & $c$ \\ \hline
 \end{tabular}
 \vskip\baselineskip
 
-\begin{tabular} {|c|l r l r l l|} \hline
-	(4.8) &                   & [\texttt{Enter} (\texttt{Code} $i$)] & $f$ & $s$ & $h$ & $c$ \\
-	      & $\Longrightarrow$ & $i$                                  & $f$ & $s$ & $h$ & $c$ \\ \hline
+(4.8) \\
+\begin{tabular} {|l r l r l l|} \hline
+	                  & [\texttt{Enter} (\texttt{Code} $i$)] & $f$ & $s$ & $h$ & $c$ \\
+	$\Longrightarrow$ & $i$                                  & $f$ & $s$ & $h$ & $c$ \\ \hline
 \end{tabular}
 \vskip\baselineskip
 
-\begin{tabular} {|c|l r l r l l|} \hline
-	(4.9) &                   & [\texttt{Enter} (\texttt{IntConst} $n$)] & $f$ & $s$ & $h$ & $c$ \\
-	      & $\Longrightarrow$ & \texttt{intCode}                         & $n$ & $s$ & $h$ & $c$ \\ \hline
+(4.9) \\
+\begin{tabular} {|l r l r l l|} \hline
+	                  & [\texttt{Enter} (\texttt{IntConst} $n$)] & $f$ & $s$ & $h$ & $c$ \\
+	$\Longrightarrow$ & \texttt{intCode}                         & $n$ & $s$ & $h$ & $c$ \\ \hline
 \end{tabular}
 
 \subsubsection{コンパイル}
@@ -7961,9 +7970,10 @@ showFrame は状態のフレーム コンポーネントを表示し、showClosu
 たとえば、\texttt{Op Sub}命令は、値スタックの上位2つの要素を削除し、それらを減算して、結果を値スタックにプッシュします。
 \vskip\baselineskip
 
-\begin{tabular} {|c|l r l r r l l|} \hline
-	(4.10) &                   & \texttt{Op} \texttt{Sub} : $i$ & $f$ & $s$ & $n_1$ : $n_2$ : $v$ & $h$ & $c$ \\
-	       & $\Longrightarrow$ & $i$                            & $f$ & $s$ & $(n_1 - n_2)$ : $v$ & $h$ & $c$ \\ \hline
+(4.10) \\
+\begin{tabular} {|l r l r r l l|} \hline
+	                  & \texttt{Op} \texttt{Sub} : $i$ & $f$ & $s$ & $n_1$ : $n_2$ : $v$ & $h$ & $c$ \\
+	$\Longrightarrow$ & $i$                            & $f$ & $s$ & $(n_1 - n_2)$ : $v$ & $h$ & $c$ \\ \hline
 \end{tabular}
 \vskip\baselineskip
 
@@ -8021,9 +8031,10 @@ showFrame は状態のフレーム コンポーネントを表示し、showClosu
 \texttt{Return}がしなければならないことは、引数スタックの一番上にクロージャをポップして入力することだけです。
 \vskip\baselineskip
 
-\begin{tabular} {|c|l r l r r l l|} \hline
-	(4.11) &                   & [\texttt{Return}] & $f$  & ($i'$, $f'$) : $s$ & $v$ & $h$ & $c$ \\
-	       & $\Longrightarrow$ & $i'$              & $f'$ & $s$                & $v$ & $h$ & $c$ \\ \hline
+(4.11) \\
+\begin{tabular} {|l r l r r l l|} \hline
+	                  & [\texttt{Return}] & $f$  & ($i'$, $f'$) : $s$ & $v$ & $h$ & $c$ \\
+	$\Longrightarrow$ & $i'$              & $f'$ & $s$                & $v$ & $h$ & $c$ \\ \hline
 \end{tabular}
 \vskip\baselineskip
 
@@ -8068,9 +8079,10 @@ showFrame は状態のフレーム コンポーネントを表示し、showClosu
 \texttt{PushV FramePtr}は、現在フレームポインタとして偽装されている数値を値スタックの一番上にプッシュする新しい命令です。
 \vskip\baselineskip
 
-\begin{tabular} {|c|l r l r r l l|} \hline
-	(4.12) &                   & \texttt{PushV FramePtr} : $i$ & $n$ & $s$ & $v$       & $h$ & $c$ \\
-	       & $\Longrightarrow$ & $i$                           & $n$ & $s$ & $n$ : $v$ & $h$ & $c$ \\ \hline
+(4.12) \\
+\begin{tabular} {|l r l r r l l|} \hline
+	                  & \texttt{PushV FramePtr} : $i$ & $n$ & $s$ & $v$       & $h$ & $c$ \\
+	$\Longrightarrow$ & $i$                           & $n$ & $s$ & $n$ : $v$ & $h$ & $c$ \\ \hline
 \end{tabular}
 
 \subsubsection{実装への単純な算術演算の追加}
@@ -8146,14 +8158,17 @@ showFrame は状態のフレーム コンポーネントを表示し、showClosu
 		ゼロである場合は命令シーケンス\texttt{i1}を続行し、そうでない場合は\texttt{i2}を続行します。
 		その状態遷移規則は次のとおりです。
 		\vskip\baselineskip
-		\begin{tabular} {|c|l r l r r l l|} \hline
-			(4.13) &                   & [\texttt{Cond} ~ $i_1$ ~ $i_2$]          & $f$ & $s$ & $0$ : $v$ & $h$ & $c$ \\
-			       & $\Longrightarrow$ & $i_1$                                    & $f$ & $s$ & $v$       & $h$ & $c$ \\ \hline
-			       &                   & [\texttt{Cond} ~ $i_1$ ~ $i_2$]          & $f$ & $s$ & $n$ : $v$ & $h$ & $c$ \\
-			(4.13) & $\Longrightarrow$ & $i_2$                                    & $f$ & $s$ & $v$       & $h$ & $c$ \\
-			       &                   & \multicolumn {6} {l|} {ここで$n \neq 0$}                                     \\ \hline
+
+		(4.13) \\
+		\begin{tabular} {|l r l r r l l|} \hline
+			                  & [\texttt{Cond} ~ $i_1$ ~ $i_2$]          & $f$ & $s$ & $0$ : $v$ & $h$ & $c$ \\
+			$\Longrightarrow$ & $i_1$                                    & $f$ & $s$ & $v$       & $h$ & $c$ \\ \hline
+			                  & [\texttt{Cond} ~ $i_1$ ~ $i_2$]          & $f$ & $s$ & $n$ : $v$ & $h$ & $c$ \\
+			$\Longrightarrow$ & $i_2$                                    & $f$ & $s$ & $v$       & $h$ & $c$ \\
+			                  & \multicolumn {6} {l|} {ここで$n \neq 0$}                                     \\ \hline
 		\end{tabular}
 		\vskip\baselineskip
+
 		最初のルールは、ゼロが値スタックの一番上にある場合に一致します。
 		それ以外の場合は、2番目の規則が適用されます。
 		次のように動作するプリミティブ\texttt{if}も追加する必要があります。
@@ -8258,9 +8273,10 @@ $\mathcal{B}$には、継続を明示的にプッシュすることを回避す�
 その遷移規則は非常に単純です。
 \vskip\baselineskip
 
-\begin{tabular} {|c|l r l r r l l|} \hline
-	(4.14) &                   & \texttt{PushV} (\texttt{IntVCont} $n$) : $i$ & $f$ & $s$ & $v$       & $h$ & $c$ \\
-	       & $\Longrightarrow$ & $i$                                          & $f$ & $s$ & $n$ : $v$ & $h$ & $c$ \\ \hline
+(4.14) \\
+\begin{tabular} {|l r l r r l l|} \hline
+	                  & \texttt{PushV} (\texttt{IntVCont} $n$) : $i$ & $f$ & $s$ & $v$       & $h$ & $c$ \\
+	$\Longrightarrow$ & $i$                                          & $f$ & $s$ & $n$ : $v$ & $h$ & $c$ \\ \hline
 \end{tabular}
 
 \begin{description}
@@ -8613,9 +8629,10 @@ TIMは\textbf{スパインレス}マシンであるため、その更新手法�
 その状態遷移規則は次のとおりです。
 \vskip\baselineskip
 
-\begin{tabular} {|c|l r l r r r l l|} \hline
-	(4.15) &                   & \texttt{PushMarker} $x$ : $i$ & $f$ & $s$ & $v$ & $d$               & $h$ & $c$ \\
-	       & $\Longrightarrow$ & $i$                           & $f$ & []  & $v$ & $(f, x, s)$ : $d$ & $h$ & $c$ \\ \hline
+(4.15) \\
+\begin{tabular} {|l r l r r r l l|} \hline
+	                  & \texttt{PushMarker} $x$ : $i$ & $f$ & $s$ & $v$ & $d$               & $h$ & $c$ \\
+	$\Longrightarrow$ & $i$                           & $f$ & []  & $v$ & $(f, x, s)$ : $d$ & $h$ & $c$ \\ \hline
 \end{tabular}
 \vskip\baselineskip
 
@@ -8626,12 +8643,13 @@ TIMは\textbf{スパインレス}マシンであるため、その更新手法�
 このアクションは、次の遷移規則によって説明されます。
 \vskip\baselineskip
 
-\begin{tabular} {|c|l r l r r r l l|} \hline
-	(4.16) &                   & [\texttt{Return}]                                                                                                     & $f$  & []              & $n$ : $v$ & $(f_u, x, s)$ : $d$ & $h$  & $c$ \\
-	       & $\Longrightarrow$ & [\texttt{Return}]                                                                                                     & $f$  & $s$             & $n$ : $v$ & $d$                 & $h'$ & $c$ \\
-	       &                   & \multicolumn {7} {l|} {ここで$h' = h[f_u : \langle \ldots, d_{x-1}, (\texttt{intCode}, n), d_{x+1}, \ldots \rangle]$}                                                                         \\ \hline
-	(4.16) &                   & [\texttt{Return}]                                                                                                     & $f$  & $(i, f')$ : $s$ & $n$ : $v$ & $d$                 & $h$  & $c$ \\
-	       & $\Longrightarrow$ & $i$                                                                                                                   & $f'$ & $s$             & $n$ : $v$ & $d$                 & $h$  & $c$ \\ \hline
+(4.16) \\
+\begin{tabular} {|l r l r r r l l|} \hline
+	                  & [\texttt{Return}]                                                                                                     & $f$  & []              & $n$ : $v$ & $(f_u, x, s)$ : $d$ & $h$  & $c$ \\
+	$\Longrightarrow$ & [\texttt{Return}]                                                                                                     & $f$  & $s$             & $n$ : $v$ & $d$                 & $h'$ & $c$ \\
+	                  & \multicolumn {7} {l|} {ここで$h' = h[f_u : \langle \ldots, d_{x-1}, (\texttt{intCode}, n), d_{x+1}, \ldots \rangle]$}                                                                         \\ \hline
+	                  & [\texttt{Return}]                                                                                                     & $f$  & $(i, f')$ : $s$ & $n$ : $v$ & $d$                 & $h$  & $c$ \\
+	$\Longrightarrow$ & $i$                                                                                                                   & $f'$ & $s$             & $n$ : $v$ & $d$                 & $h$  & $c$ \\ \hline
 \end{tabular}
 \vskip\baselineskip
 
@@ -9083,13 +9101,14 @@ Return 命令が空のスタックを見つけると、更新を実行し、ダ�
 \texttt{UpdateMarkers} の遷移規則は次のとおりです。
 \vskip\baselineskip
 
-\begin{tabular} {|c|l r l r r r l l|} \hline
-	(4.17) &                   & \texttt{UpdateMarkers} $n$ : $i$                                                                                       & $f$ & $c_1$ : $\ldots$ : $c_m$ : $s$ & $v$ & $d$                 & $h$  & $c$ \\
-	       & $\Longrightarrow$ & $i$                                                                                                                    & $f$ & $c_1$ : $\ldots$ : $c_m$ : $s$ & $v$ & $d$                 & $h$  & $c$ \\
-	       &                   & \multicolumn {7} {l|} {ここで$m \ge n$}                                                                                                                                                                \\ \hline
-	(4.17) &                   & \texttt{UpdateMarkers} $n$ : $i$                                                                                       & $f$ & $c_1$ : $\ldots$ : $c_m$ : []  & $v$ & $(f_u, x, s)$ : $d$ & $h$  & $c$ \\
-	       & $\Longrightarrow$ & \texttt{UpdateMarkers} $n$ : $i$                                                                                       & $f$ & $c_1$ : $\ldots$ : $c_m$ : $s$ & $v$ & $d$                 & $h'$ & $c$ \\
-	       &                   & \multicolumn {7} {l|} {ここで$m < n$かつ$h' = h[f_u :\langle \ldots, d_{x - 1}, (i', f'), d_{x + 1}, \ldots \rangle]$}                                                                                 \\ \hline
+(4.17) \\
+\begin{tabular} {|l r l r r r l l|} \hline
+	                  & \texttt{UpdateMarkers} $n$ : $i$                                                                                       & $f$ & $c_1$ : $\ldots$ : $c_m$ : $s$ & $v$ & $d$                 & $h$  & $c$ \\
+	$\Longrightarrow$ & $i$                                                                                                                    & $f$ & $c_1$ : $\ldots$ : $c_m$ : $s$ & $v$ & $d$                 & $h$  & $c$ \\
+	                  & \multicolumn {7} {l|} {ここで$m \ge n$}                                                                                                                                                                \\ \hline
+	                  & \texttt{UpdateMarkers} $n$ : $i$                                                                                       & $f$ & $c_1$ : $\ldots$ : $c_m$ : []  & $v$ & $(f_u, x, s)$ : $d$ & $h$  & $c$ \\
+	$\Longrightarrow$ & \texttt{UpdateMarkers} $n$ : $i$                                                                                       & $f$ & $c_1$ : $\ldots$ : $c_m$ : $s$ & $v$ & $d$                 & $h'$ & $c$ \\
+	                  & \multicolumn {7} {l|} {ここで$m < n$かつ$h' = h[f_u :\langle \ldots, d_{x - 1}, (i', f'), d_{x + 1}, \ldots \rangle]$}                                                                                 \\ \hline
 \end{tabular}
 \vskip\baselineskip
 
@@ -9299,9 +9318,10 @@ Return 命令が空のスタックを見つけると、更新を実行し、ダ�
 \texttt{Switch} の遷移規則は以下の通りです。
 \vskip\baselineskip
 
-\begin{tabular} {|c|l r l l r r r l l|} \hline
-	(4.18) &                   & $[\texttt{Switch} ~ [\ldots ~ t ~ \texttt{->} ~ i ~ \ldots]]$ & $f$ & $f_d$ & $s$ & $t$ : $v$ & $d$ & $h$ & $c$ \\
-	       & $\Longrightarrow$ & $i$                                                           & $f$ & $f_d$ & $s$ & $v$       & $d$ & $h$ & $c$ \\ \hline
+(4.18) \\
+\begin{tabular} {|l r l l r r r l l|} \hline
+	                  & $[\texttt{Switch} ~ [\ldots ~ t ~ \texttt{->} ~ i ~ \ldots]]$ & $f$ & $f_d$ & $s$ & $t$ : $v$ & $d$ & $h$ & $c$ \\
+	$\Longrightarrow$ & $i$                                                           & $f$ & $f_d$ & $s$ & $v$       & $d$ & $h$ & $c$ \\ \hline
 \end{tabular}
 \vskip\baselineskip
 
@@ -9309,19 +9329,21 @@ Return 命令が空のスタックを見つけると、更新を実行し、ダ�
 最初の方法は簡単で、更新を行う必要がない場合です。
 \vskip\baselineskip
 
-\begin{tabular} {|c|l r l l r r r l l|} \hline
-	(4.19) &                   & $[\texttt{ReturnConstr} ~ t]$ & $f$  & $f_d$ & $(i, ~ f')$ : $s$ & $v$       & $d$ & $h$ & $c$ \\
-	       & $\Longrightarrow$ & $i$                           & $f'$ & $f$   & $s$               & $t$ : $v$ & $d$ & $h$ & $c$ \\ \hline
+(4.19) \\
+\begin{tabular} {|l r l l r r r l l|} \hline
+	                  & $[\texttt{ReturnConstr} ~ t]$ & $f$  & $f_d$ & $(i, ~ f')$ : $s$ & $v$       & $d$ & $h$ & $c$ \\
+	$\Longrightarrow$ & $i$                           & $f'$ & $f$   & $s$               & $t$ : $v$ & $d$ & $h$ & $c$ \\ \hline
 \end{tabular}
 \vskip\baselineskip
 
 2番目のルールは更新を扱い、\texttt{ReturnConstr} 命令とデータフレームポインタのみを含むコードシーケンスで更新されるクロージャを上書きします。
 \vskip\baselineskip
 
-\begin{tabular} {|c|l r l l r r r l l|} \hline
-	(4.20) &                   & $[\texttt{ReturnConstr} ~ t]$                                                                                                                 & $f$ & $f_d$ & []  & $v$ & $(f_u, ~ x, ~ s)$ : $d$ & $h$  & $c$ \\
-	       & $\Longrightarrow$ & $[\texttt{ReturnConstr} ~ t]$                                                                                                                 & $f$ & $f_d$ & $s$ & $v$ & $d$                     & $h'$ & $c$ \\
-	       &                   & \multicolumn {8} {l|} {ここで$h' = h[f_u :\langle \ldots, ~ d_{x - 1}, ~ ([\texttt{ReturnConstr} ~ t], ~ f), ~ d_{x + 1}, ~ \ldots \rangle]$}                                                                  \\ \hline
+(4.20) \\
+\begin{tabular} {|l r l l r r r l l|} \hline
+	                  & $[\texttt{ReturnConstr} ~ t]$                                                                                                                 & $f$ & $f_d$ & []  & $v$ & $(f_u, ~ x, ~ s)$ : $d$ & $h$  & $c$ \\
+	$\Longrightarrow$ & $[\texttt{ReturnConstr} ~ t]$                                                                                                                 & $f$ & $f_d$ & $s$ & $v$ & $d$                     & $h'$ & $c$ \\
+	                  & \multicolumn {8} {l|} {ここで$h' = h[f_u :\langle \ldots, ~ d_{x - 1}, ~ ([\texttt{ReturnConstr} ~ t], ~ f), ~ d_{x + 1}, ~ \ldots \rangle]$}                                                                  \\ \hline
 \end{tabular}
 \vskip\baselineskip
 
@@ -10139,27 +10161,27 @@ CAFの適切な更新を Mark 4 または Mark 5 TIM に追加するには、次
 ここで、各コンポーネントを順番に検討します。
 
 \begin{itemize}
-  \item コードシーケンスは単なる命令のリストです。
-        \begin{verbatim}
+	\item コードシーケンスは単なる命令のリストです。
+	      \begin{verbatim}
           type GmCode = [Instruction]
-        \end{verbatim} 
-  \item シーケンシャルGマシンと同様に、スタックはヒープ内のアドレスのリストです。
-        \begin{verbatim}
+        \end{verbatim}
+	\item シーケンシャルGマシンと同様に、スタックはヒープ内のアドレスのリストです。
+	      \begin{verbatim}
           type GmStack = [Addr]
         \end{verbatim}
-  \item 並列実装のベースとして Mark 4 Gマシン (またはそれ以降のマーク) を使用している場合は、ダンプが必要です。
-        これは、それぞれが \texttt{gmDumpItem} 型のダンプ項目のスタックとして使用されます。
-        \begin{verbatim}
+	\item 並列実装のベースとして Mark 4 Gマシン (またはそれ以降のマーク) を使用している場合は、ダンプが必要です。
+	      これは、それぞれが \texttt{gmDumpItem} 型のダンプ項目のスタックとして使用されます。
+	      \begin{verbatim}
           type GmDump = [GmDumpItem]
           type GmDumpItem = (GmCode, GmStack)
         \end{verbatim}
-  \item 実装のベースとして Mark 7 Gマシンを使用した場合は、プロセッサごとにVスタックが必要になります。
-        \begin{verbatim}
+	\item 実装のベースとして Mark 7 Gマシンを使用した場合は、プロセッサごとにVスタックが必要になります。
+	      \begin{verbatim}
           type GmVStack = [Int]
         \end{verbatim}
-  \item また、各プロセッサにクロックも提供します。
-        これにより、タスクが実行した命令の数を記録します。
-        \begin{verbatim}
+	\item また、各プロセッサにクロックも提供します。
+	      これにより、タスクが実行した命令の数を記録します。
+	      \begin{verbatim}
           type GmClock = Int
         \end{verbatim}
 \end{itemize}
@@ -10222,6 +10244,125 @@ CAFの適切な更新を Mark 4 または Mark 5 TIM に追加するには、次
 \end{description}
 
 \subsubsection{評価器}
+
+評価器 \texttt{eval} の構造はよく知られており、Gマシンで使用されるものと似ています。
+
+\begin{verbatim}
+  eval :: PgmState -> [PgmState]
+  eval state = state: restStates
+               where
+                 restStates | gmFinal state = []
+                            | otherwise = eval (doAdmin (steps state))
+\end{verbatim}
+
+違いは、\texttt{step} ではなく \texttt{steps} を呼び出すことです。
+\texttt{steps} 関数は、プロセッサのリストを順に実行し、それぞれに対して1つのステップを実行する必要があります。
+イベントの正確なシーケンスは次のとおりです。
+
+\begin{enumerate}
+	\item まず、前回の texttt{steps} 呼び出しで生成されたアドレスを状態から抽出します。
+	\item 次に、それらをプロセスに変換します。
+	      これは \texttt{newtasks} というラベルが付けられています。
+	\item 状態のスパークプールコンポーネントは空に設定されています。
+	\item 実行しようとしている各プロセッサのクロックをインクリメントします。
+	\item 最後に、\texttt{mapAccuml} を使用して、プロセッサごとに1つずつ、一連の \texttt{step} 遷移を実行します。
+\end{enumerate}
+
+\begin{verbatim}
+  steps :: PgmState -> PgmState
+  steps state
+    = mapAccuml step global' local'
+      where ((out, heap, globals, sparks, stats), local) = state
+            newtasks = [makeTask a | a <- sparks]
+            global'  = (out, heap, globals, [], stats)
+            local'   = map tick (local ++ newtasks)
+\end{verbatim}
+
+アドレス \texttt{addr} のノードを評価するタスクを作成するには、\texttt{makeTask} 関数を定義する必要があります。
+Mark 2 Gマシンまたは Mark 3 Gマシンに基づく場合、次のようになります。
+
+\begin{verbatim}
+  makeTask :: Addr -> PgmLocalState
+  makeTask addr = ([Unwind], [addr], [], [], 0)
+\end{verbatim}
+
+Mark 4 以降のGマシンに基づく場合は以下を使用します。
+
+\begin{verbatim}
+  makeTask addr = ([Eval], [addr], [], [], 0)
+\end{verbatim}
+
+プロセッサのクロックコンポーネントのインクリメントは、 \texttt{tick} を使用して実行されます。
+
+\begin{verbatim}
+  tick (i, stack, dump, vstack, clock) = (i, stack, dump, vstack, clock+1)
+\end{verbatim}
+
+スパークプールにスパークがなくなり、タスクを実行しているプロセッサがなくなると、マシンは終了します。
+
+\begin{verbatim}
+  gmFinal :: PgmState -> Bool
+  gmFinal s = second s == [] && pgmGetSparks s == []
+\end{verbatim}
+
+プロセッサ上で単一のステップを実行するには、\texttt{step} 関数を使用します。
+
+\begin{verbatim}
+  step :: PgmGlobalState -> PgmLocalState -> GmState
+  step global local = dispatch i (putCode is state)
+                      where (i:is) = getCode state
+                            state = (global, local)
+\end{verbatim}
+
+\texttt{doAdmin} 関数は、実行を終了したプロセッサを削除します。
+コードコンポーネントが空になると、プロセッサは終了しています。
+この場合、プロセッサがタスクを完了するのに要した命令の数で、状態の統計コンポーネントを更新する必要があります。
+
+\begin{verbatim}
+  doAdmin :: PgmState -> PgmState
+  doAdmin ((out, heap, globals, sparks, stats), local)
+    = ((out, heap, globals, sparks, stats'), local')
+      where (local', stats') = foldr filter ([], stats) local
+            filter (i, stack, dump, vstack, clock) (local, stats)
+              | i == [] = (local, clock:stats)
+              | otherwise = ((i, stack, dump, vstack, clock): local, stats)
+\end{verbatim}
+
+ここで、新しい命令の遷移について検討します。
+\vskip\baselineskip
+
+\textbf{Par 命令の遷移}
+\vskip\baselineskip
+
+追加する必要がある唯一の新しい命令は \texttt{Par} です。
+その効果は、マシンがノードを WHNF に評価するタスクを作成できるように、スタックの最上部のノードをマークすることです。
+これを行うには、命令は、ノードのアドレスをスパークプールに追加して、状態のグローバルコンポーネントを変更する必要があります。
+\vskip\baselineskip
+
+(5.1) \\
+\begin{tabular} {|l r l l l l r r r l|} \hline
+	                  & $\langle$ & $h$ & $m$ & $t$                & $\rangle$ & $\langle$ & \texttt{Par :} $i$ & $a$ \texttt{:} $s$ & $\rangle$ \\
+	$\Longrightarrow$ & $\langle$ & $h$ & $m$ & $a$ \texttt{:} $t$ & $\rangle$ & $\langle$ & $i$                & $s$                & $\rangle$ \\ \hline
+\end{tabular}
+\vskip\baselineskip
+
+最初のタプル($h$、$m$、$t$ から構成)はグローバル状態コンポーネントで、$h$、$m$、$t$ はそれぞれヒープ、グローバルアドレスマップ、スパークプールです。
+2番目のタプル(命令ストリームとスタックから構成)は特定のタスクのローカル状態です。
+ベースとして使用したGマシンのバージョンによっては、ローカル状態に他のコンポーネントを追加する必要がある場合があります。
+\vskip\baselineskip
+
+\texttt{Par} の効果は、アドレス $a$ をスパークプールに追加することです。
+次のように実装されます。
+
+\begin{verbatim}
+  par :: GmState -> GmState
+  par s = s
+\end{verbatim}
+
+\begin{description}
+	\item[演習 5.2] \texttt{Par} が正しく処理されるように、\texttt{showInstruction}、\texttt{dispatch}、\texttt{instruction} を変更します。
+\end{description}
+
 \subsubsection{プログラムのコンパイル}
 \subsubsection{結果の表示}
 \newpage
@@ -10354,11 +10495,11 @@ Bird の変換とは異なり、これは簡単なプロセスです。
 	\item マルチパスアプローチは、各パスに明確な単純な目的があることを意味し、変更が容易になります。
 	      たとえば、完全な遅延評価が導入される場所についてより選択的になるように、\texttt{identifyMFEs} アルゴリズムを変更しました (セクション 6.7.3)。
 	\item 主要フェーズをさまざまに組み合わせて使用し、さまざまな変換を「スナップ」することができます。
-	      たとえば、トップレベルで適切な関数を構成するだけで、依存関係分析と完全な遅延処理を実行するかどうか、およびどのラムダ リフターを使用するかを選択できます。
+	      たとえば、トップレベルで適切な関数を構成するだけで、依存関係分析と完全な遅延処理を実行するかどうか、およびどのラムダリフターを使用するかを選択できます。
 \end{itemize}
 
-私たちのアプローチの主な欠点は、Hughes が提案した 1 つの最適化、つまりパラメータをスーパーコンビネータに順序付けして MFE の数を減らすことができないことです。
-その理由は、最適化ではラムダ リフティングを MFE 識別のプロセスに組み込むことが絶対に必要である一方で、これらのアクティビティを慎重に分離しているためです。
+私たちのアプローチの主な欠点は、Hughes が提案した1つの最適化、つまりパラメータをスーパーコンビネータに順序付けして MFE の数を減らすことができないことです。
+その理由は、最適化ではラムダリフティングを MFE 識別のプロセスに組み込むことが絶対に必要である一方で、これらのアクティビティを慎重に分離しているためです。
 私たちにとって幸いなことに、この最適化によって作成されたより大きな MFE は常に部分的なアプリケーションであり、
 作業が共有されないため、おそらく MFE として識別されるべきではありません (セクション 6.7.3)。
 それでも、事態はそれほど偶然に起こったわけではないかもしれません。
