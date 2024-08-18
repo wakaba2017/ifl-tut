@@ -346,8 +346,7 @@ compileSC env (name, args, body)
       (lenRqdSlts, instructions) = compileR body new_env lenArgs  -- Mark3で変更
       -- new_env = (zip2 args (map Arg [1..])) ++ env
       -- new_env = (zip2 args (map mkUpdIndMode [1..])) ++ env  -- Mark4で変更
-      new_env | lenArgs > 0 = (zip2 args (map Arg [1..])) ++ env  -- Mark6で変更
-              | otherwise   = (zip2 args (map mkUpdIndMode [1..])) ++ env  -- Mark4で変更
+      new_env = (zip2 args (map Arg [1..])) ++ env  -- Mark6で再変更(引数があるスーパーコンビネータのコンパイル時には mkUpdIndMode 関数は不要。)
       lenArgs = length args
 
 compileR :: CoreExpr -> TimCompilerEnv -> Int -> (Int, [Instruction])  -- Rスキーム  Mark5で変更
