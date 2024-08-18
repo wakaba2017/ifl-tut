@@ -390,6 +390,12 @@ compileR (EAp (EAp (EVar op) e1) e2) env d  -- Mark3で変更
         (d2, is)  = compileR (EAp (EVar op) e1) env d1  -- Mark4で変更
 compileR (EAp (EVar "negate") e) env d  -- Mark3で変更
   = compileB (EAp (EVar "negate") e) env d [Return]  -- Mark3で変更
+compileR (EAp e (EVar v)) env d = (d1, Push am : is)
+                                  where am = compileA (EVar v) env
+                                        (d1, is) = compileR e env d
+compileR (EAp e (ENum n)) env d = (d1, Push am : is)
+                                  where am = compileA (ENum n) env
+                                        (d1, is) = compileR e env d
 compileR (EAp e1 e2) env d = (d2, Move (d + 1) am : Push (mkIndMode (d + 1)) : is)  -- Mark4で変更
                              where (d1, am) = compileU e2 (d + 1) env (d + 1)  -- Mark4で変更
                                    (d2, is) = compileR e1 env d1  -- Mark4で変更
