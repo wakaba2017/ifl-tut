@@ -9959,7 +9959,7 @@ CAFの適切な更新を Mark 4 または Mark 5 TIM に追加するには、次
 \vskip\baselineskip
 
 親タスクと子タスク間の相互作用を考慮すると便利です。
-タスク管理の評価して死ぬモデルでは、各グラフノードにロックビットがあります。
+タスク管理の評価して終了するモデルでは、各グラフノードにロックビットがあります。
 ビットがオンの場合、ノードを評価するタスクが実行されています。 それ以外の場合、ビットはオフです。
 親タスクが、タスクがスパークされたサブグラフの値を必要とする場合、考慮すべきケースが 3 つあります。
 
@@ -9977,7 +9977,7 @@ CAFの適切な更新を Mark 4 または Mark 5 TIM に追加するには、次
 3番目のケースでは、ノードは現在 WHNF にあり、ロックが解除されているため、親タスクがグラフの値をフェッチするのにそれほど時間はかかりません。
 \vskip\baselineskip
 
-評価して死ぬモデルの利点は、親と子が実際に衝突した場合にのみブロッキングが発生することです。
+評価して終了するモデルの利点は、親と子が実際に衝突した場合にのみブロッキングが発生することです。
 それ以外の場合はすべて、親の実行は妨げられることなく続行されます。
 ブロックメカニズムがタスク間通信および同期の\textbf{唯一の}形式であることに注意してください。
 グラフの一部が WHNF に対して評価されると、任意の数のタスクが競合することなく同時にそれを検査できます。
@@ -10424,13 +10424,13 @@ Mark 4 または Mar 5 マシンの場合、これは次のように変更され
 このかなり難解なコードは、関数 \texttt{par} が 2 つの引数 $E_1$ と $E_2$ に適用されたときに、次のタスクを実行します。
 
 \begin{enumerate}
-  \item まず、$E_1$ を $E_2$ に適用します。これがシーケンスの役割です。
-        \begin{verbatim}
+	\item まず、$E_1$ を $E_2$ に適用します。これがシーケンスの役割です。
+	      \begin{verbatim}
         	[Push 1, Push 1, Mkap]
         \end{verbatim}
-  \item 次に、\texttt{Push 2} は $E_2$ へのポインタのコピーを作成します。
-        次に、\texttt{Par} 命令がこのアドレスをスパークプールに追加します。
-  \item 最後に、インスタンス化後に通常の更新と整理を実行します。
+	\item 次に、\texttt{Push 2} は $E_2$ へのポインタのコピーを作成します。
+	      次に、\texttt{Par} 命令がこのアドレスをスパークプールに追加します。
+	\item 最後に、インスタンス化後に通常の更新と整理を実行します。
 \end{enumerate}
 \vskip\baselineskip
 
@@ -10473,17 +10473,215 @@ Mark 4 または Mar 5 マシンの場合、これは次のように変更され
 このアプローチは、Mark 5 または Mark 6 ベースのマシンでも使用できることに注意してください。
 
 \begin{description}
-  \item[演習 5.3] \texttt{par} 関数が定義されるようにコンパイラを変更します。
+	\item[演習 5.3] \texttt{par} 関数が定義されるようにコンパイラを変更します。
 
-  \item[演習 5.4] \texttt{compileR} および \texttt{compileE} の特殊なケースで、最初の引数を構築する前に2番目の引数のグラフのスパークを実行するのはなぜですか?
+	\item[演習 5.4] \texttt{compileR} および \texttt{compileE} の特殊なケースで、最初の引数を構築する前に2番目の引数のグラフのスパークを実行するのはなぜですか?
 \end{description}
 
 \subsubsection{結果の表示}
+
+マシンの状態を計算したら、\texttt{showResults} を使用してそれらの表示を制御します。
+これは、スーパーコンビネータのコード、状態遷移、および統計を出力します。
+型は次のとおりです。
+
+\begin{verbatim}
+  showResults :: [PgmState] -> [Char]
+\end{verbatim}
 \newpage
 
-\subsection{Mark 2: The evaluate-and-die model}
-\subsubsection{The node data structure}
-\subsubsection{The instruction set}
+スーパーコンビネータコードを表示するには、Gマシンと同じ \texttt{showSC} 関数を使用します。
+その型は次のとおりです。
+
+\begin{verbatim}
+  showSC :: PgmState -> (Name, Addr) -> Iseq
+\end{verbatim}
+
+\texttt{showState} 関数は、遷移中のローカルプロセスの状態を表示するために使用されます。
+並列マシンがあるため、複数のタスクが同時に実行される可能性があります。
+その型は次のとおりです。
+
+\begin{verbatim}
+  showState :: PgmState -> Iseq
+\end{verbatim}
+
+他に 2 つの関数、showStats と showOutput を変更する必要があります。
+これらの関数の型は次の通りです。
+
+\begin{verbatim}
+  showStats :: PgmState -> Iseq
+  showOutput :: GmOutput -> Iseq
+\end{verbatim}
+
+\begin{description}
+	\item[演習 5.5] 関数 \texttt{showResults}、\texttt{showSC}、\texttt{showState}、\texttt{showStats}、\texttt{showOutput} を変更します。
+		次の型の新しい表示関数 \texttt{showSparks} を定義します。
+		\begin{verbatim}
+					  showSparks :: GmSparks -> Iseq
+					\end{verbatim}
+	\item[演習 5.6] 次のプログラムを並列Gマシンで実行してみてください。
+		\begin{verbatim}
+					  main = par (S K K) (S K K 3)
+                    \end{verbatim}
+		マシンサイクルではどれくらい時間がかかりますか？
+		同等のシーケンシャルプログラムにはどれくらい時間がかかりますか？
+		\begin{verbatim}
+					  main = S K K (S K K 3)
+					\end{verbatim}
+	\item[演習 5.7] 次のプログラムを実行すると何が起きますか？
+		\begin{verbatim}
+					  main = par I (I 3)
+                    \end{verbatim}
+		このプログラムで \texttt{par} を使用することは正当でしょうか?
+\end{description}
+
+\subsection{Mark 2: 評価して終了するモデル}
+
+Mark 1 マシンの問題は、ヒープ内の同じノードを簡約するために多くのタスクを作成し、その結果マシンによって実行される作業が重複するリスクがあることです。
+これを防ぐ方法は、アンワインド中にノードを\textbf{ロック}することです。
+これにより、同じノードに遭遇する他のすべてのタスクが\textbf{ブロック}されます。
+また、ノードが再び解放されたら、ノードの\textbf{ロックを解除}することを忘れないようにしてください。
+これにより、ブロックされたタスクが再開されます。
+\vskip\baselineskip
+
+ロックされていないノードをロック状態にする唯一の命令は \texttt{Unwind} です。
+これは、スパイン上の各ノードに発生します。
+\texttt{Eval} ではなくこの命令を選択する理由は、スパインをロック解除する途中でロックされたノードに遭遇する可能性があるためです。
+\texttt{Eval} を使用すると、このケースをキャッチできません。
+同様に、タスクをブロックする唯一の命令は \texttt{Unwind} です。
+結局のところ、ノードの値を検査する必要があるのは \texttt{Unwind} だけです。
+\vskip\baselineskip
+
+逆に、ロックされたノードのロックを解除する唯一の命令は \texttt{Update} です。
+以前にロックされたノードは、WHNF であることがわかっている場合にロック解除されます。
+しかし、Redex を更新するときには、Redex の下のスパイン内のすべてのノードが WHNF であることがわかっているため、Redex のルートの下のすべてのノードのロックを解除する必要があります。
+
+\subsubsection{ノードデータ構造}
+
+私たちが取り入れようとしている改善には、マシンのデータ構造にほとんど変更を加える必要がありません。
+まず、ノードデータ型に2種類の新しいノードを追加する必要があります。
+これらは、ロックされたアプリケーションノードである \texttt{NLAp} と、ロックされたスーパーコンビネータノードである \texttt{NLGlobal} です。
+新しい命令遷移のセクションで、これらがどのように使用されるかを見ていきます。
+
+\begin{verbatim}
+  data Node = NNum Int            -- Numbers
+            | NAp Addr Addr       -- Applications
+            | NGlobal Int GmCode  -- Globals
+            | NInd Addr           -- Indirections
+            | NConstr Int [Addr]  -- Constructors
+            | NLAp Addr Addr      -- Locked applications
+            | NLGlobal Int GmCode -- Locked globals
+\end{verbatim}
+
+\begin{description}
+	\item[演習 5.8] 新しくロックされたノードを処理するために、\texttt{showNode} 関数を書き直します。
+\end{description}
+
+\subsubsection{命令セット}
+
+必要な変更は、適切な場所でノードをロックおよびロック解除することだけです。
+巻き戻し時に、アプリケーションノードとスーパーコンビネータを引数なしでロックする必要があります。
+ノードが更新されると、そのノードの下のスパインにあるすべてのノードのロックを解除する必要があります。
+ヒープノードのロックとロック解除を実行するには、2つの関数を使用します。
+\texttt{lock} 関数は、ロックされていないが更新可能な可能性のあるノードをロックされたノードに変換します。
+ロックする必要があるノードは、アプリケーションノードと引数のないグローバルノードです。
+
+\begin{verbatim}
+  lock :: Addr -> GmState -> GmState
+  lock addr state
+    = putHeap (newHeap (hLookup heap addr)) state
+      where
+        heap = getHeap state
+        newHeap (NAp a1 a2) = hUpdate heap addr (NLAp a1 a2)
+        newHeap (NGlobal n c) | n == 0 = hUpdate heap addr (NLGlobal n c)
+                              | otherwise = heap
+\end{verbatim}
+
+ロックされたアプリケーションノードを \texttt{unlock} する場合、そのノードが指すスパインもロック解除されていることを確認する必要があります。
+したがって、\texttt{unlock} は再帰的です。
+
+\begin{verbatim}
+  unlock :: Addr -> GmState -> GmState
+  unlock addr state
+    = newState (hLookup heap addr)
+      where
+        heap = getHeap state
+        newState (NLAp a1 a2)
+          = unlock a1 (putHeap (hUpdate heap addr (NAp a1 a2)) state)
+        newState (NLGlobal n c)
+          = putHeap (hUpdate heap addr (NGlobal n c)) state
+        newState n = state
+\end{verbatim}
+
+\texttt{Unwind} と \texttt{Update} の新しいステップ遷移は、\texttt{lock} と \texttt{unlock} の観点から定義する必要があります。
+これらの遷移は現在定義されています。
+遷移規則 5.2 では、アプリケーションノード(\texttt{*NAp} で表される)をロックすること以外は、\texttt{Unwind} は Mark 1 マシンと同じ遷移規則を持つことがわかります。
+\vskip\baselineskip
+
+(5.2) \\
+\begin{tabular} {|l r l l l l r r r l|} \hline
+	                  & $\langle$ & $h[a : \texttt{NAp} ~ a_1 ~ a_2]$  & $m$ & $t$ & $\rangle$ & $\langle$ & [\texttt{Unwind}] & $a$ \texttt{:} $s$                  & $\rangle$ \\
+	$\Longrightarrow$ & $\langle$ & $h[a : \texttt{*NAp} ~ a_1 ~ a_2]$ & $m$ & $t$ & $\rangle$ & $\langle$ & [\texttt{Unwind}] & $a_1$ \texttt{:} $a$ \texttt{:} $s$ & $\rangle$ \\ \hline
+\end{tabular}
+\vskip\baselineskip
+
+同じことは、スタックの一番上にアリティ0のスーパーコンビネータがある場合の \texttt{Unwind} の遷移規則にも当てはまります。
+この場合、\texttt{*NGlobal} はロックされたグローバルノードです。
+\vskip\baselineskip
+
+(5.3) \\
+\begin{tabular} {|l r l l l l r r r l|} \hline
+	                  & $\langle$ & $h[a : \texttt{NGlobal} ~ 0 ~ c]$  & $m$ & $t$ & $\rangle$ & $\langle$ & [\texttt{Unwind}] & $a$ \texttt{:} $s$ & $\rangle$ \\
+	$\Longrightarrow$ & $\langle$ & $h[a : \texttt{*NGlobal} ~ 0 ~ c]$ & $m$ & $t$ & $\rangle$ & $\langle$ & $c$               & $a$ \texttt{:} $s$ & $\rangle$ \\ \hline
+\end{tabular}
+\vskip\baselineskip
+
+\texttt{Update} の新しい遷移規則では、アドレスが $a$ である redex のルートを更新するときに、$a$ から派生するスパイン内のすべてのノードのロックを解除する必要があります。
+したがって、遷移規則は次の様になります。
+
+(5.4) \\
+\begin{tabular} {|l r l l l l r r r l|} \hline
+	                  & $\langle$ & $h\left[
+						\begin{array}{l}
+							a_1' : \texttt{NGlobal} ~ n ~ c \\
+							a_2' : \texttt{*NAp} ~ a_1' ~ a_1 \\
+							\cdots \\
+							a_{n-1}' : \texttt{*NAp} ~ a_{n-2}' ~ a_{n-2} \\
+							a_{n-1}' : \texttt{*NAp} ~ a_{n-2}' ~ a_{n-2} \\
+							a_n : \texttt{*NAp} ~ a_{n-1}' ~ a_{n-1}
+						\end{array}
+						\right]$  & $m$ & $t$ & $\rangle$ & $\langle$ & \texttt{Update} $n$ \texttt{:} $i$ & $a$ \texttt{:} $a_1$ \texttt{:} $\ldots$ \texttt{:} $a_n$ \texttt{:} $s$ & $\rangle$ \\
+	$\Longrightarrow$ & $\langle$ & $h\left[
+		                \begin{array}{l}
+							a_1' : \texttt{NGlobal} ~ n ~ c \\
+							a_2' : \texttt{NAp} ~ a_1' ~ a_1 \\
+							\cdots \\
+							a_{n-1}' : \texttt{NAp} ~ a_{n-2}' ~ a_{n-2} \\
+							a_{n-1}' : \texttt{NAp} ~ a_{n-2}' ~ a_{n-2} \\
+							a_n : \texttt{*NInd} ~ a
+						\end{array}
+						\right]$ & $m$ & $t$ & $\rangle$ & $\langle$ & $i$                                & $a_1$ \texttt{:} $\ldots$ \texttt{:} $a_n$ \texttt{:} $s$                & $\rangle$ \\ \hline
+\end{tabular}
+\vskip\baselineskip
+
+\begin{description}
+  \item[演習 5.9] 遷移関数 \texttt{unwind} と \texttt{update} の定義を変更します。
+                  コードでは \texttt{lock} 関数と \texttt{unlock} 関数を使用する必要があります。
+                  また、スタックを再配置するときにロックされたノードを「調べる」必要があるため、\texttt{getArg} は次のようになります。
+                  \begin{verbatim}
+					getArg (NLAp a1 a2) = a2
+				  \end{verbatim}
+  \item[演習 5.10] あなたのマシンで次のプログラムを実行してみてください。
+				   \begin{verbatim}
+				     main = twice' (twice' (twice' (S K K))) 3
+				     twice' f x = par f (f x)
+				   \end{verbatim}
+  \item[演習 5.11] 分割統治プログラムは、実行中の各プロセスで30命令ごとに \texttt{par} 命令を実行します。
+                   プロセスは終了しません。
+                   宇宙の電子1つにつき1つのタスクが実行されるまでに、シミュレートされたクロックティックが何回経過しますか?
+                   (ヒント: 宇宙には約 $10^{85}$ 個の電子があります。)
+  \item[演習 5.12] プロセッサのコストが $\pounds 0.01$ の場合、誰もそのマシンを購入できなくなるまで、演習 5.11 のプログラムはどのくらい実行できますか?
+                   (ヒント: 米国の連邦予算は約 $\pounds 5 \times 10^{12}$ です。)
+\end{description}
 \newpage
 
 \subsection{Mark 3: A realistic parallel G-machine}
