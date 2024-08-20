@@ -300,7 +300,7 @@ compileR (ELet recursion defs e) env d  -- Mark3で追加
         | recursion == True = compileU ee (dd - length defs + 1) env_ dd  -- letrec の場合
         | otherwise         = compileU ee (dd - length defs + 1) env  dd  -- let    の場合
       (dn, ams) = mapAccuml subFunc1 (d + length defs) defs2
-      env_  = (zip2 defs1 (map (\x -> Code [Enter (Arg x)]) [(d+1)..])) ++ env  -- Mark4で変更
+      env_  = (zip2 defs1 (map mkIndMode [(d+1)..])) ++ env  -- Mark4で変更
       (d_, is) = compileR e env_ dn
       subFunc2 n am = (n + 1, Move n am)
       (_, mvinstrs) = mapAccuml subFunc2 (d + 1) ams
@@ -313,13 +313,13 @@ compileR (EAp (EAp (EAp (EVar "if") e0) e1) e2) env d  -- Mark3で変更
           d3 = max d1 d2
 compileR (EAp (EAp (EVar op) e1) e2) env d  -- Mark3で変更
   | op `elem` op_list = compileB (EAp (EAp (EVar op) e1) e2) env d [Return]  -- Mark3で変更
-  | otherwise         = (d2, Move (d + 1) am1 : Push (Code [Enter (Arg (d + 1))]) : is)  -- Mark4で変更
+  | otherwise         = (d2, Move (d + 1) am1 : Push (mkIndMode (d + 1)) : is)  -- Mark4で変更
   where op_list = ["+", "-", "*", "/", "<", "<=", ">", ">=", "==", "~="]
         (d1, am1) = compileU e2 (d + 1) env (d + 1)  -- Mark4で変更
         (d2, is)  = compileR (EAp (EVar op) e1) env d1  -- Mark4で変更
 compileR (EAp (EVar "negate") e) env d  -- Mark3で変更
   = compileB (EAp (EVar "negate") e) env d [Return]  -- Mark3で変更
-compileR (EAp e1 e2) env d = (d2, Move (d + 1) am : Push (Code [Enter (Arg (d + 1))]) : is)  -- Mark4で変更
+compileR (EAp e1 e2) env d = (d2, Move (d + 1) am : Push (mkIndMode (d + 1)) : is)  -- Mark4で変更
                              where (d1, am) = compileU e2 (d + 1) env (d + 1)  -- Mark4で変更
                                    (d2, is) = compileR e1 env d1  -- Mark4で変更
 compileR (EVar v)    env d = (d, is)  -- Mark4で変更
