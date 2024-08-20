@@ -298,7 +298,7 @@ compileR (ELet recursion defs e) env d  -- Mark3で追加
         | recursion == True = compileU ee (dd - length defs + 1) env_ dd  -- letrec の場合
         | otherwise         = compileU ee (dd - length defs + 1) env  dd  -- let    の場合
       (dn, ams) = mapAccuml subFunc1 (d + length defs) defs2
-      env_  = (zip2 defs1 (map (\x -> Code [Enter (Arg x)]) [(d+1)..])) ++ env  -- Mark4で変更
+      env_  = (zip2 defs1 (map mkIndMode [(d+1)..])) ++ env  -- Mark4で変更
       (d_, is) = compileR e env_ dn
       subFunc2 n am = (n + 1, Move n am)
       (_, mvinstrs) = mapAccuml subFunc2 (d + 1) ams
