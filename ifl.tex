@@ -8890,15 +8890,16 @@ $\mathcal{SC}$ スキームと $\mathcal{R}$ スキームのみが影響を受�
 \texttt{PushMarker} 命令は、\texttt{y} の\textbf{使用}からその\textbf{定義}に移行しました。
 \texttt{Move} 命令によって構築された \texttt{y} のクロージャは、\textbf{自己更新クロージャ}になりました。
 つまり、Enterされると、それ自体を更新する更新メカニズムがセットアップされます。
-一度この問題が発生すると、\texttt{PushMarker} 命令を含むコードへのポインタが上書きされるため、二度と同じ問題が発生することはありません。
+一度この状態が発生すると、\texttt{PushMarker} 命令を含むコードへのポインタが上書きされるため、二度と同じ問題が発生することはありません。
 \vskip\baselineskip
 
 一般に、考え方は次のとおりです。
 
 \begin{itemize}
-	\item コードを \texttt{PushMarker} 命令で始めることにより、\texttt{let(rec)} バインディングの右側に自己更新クロージャを使用します。
-	\item \texttt{let(rec)} でバインドされた変数をスタックにプッシュする場合は、通常の(非更新)間接アドレス指定モードを使用します。
-	      クロージャが更新されるまでコピーすると重複した作業が発生するため、クロージャのコピーを取得するのではなく、間接指定を使用する必要があります。
+	\item コードを \texttt{PushMarker} 命令で始めることにより、\texttt{let(rec)} 束縛の右辺に自己更新クロージャを使用します。
+	\item \texttt{let(rec)} で束縛された変数をスタックにプッシュする場合は、通常の(更新しない)間接アドレッシングモードを使用します。
+		  まだ、クロージャのコピーを取得するのではなく、間接アドレッシングを使用する必要があります。
+	      これは、クロージャが更新されるまで、コピーすると重複した作業が発生するため、
 \end{itemize}
 
 このアイデアを実装するには次の変更が必要です。
@@ -8920,7 +8921,7 @@ $\mathcal{SC}$ スキームと $\mathcal{R}$ スキームのみが影響を受�
 	$\mathcal{U} \llbracket e \rrbracket ~ u ~ \rho ~ d$ はペア $(d', ~ am)$ です。  \\
 	ここで、$am$ は環境 $\rho$ における式 $e$ の TIM アドレッシングモードです。      \\
 	$am$ によってアドレス指定されたクロージャがEnterされると、                       \\
-	現在のフレームのスロット $u$ が、そのノーマルフォーム(※評価結果)で更新されます。 \\
+	現在のフレームのスロット $u$ が、その正規形(※評価結果)で更新されます。 \\
 	このコードは、フレームの最初の $d$ スロットが占有されていると想定しており、      \\
 	スロット $(d + 1, ~ \ldots, ~ d')$ を使用します。                                \\
 	\\
@@ -8955,7 +8956,7 @@ $\mathcal{SC}$ スキームと $\mathcal{R}$ スキームのみが影響を受�
 		\begin{verbatim}
           let x = 3 in x+x
         \end{verbatim}
-		この場合、\texttt{let} 式の右側はすでに正規形式になっているため、$\mathcal{U}$ スキームで \texttt{PushMarker} 命令を生成する意味はありません。
+		この場合、\texttt{let} 式の右辺はすでに正規形式になっているため、$\mathcal{U}$ スキームで \texttt{PushMarker} 命令を生成する意味はありません。
 		むしろ、この場合、$\mathcal{U}$ は単純に \texttt{IntConst} アドレッシングモードを返すことができます。
 
 		$\mathcal{U}$ コンパイルスキームと対応する \texttt{compileU} 関数を変更し、変更が正しく動作することを確認します。
@@ -8988,7 +8989,7 @@ $\mathcal{SC}$ スキームと $\mathcal{R}$ スキームのみが影響を受�
 	\item スーパーコンビネータ。同じ特性があります。
 	\item \texttt{let(rec)} でバインドされた変数。これも自由にコピーできます (前のセクションのアイデアを使用)。
 	\item 現在のスーパーコンビネータへの引数。新しい規約により自由にコピーできます。
-	\item 非アトミックな式。そのクロージャーは (現状では) 自由にコピーできません。
+	\item 非アトミックな式。そのクロージャーは(現状では)自由にコピーできません。
 \end{itemize}
 
 したがって、この新しい呼び出し規約を採用するために必要なのは、非アトミックな引数を自由にコピー可能なクロージャとして渡す何らかの方法を見つけることだけです。
@@ -9006,11 +9007,11 @@ $\mathcal{SC}$ スキームと $\mathcal{R}$ スキームのみが影響を受�
 \end{verbatim}
 
 \texttt{let} 式は現在のフレームにクロージャ \texttt{(factorial 20)} 用のスロットを割り当て、その中に自己更新クロージャを置き、このクロージャへの (通常の) 間接指定が \texttt{f} に渡されます。
-(この変換は、 \texttt{f} に渡されるクロージャーが複数回入力される可能性がある場合にのみ実行する必要があることに注意してください。
+(この変換は、 \texttt{f} に渡されるクロージャーが複数回Enterされる可能性がある場合にのみ実行する必要があることに注意してください。
 ここには、より効率的なコードを生成するためにグローバル共有分析を行う機会があります。)
 \vskip\baselineskip
 
-この変換が完了すると、引数クロージャを自由にコピーできますが、\texttt{let(rec)} バインドされたクロージャには (非更新の) 間接参照を使用する必要があります。
+この変換が完了すると、引数クロージャを自由にコピーできますが、\texttt{let(rec)} 束縛されたクロージャには(更新されない)間接参照を使用する必要があります。
 間接チェーンが構築されたり、同一の更新が行われることはありません。
 \vskip\baselineskip
 
@@ -9118,9 +9119,9 @@ Return 命令が空のスタックを見つけると、更新を実行し、ダ�
 \vskip\baselineskip
 
 このルールでは、$i'$ と $f'$ はターゲットクロージャを上書きするコードポインタとフレームポインタですが、これまでのところ、それらがどのような値を取るべきかについては指定されていません。
-それらがどうあるべきかを理解する方法は、「クロージャ $(i', f')$ が入力されたときに何が起こるべきか?」という質問をすることです。
+それらがどうあるべきかを理解する方法は、「クロージャ $(i', f')$ がEnterされたときに何が起こるべきか?」という質問をすることです。
 このクロージャは、スーパーコンビネータの引数 $c_1, \ldots, c_m$ への部分的な適用を表します。
-したがって、これが入力されると、$c_1, ..., c_m$ をプッシュしてから、スーパーコンビネータのコードにジャンプする必要があります。
+したがって、これがEnterされると、$c_1, ..., c_m$ をプッシュしてから、スーパーコンビネータのコードにジャンプする必要があります。
 したがって、
 
 \begin{itemize}
@@ -9129,7 +9130,7 @@ Return 命令が空のスタックを見つけると、更新を実行し、ダ�
 	      \vskip\baselineskip
 	      \texttt{Push} (\texttt{Arg} $m$) \texttt{:} $\ldots$ \texttt{:} \texttt{Push} (\texttt{Arg} 1) \texttt{:} \texttt{UpdateMarkers} $n$ \texttt{:} $i$
 	      \vskip\baselineskip
-	      ここで、\texttt{Push} 命令は部分アプリケーションの引数をスタックに配置し、\texttt{UpdateMarkers} 命令は実行する必要があるさらなる更新をチェックします。
+	      ここで、\texttt{Push} 命令は部分適用の引数をスタックに配置し、\texttt{UpdateMarkers} 命令は実行する必要があるさらなる更新をチェックします。
 	      $i$ はスーパーコンビネータのコードの残りの部分です。
 \end{itemize}
 
@@ -9168,8 +9169,8 @@ Return 命令が空のスタックを見つけると、更新を実行し、ダ�
 	      \texttt{UpdateMarkers} の導入が遅れて放置されているのはこのためです。
 	\item 式 $(\texttt{f} ~ e_1 ~ e_2)$ のコードをコンパイルしているとします。ここで、\texttt{f} は 2 つ (またはそれ以下) の引数のスーパーコンビネーターであることがわかっています。
 	      この場合、スタックはそれを満たすのに十分な深さがあることが確実であるため、 \texttt{f} の先頭にある \texttt{UpdateMarkers} 命令は確かに何も行いません。
-	      そのため、すべての引数 (またはそれ以上) に適用されるスーパーコンビネータへの呼び出しをコンパイルするときに、\texttt{UpdateMarkers} 命令の後にそのコードを入力できます。
-	      一般的なプログラムの関数適用の多くは、既知のスーパーコンビネータの飽和した関数適用であるため、この最適化は頻繁に適用できます。
+	      そのため、すべての引数 (またはそれ以上) に適用されるスーパーコンビネータへの呼び出しをコンパイルするときに、\texttt{UpdateMarkers} 命令の後にそのコードをEnterできます。
+	      一般的なプログラムの関数適用の多くは、既知のスーパーコンビネータの充足した関数適用であるため、この最適化は頻繁に適用できます。
 \end{itemize}
 \newpage
 
@@ -9400,7 +9401,7 @@ Return 命令が空のスタックを見つけると、更新を実行し、ダ�
 \texttt{if} は、以前はコンパイルスキームに特別な命令とケースを持っていましたが、現在は他の定義と同様に単なるスーパーコンビネータ定義であることに注意してください。
 それでも、多くの場合、\texttt{case} よりも \texttt{if} を使用してプログラムを作成する方が明確なので、コンパイラに特別なケースを残しておきたい場合があります。
 ただし、今度は \texttt{Cond} 命令ではなく \texttt{Switch} 命令を生成します。
-(後者は消える可能性があります。)
+(\texttt{Cond} は消える可能性があります。)
 
 \begin{description}
 	\item[演習 4.23] 新しい命令とコンパイル スキームを実装します。
@@ -9682,11 +9683,11 @@ CAFの適切な更新を Mark 4 または Mark 5 TIM に追加するには、次
 		$\mathcal{R} \llbracket e \rrbracket ~ \rho ~ d$                 & $=$ & $\mathcal{B} \llbracket e \rrbracket ~ \rho ~ d$ [\texttt{Return}]                                                                            \\
 		                                                                 &     & ここで、$e$は整数または算術式です。                                                                                                           \\
 		\\
-		$\mathcal{R} \llbracket a \rrbracket ~ \rho ~ d$                 & $=$ & $(d', ~ \left[ \texttt{Enter} ~ (\mathcal{A} \llbracket a \rrbracket ~ \rho) \right])$                                                        \\
+		$\mathcal{R} \llbracket a \rrbracket ~ \rho ~ d$                 & $=$ & $(d, ~ \left[ \texttt{Enter} ~ (\mathcal{A} \llbracket a \rrbracket ~ \rho) \right])$                                                        \\
 		                                                                 &     & ここで、$a$ はスーパーコンビネータ                                                                                                            \\
 		                                                                 &     & またはローカル変数です。                                                                                                                      \\
 		\\
-		$\mathcal{R} \llbracket e ~ a \rrbracket ~ \rho ~ d$             & $=$ & ($d_1$, \texttt{Push} ($\mathcal{A} \llbracket e_2 \rrbracket ~ \rho$) \texttt{:} $is$)                                                       \\
+		$\mathcal{R} \llbracket e ~ a \rrbracket ~ \rho ~ d$             & $=$ & ($d_1$, \texttt{Push} ($\mathcal{A} \llbracket a \rrbracket ~ \rho$) \texttt{:} $is$)                                                       \\
 		                                                                 &     & ここで、$a$ はスーパーコンビネータ、                                                                                                          \\
 		                                                                 &     & ローカル変数、または整数であり、                                                                                                              \\
 		                                                                 &     & $d_1, ~ is$ は以下の通りです。                                                                                                                \\
@@ -9706,13 +9707,13 @@ CAFの適切な更新を Mark 4 または Mark 5 TIM に追加するには、次
 \begin{tabular} {|l|} \hline
 	\begin{tabular}{r c l}
 		\multicolumn{3}{l}{$\mathcal{R} \llbracket \texttt{let} ~ x_1 ~ \texttt{=} ~ e_1\texttt{;} ~  \ldots \texttt{;} ~ x_n ~ \texttt{=} ~ e_n ~ \texttt{in} ~ e \rrbracket ~ \rho ~ d$} \\
-		 & $=$ & $(d', ~ \left[ \texttt{Move} ~ (d + 1) ~ am_1, ~ \ldots, ~ \texttt{Move} ~ (d + n) ~ am_n \right]$ ~ \texttt{++} ~ is)                                                    \\
+		 & $=$ & $(d', ~ \left[ \texttt{Move} ~ (d + 1) ~ am_1, ~ \ldots, ~ \texttt{Move} ~ (d + n) ~ am_n \right]$ ~ \texttt{++} ~ $is$)                                                    \\
 		 &     & ここで $am_1, ~ \ldots, ~ am_n, ~ is$ は以下の通りです。                                                                                                                  \\
 		 &     & $(d_1, ~ am_1) = \mathcal{U} \llbracket e_1 \rrbracket ~ (d + 1) ~ \rho ~ (d + n)$                                                                                        \\
 		 &     & $(d_2, ~ am_2) = \mathcal{U} \llbracket e_2 \rrbracket ~ (d + 2) ~ \rho ~ d_1$                                                                                            \\
 		 &     & $\ldots$                                                                                                                                                                  \\
 		 &     & $(d_n, ~ am_n) = \mathcal{U} \llbracket e_n \rrbracket ~ \rho ~ d_{n - 1}$                                                                                                \\
-		 &     & $\rho' = \rho \left[x_1 ~ \mapsto ~ \mathcal{U} \llbracket d + 1 \rrbracket, ~ \ldots , ~ x_n ~ \mapsto ~ \mathcal{U} \llbracket d + n \rrbracket \right]$                \\
+		 &     & $\rho' = \rho \left[x_1 ~ \mapsto ~ \mathcal{I} \llbracket d + 1 \rrbracket, ~ \ldots , ~ x_n ~ \mapsto ~ \mathcal{I} \llbracket d + n \rrbracket \right]$                \\
 		 &     & $(d', ~ is) = \mathcal{R} \llbracket e \rrbracket ~ \rho' ~ d_n$                                                                                                          \\
 		 &     & です。                                                                                                                                                                    \\
 		\\
@@ -10260,7 +10261,7 @@ CAFの適切な更新を Mark 4 または Mark 5 TIM に追加するには、次
 イベントの正確なシーケンスは次のとおりです。
 
 \begin{enumerate}
-	\item まず、前回の texttt{steps} 呼び出しで生成されたアドレスを状態から抽出します。
+	\item まず、前回の \texttt{steps} 呼び出しで生成されたアドレスを状態から抽出します。
 	\item 次に、それらをプロセスに変換します。
 	      これは \texttt{newtasks} というラベルが付けられています。
 	\item 状態のスパークプールコンポーネントは空に設定されています。
