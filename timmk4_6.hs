@@ -312,12 +312,23 @@ compileR (EAp (EAp (EAp (EVar "if") e0) e1) e2) env d  -- Mark3で変更
           d3 = max d1 d2
 compileR (EAp (EAp (EVar op) e1) e2) env d  -- Mark3で変更
   | op `elem` op_list = compileB (EAp (EAp (EVar op) e1) e2) env d [Return]  -- Mark3で変更
-  | otherwise         = (d2, Move (d + 1) am1 : Push (mkIndMode (d + 1)) : is)  -- Mark4で変更
+  | otherwise         = case e2 of
+                        EVar v -> (d1, Push am : is)  -- Mark4で変更
+                                  where am = compileA (EVar v) env
+                                        (d1, is) = compileR (EAp (EVar op) e1) env d
+                        ENum n -> (d1, Push am : is)  -- Mark4で変更
+                                  where am = compileA (ENum n) env
+                                        (d1, is) = compileR (EAp (EVar op) e1) env d
+                        _      -> (d2, Move (d + 1) am1 : Push (mkIndMode (d + 1)) : is)  -- Mark4で変更
+                                  where (d1, am1) = compileU e2 (d + 1) env (d + 1)  -- Mark4で変更
+                                        (d2, is)  = compileR (EAp (EVar op) e1) env d1  -- Mark4で変更
   where op_list = ["+", "-", "*", "/", "<", "<=", ">", ">=", "==", "~="]
-        (d1, am1) = compileU e2 (d + 1) env (d + 1)  -- Mark4で変更
-        (d2, is)  = compileR (EAp (EVar op) e1) env d1  -- Mark4で変更
-compileR (EAp (EVar "negate") e) env d  -- Mark3で変更
-  = compileB (EAp (EVar "negate") e) env d [Return]  -- Mark3で変更
+compileR (EAp e (EVar v)) env d = (d1, Push am : is)  -- Mark4で変更
+                                  where am = compileA (EVar v) env
+                                        (d1, is) = compileR e env d
+compileR (EAp e (ENum n)) env d = (d1, Push am : is)  -- Mark4で変更
+                                  where am = compileA (ENum n) env
+                                        (d1, is) = compileR e env d
 compileR (EAp e1 e2) env d = (d2, Move (d + 1) am : Push (mkIndMode (d + 1)) : is)  -- Mark4で変更
                              where (d1, am) = compileU e2 (d + 1) env (d + 1)  -- Mark4で変更
                                    (d2, is) = compileR e1 env d1  -- Mark4で変更
@@ -339,7 +350,7 @@ compileA (ENum n) env = IntConst n  -- Mark4で変更
 -- Mark2で追加
 compileB :: CoreExpr -> TimCompilerEnv -> Int -> [Instruction] -> (Int, [Instruction])  -- Bスキーム  Mark3で変更
 compileB (EAp (EAp (EVar op) e1) e2) env d cont  -- Mark3で変更
-  = (d2, is2)  -- Mark3で変更
+  = (d3, is2)  -- Mark3で変更
     where
       i = case op of
           "+"  -> Op Add
@@ -836,9 +847,12 @@ nTerse = 3
 
 showCompiledCode :: String -> String
 showCompiledCode coreprg
-  = show codes
+  = iDisplay (iConcat [
+      iStr "Supercombinator definitions", iNewline, iNewline,
+      showSCDefns first_state, iNewline
+    ])
     where
-      (_, _, _, _, _, _, _, codes, _) = compile $ parse coreprg
+      first_state = compile $ parse coreprg
 
 showUsedSlotNumber :: [Instruction] -> Iseq
 showUsedSlotNumber []
@@ -1038,6 +1052,762 @@ ex_4_19 = "main = let x = 3 in x+x"
 ex_4_20 = "factorial n = if n 1 (n * factorial (n-1)) ; " ++
           "f x = x + x ; " ++
           "main = let arg = factorial 3 in f arg"
+ex_4_20_1 = "f x = let y = x "  ++
+                  "in let z =  y " ++
+                      "in z ; " ++
+            "main = f (3 + 5)"
+
+ex_4_20_2_1_1 = "x = 2 * 2 ; " ++
+                "main = 1 + x"  -- (EAp (EAp op e1) e2) の op が2項演算子で e2 が EVar v の場合 (e1 は ENum n)
+                {-
+                  (EAp (EAp (EVar "+") (ENum 1)) (EVar "x"))
+                            ^^^^^^^^^^ ^^^^^^^^  ^^^^^^^^^^
+                  ↓
+                  (
+                    \"main\",
+                    [
+                      Push (Code [PushV (IntVConst 1),
+                                  Op Add,
+                                  Return]),
+                      Enter (Label \"x\")
+                    ]
+                  )
+                -}
+
+ex_4_20_2_1_2 = "x = 2 * 2 ; " ++
+                "y = 2 / 2 ; " ++
+                "main = y + x"  -- (EAp (EAp op e1) e2) の op が2項演算子で e2 が EVar v の場合 (e1 は EVar v)
+                {-
+                  (EAp (EAp (EVar "+") (EVar "y")) (EVar "x"))
+                            ^^^^^^^^^^ ^^^^^^^^^^  ^^^^^^^^^^
+                  ↓
+                  (
+                    \"y\",
+                    [
+                      PushV (IntVConst 2),
+                      PushV (IntVConst 2),
+                      Op Div,
+                      Return
+                    ]
+                  ),
+                  (
+                    \"main\",
+                    [
+                      Push (Code [
+                                   Push (Code [
+                                                Op Add,
+                                                Return
+                                              ]),
+                                   Enter (Label \"y\")
+                                 ]),
+                      Enter (Label \"x\")
+                    ]
+                  )
+                -}
+
+ex_4_20_2_1_3 = "x = 2 * 2 ; " ++
+                "inc n = n + 1 ; " ++
+                "main = (inc 2) + x"  -- (EAp (EAp op e1) e2) の op が2項演算子で e2 が EVar v の場合 (e1 は ENum n, EVar v 以外)
+                {-
+                  (EAp (EAp (EVar "+") (EAp (EVar "inc") (ENum 2))) (EVar "x"))
+                            ^^^^^^^^^^ ^^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^
+                  ↓
+                  (
+                    \"y\",
+                    [
+                      PushV (IntVConst 2),
+                      PushV (IntVConst 2),
+                      Op Div,
+                      Return
+                    ]
+                  ),
+                  (
+                    \"main\",
+                    [
+                      Push (Code [
+                                   Push (Code [
+                                                Op Add,
+                                                Return
+                                              ]),
+                                   Push (IntConst 2),
+                                   Enter (Label \"inc\")
+                                 ]),
+                      Enter (Label \"x\")])
+                -}
+
+ex_4_20_2_1_4 = "x = 2 * 2 ; " ++
+                "inc n = n + 1 ; " ++
+                "main = (K1 1 (inc 2)) + x"  -- (EAp (EAp op e1) e2) の op が2項演算子で e2 が EVar v の場合 (e1 は ENum n, EVar v 以外)
+                {-
+                  (EAp (EAp (EVar "+") (EAp (EAp (EVar "K1") (ENum 1)) (EAp (EVar "inc") (ENum 2)))) (EVar "x"))
+                            ^^^^^^^^^^ ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^
+                  ↓
+                  (
+                    \"main\",
+                    [
+                      Push (Code [
+                                   Push (Code [
+                                                Push (Code [
+                                                             Op Add,
+                                                             Return
+                                                           ]),
+                                                Push (IntConst 1),
+                                                Enter (Label \"K1\")
+                                              ]),
+                                   Push (IntConst 2),
+                                   Enter (Label \"inc\")
+                                 ]),
+                      Enter (Label \"x\")
+                    ]
+                  )
+                -}
+
+ex_4_20_2_2_1 = "main = 1 + 2"  -- (EAp (EAp op e1) e2) の op が2項演算子で e2 が ENum n の場合 (e1 は ENum n)
+                {-
+                  (EAp (EAp (EVar "+") (ENum 1)) (ENum 2))
+                            ^^^^^^^^^^ ^^^^^^^^  ^^^^^^^^
+                  ↓
+                  (
+                    \"main\",
+                    [
+                      PushV (IntVConst 2),
+                      PushV (IntVConst 1),
+                      Op Add,
+                      Return
+                    ]
+                  )
+                -}
+
+ex_4_20_2_2_2 = "y = 2 / 2 ; " ++
+                "main = y + 2"  -- (EAp (EAp op e1) e2) の op が2項演算子で e2 が ENum n の場合 (e1 は EVar v)
+                {-
+                  (EAp (EAp (EVar "+") (EVar "y")) (ENum 2))
+                            ^^^^^^^^^^ ^^^^^^^^^^  ^^^^^^^^
+                  ↓
+                  (
+                    \"main\",
+                    [
+                      PushV (IntVConst 2),
+                      Push (Code [
+                                   Op Add,
+                                   Return
+                                 ]),
+                      Enter (Label \"y\")
+                    ]
+                  )
+                -}
+
+ex_4_20_2_2_3 = "inc n = n + 1 ; " ++
+                "main = (inc 1) + 2"  -- (EAp (EAp op e1) e2) の op が2項演算子で e2 が ENum n の場合 (e1 は ENum n, EVar v 以外)
+                {-
+                  (EAp (EAp (EVar "+") (EAp (EVar "inc") (ENum 1))) (ENum 2))
+                            ^^^^^^^^^^ ^^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^
+                  ↓
+                  (
+                    \"main\",
+                    [
+                      PushV (IntVConst 2),
+                      Push (Code [
+                                   Op Add,
+                                   Return
+                                 ]),
+                      Push (IntConst 1),
+                      Enter (Label \"inc\")
+                    ]
+                  )
+                -}
+
+ex_4_20_2_2_4 = "inc n = n + 1 ; " ++
+                "main = (K1 1 (inc 1)) + 2"  -- (EAp (EAp op e1) e2) の op が2項演算子で e2 が EVar v の場合 (e1 は ENum n, EVar v 以外)
+                {-
+                  (EAp (EAp (EVar "+") (EAp (EAp (EVar "K1") (ENum 1)) (EAp (EVar "inc") (ENum 2)))) (ENum 2))
+                            ^^^^^^^^^^ ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^
+                  ↓
+                  (
+                    \"main\",
+                    [
+                      PushV (IntVConst 2),
+                      Push (Code [
+                                   Push (Code [
+                                                Op Add,
+                                                Return
+                                              ]),
+                                   Push (IntConst 1),
+                                   Enter (Label \"K1\")
+                                 ]),
+                      Push (IntConst 2),
+                      Enter (Label \"inc\")
+                    ]
+                  )
+                -}
+
+ex_4_20_2_3_1 = "inc n = n + 1 ; " ++
+                "main = 1 + (inc 2)"  -- (EAp (EAp op e1) e2) の op が2項演算子で e2 が EVar v, ENum n 以外の場合 (e1 は ENum n)
+                {-
+                  (EAp (EAp (EVar "+") (ENum 1)) (EAp (EVar "inc") (ENum 2)))
+                            ^^^^^^^^^^ ^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                  ↓
+                  (
+                    \"main\",
+                    [
+                      Push (Code [
+                                   PushV (IntVConst 1),
+                                   Op Add,
+                                   Return
+                                 ]),
+                      Push (IntConst 2),
+                      Enter (Label \"inc\")
+                    ]
+                  )
+                -}
+
+ex_4_20_2_3_2 = "y = 2 / 2 ; " ++
+                "inc n = n + 1 ; " ++
+                "main = y + (inc 2)"  -- (EAp (EAp op e1) e2) の op が2項演算子で e2 が EVar v, ENum n 以外の場合 (e1 は EVar v)
+                {-
+                  (EAp (EAp (EVar "+") (EVar "y")) (EAp (EVar "inc") (ENum 2)))
+                            ^^^^^^^^^^ ^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                  ↓
+                  (
+                    \"main\",
+                    [
+                      Push (Code [
+                                   Push (Code [
+                                                Op Add,
+                                                Return
+                                              ]),
+                                   Enter (Label \"y\")
+                                 ]),
+                      Push (IntConst 2),
+                      Enter (Label \"inc\")
+                    ]
+                  )
+                -}
+
+ex_4_20_2_3_3 = "inc n = n + 1 ; " ++
+                "main = (inc 1) + (inc 2)"  -- (EAp (EAp op e1) e2) の op が2項演算子で e2 が EVar v, ENum n 以外の場合 (e1 は ENum n, EVar v 以外)
+                {-
+                  (EAp (EAp (EVar "+") (EAp (EVar "inc") (ENum 1))) (EAp (EVar "inc") (ENum 2)))
+                            ^^^^^^^^^^ ^^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                  ↓
+                  (
+                    \"main\",
+                    [
+                      Push (Code [
+                                   Push (Code [
+                                                Op Add,
+                                                Return
+                                              ]),
+                                   Push (IntConst 1),
+                                   Enter (Label \"inc\")
+                                 ]),
+                      Push (IntConst 2),
+                      Enter (Label \"inc\")
+                    ]
+                  )
+                -}
+
+ex_4_20_2_3_4 = "inc n = n + 1 ; " ++
+                "main = (K1 1 (inc 1)) + (inc 2)"  -- (EAp (EAp op e1) e2) の op が2項演算子で e2 が EVar v, ENum n 以外の場合 (e1 は ENum n, EVar v 以外)
+                {-
+                  (EAp (EAp (EVar "+") (EAp (EAp (EVar "K1") (ENum 1)) (EAp (EVar "inc") (ENum 1)))) (EAp (EVar "inc") (ENum 2)))
+                            ^^^^^^^^^^ ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                  ↓
+                  (
+                    \"main\",
+                    [
+                      Push (Code [
+                                   Push (Code [
+                                                Push (Code [
+                                                             Op Add,
+                                                             Return
+                                                           ]),
+                                                Push (IntConst 1),
+                                                Enter (Label \"K1\")
+                                              ]),
+                                   Push (IntConst 1),
+                                   Enter (Label \"inc\")
+                                 ]),
+                      Push (IntConst 2),
+                      Enter (Label \"inc\")
+                    ]
+                  )
+                -}
+
+ex_4_20_2_4_1 = "x = 2 * 2 ; " ++
+                "main = K1 1 x"  -- (EAp (EAp op e1) e2) の op が2項演算子以外で e2 が EVar v の場合 (e1 は ENum n)
+                {-
+                  (EAp (EAp (EVar "K1") (Enum 1)) (EVar "x"))
+                            ^^^^^^^^^^^ ^^^^^^^^  ^^^^^^^^^^
+                  ↓
+                  (
+                    \"main\",
+                    [
+                      Push (Label \"x\"),
+                      Push (IntConst 1),
+                      Enter (Label \"K1\")
+                    ]
+                  )
+                -}
+
+ex_4_20_2_4_2 = "x = 2 * 2 ; " ++
+                "y = 2 / 2 ; " ++
+                "main = K1 y x"  -- (EAp (EAp op e1) e2) の op が2項演算子以外で e2 が EVar v の場合 (e1 は EVar v)
+                {-
+                  (EAp (EAp (EVar "K1") (EVar "y")) (EVar "x"))
+                            ^^^^^^^^^^^ ^^^^^^^^^^  ^^^^^^^^^^
+                  ↓
+                  (
+                    \"main\",
+                    [
+                      Push (Label \"x\"),
+                      Push (Label \"y\"),
+                      Enter (Label \"K1\")
+                    ]
+                  )
+                -}
+
+ex_4_20_2_4_3 = "x = 2 * 2 ; " ++
+                "inc n = n + 1 ; " ++
+                "main = K1 (inc 1) x"  -- (EAp (EAp op e1) e2) の op が2項演算子以外で e2 が EVar v の場合 (e1 は ENum n, EVar v 以外)
+                {-
+                  (EAp (EAp (EVar "K1") (EAp (EVar "inc") (ENum 1))) (EVar "x"))
+                            ^^^^^^^^^^^ ^^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^
+                  ↓
+                  (
+                    \"main\",
+                    [
+                      UpdateMarkers 0,
+                      Take 1 0,
+                      Push (Label \"x\"),
+                      Move 1 (Code [
+                                     PushMarker 1,
+                                     Push (IntConst 1),
+                                     Enter (Label \"inc\")
+                                   ]),
+                      Push (Code [
+                                   Enter (Arg 1)
+                                 ]),
+                      Enter (Label \"K1\")
+                    ]
+                  )
+                -}
+
+ex_4_20_2_4_4 = "x = 2 * 2 ; " ++
+                "inc n = n + 1 ; " ++
+                "main = K1 (K1 1 (inc 1)) x"  -- (EAp (EAp op e1) e2) の op が2項演算子以外で e2 が EVar v の場合 (e1 は ENum n, EVar v 以外)
+                {-
+                  (EAp (EAp (EVar "K1") (EAp (EAp (EVar "K1") (ENum 1)) (EAp (EVar "inc") (ENum 1)))) (EVar "x"))
+                            ^^^^^^^^^^^ ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^
+                  ↓
+                  (
+                    \"main\",
+                    [
+                      UpdateMarkers 0,
+                      Take 2 0,
+                      Push (Label \"x\"),
+                      Move 1 (Code [
+                                     PushMarker 1,
+                                     Move 2 (Code [
+                                                    PushMarker 2,
+                                                    Push (IntConst 1),
+                                                    Enter (Label \"inc\")
+                                                  ]),
+                                     Push (Code [
+                                                  Enter (Arg 2)
+                                                ]),
+                                     Push (IntConst 1),
+                                     Enter (Label \"K1\")
+                                   ]),
+                      Push (Code [
+                                   Enter (Arg 1)
+                                 ]),
+                      Enter (Label \"K1\")
+                    ]
+                  )
+                -}
+
+ex_4_20_2_5_1 = "main = K1 1 2"  -- (EAp (EAp op e1) e2) の op が2項演算子以外で e2 が ENum n の場合 (e1 は ENum n)
+                {-
+                  (EAp (EAp (EVar "K1") (Enum 1)) (ENum 2))
+                            ^^^^^^^^^^^ ^^^^^^^^  ^^^^^^^^
+                  ↓
+                  (
+                    \"main\",
+                    [
+                      Push (IntConst 2),
+                      Push (IntConst 1),
+                      Enter (Label \"K1\")
+                    ]
+                  )
+                -}
+
+ex_4_20_2_5_2 = "y = 2 / 2 ; " ++
+                "main = K1 y 2"  -- (EAp (EAp op e1) e2) の op が2項演算子以外で e2 が ENum n の場合 (e1 は EVar v)
+                {-
+                  (EAp (EAp (EVar "K1") (EVar "y")) (ENum 2))
+                            ^^^^^^^^^^^ ^^^^^^^^^^  ^^^^^^^^
+                  ↓
+                  (
+                    \"main\",
+                    [
+                      Push (IntConst 2),
+                      Push (Label \"y\"),
+                      Enter (Label \"K1\")
+                    ]
+                  )
+                -}
+
+ex_4_20_2_5_3 = "inc n = n + 1 ; " ++
+                "main = K1 (inc 2) 2"  -- (EAp (EAp op e1) e2) の op が2項演算子以外で e2 が ENum n の場合 (e1 は ENum n, EVar v 以外)
+                {-
+                  (EAp (EAp (EVar "K1") (EAp (EVar "inc") (ENum 2))) (ENum 2))
+                            ^^^^^^^^^^^ ^^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^
+                  ↓
+                  (
+                    \"main\",
+                    [
+                      UpdateMarkers 0,
+                      Take 1 0,
+                      Push (IntConst 2),
+                      Move 1 (Code [
+                                     PushMarker 1,
+                                     Push (IntConst 2),
+                                     Enter (Label \"inc\")
+                                   ]),
+                      Push (Code [
+                                   Enter (Arg 1)
+                                 ]),
+                      Enter (Label \"K1\")
+                    ]
+                  )
+                -}
+
+ex_4_20_2_5_4 = "inc n = n + 1 ; " ++
+                "main = K1 (K1 1 (inc 2)) 2"  -- (EAp (EAp op e1) e2) の op が2項演算子以外で e2 が ENum n の場合 (e1 は ENum n, EVar v 以外)
+                {-
+                  (EAp (EAp (EVar "K1") (EAp (EAp (EVar "K1") (ENum 1)) (EAp (EVar "inc") (ENum 2)))) (ENum 2))
+                            ^^^^^^^^^^^ ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^
+                  ↓
+                  (
+                    \"main\",
+                    [
+                      UpdateMarkers 0,
+                      Take 2 0,
+                      Push (IntConst 2),
+                      Move 1 (Code [
+                                     PushMarker 1,
+                                     Move 2 (Code [
+                                                    PushMarker 2,
+                                                    Push (IntConst 2),
+                                                    Enter (Label \"inc\")
+                                                  ]),
+                                     Push (Code [
+                                                  Enter (Arg 2)
+                                                ]),
+                                     Push (IntConst 1),
+                                     Enter (Label \"K1\")
+                                   ]),
+                      Push (Code [
+                                   Enter (Arg 1)
+                                 ]),
+                      Enter (Label \"K1\")
+                    ]
+                  )
+                -}
+
+ex_4_20_2_6_1 = "inc n = n + 1 ; " ++
+                "main = K1 1 (inc 2)"  -- (EAp (EAp op e1) e2) の op が2項演算子以外で e2 が EVar v, ENum n 以外の場合 (e1 は ENum n)
+                {-
+                  (EAp (EAp (EVar "K1") (ENum 1)) (EAp (EVar "inc") (ENum 2)))
+                            ^^^^^^^^^^^ ^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                  ↓
+                  (
+                    \"main\",
+                    [
+                      UpdateMarkers 0,
+                      Take 1 0,
+                      Move 1 (Code [
+                                     PushMarker 1,
+                                     Push (IntConst 2),
+                                     Enter (Label \"inc\")
+                                   ]),
+                      Push (Code [
+                                   Enter (Arg 1)
+                                 ]),
+                      Push (IntConst 1),
+                      Enter (Label \"K1\")
+                    ]
+                  )
+                -}
+
+ex_4_20_2_6_2 = "y = 2 / 2 ; " ++
+                "inc n = n + 1 ; " ++
+                "main = K1 y (inc 2)"  -- (EAp (EAp op e1) e2) の op が2項演算子以外で e2 が EVar v, ENum n 以外の場合 (e1 は EVar v)
+                {-
+                  (EAp (EAp (EVar "K1") (EVar "y")) (EAp (EVar "inc") (ENum 2)))
+                            ^^^^^^^^^^^ ^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                  ↓
+                  (
+                    \"main\",
+                    [
+                      UpdateMarkers 0,
+                      Take 1 0,
+                      Move 1 (Code [
+                                     PushMarker 1,
+                                     Push (IntConst 2),
+                                     Enter (Label \"inc\")
+                                   ]),
+                      Push (Code [
+                                   Enter (Arg 1)
+                                 ]),
+                      Push (Label \"y\"),
+                      Enter (Label \"K1\")
+                    ]
+                  )
+                -}
+
+ex_4_20_2_6_3 = "inc n = n + 1 ; " ++
+                "main = K1 (inc 1) (inc 2)"  -- (EAp (EAp op e1) e2) の op が2項演算子以外で e2 が EVar v, ENum n 以外の場合 (e1 は EVar v, ENum n 以外)
+                {-
+                  (EAp (EAp (EVar "K1") (EAp (EVar "inc") (ENum 1))) (EAp (EVar "inc") (ENum 2)))
+                            ^^^^^^^^^^^ ^^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                  ↓
+                  (
+                    \"main\",
+                    [
+                      UpdateMarkers 0,
+                      Take 2 0,
+                      Move 1 (Code [
+                                     PushMarker 1,
+                                     Push (IntConst 2),
+                                     Enter (Label \"inc\")
+                                   ]),
+                      Push (Code [
+                                   Enter (Arg 1)
+                                 ]),
+                      Move 2 (Code [
+                                     PushMarker 2,
+                                     Push (IntConst 1),
+                                     Enter (Label \"inc\")
+                                   ]),
+                      Push (Code [
+                                   Enter (Arg 2)
+                                 ]),
+                      Enter (Label \"K1\")
+                    ]
+                  )
+                -}
+
+ex_4_20_2_6_4 = "inc n = n + 1 ; " ++
+                "main = K1 (K1 1 (inc 1)) (inc 2)"  -- (EAp (EAp op e1) e2) の op が2項演算子以外で e2 が EVar v, ENum n 以外の場合 (e1 は EVar v, ENum n 以外)
+                {-
+                  (EAp (EAp (EVar "K1") (EAp (EAp (EVar "K1") (ENum 1)) (EAp (EVar "inc") (ENum 1)))) (EAp (EVar "inc") (ENum 2)))
+                            ^^^^^^^^^^^ ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                  ↓
+                  (
+                    \"main\",
+                    [
+                      UpdateMarkers 0,
+                      Take 3 0,
+                      Move 1 (Code [
+                                     PushMarker 1,
+                                     Push (IntConst 2),
+                                     Enter (Label \"inc\")
+                                   ]),
+                      Push (Code [
+                                   Enter (Arg 1)
+                                 ]),
+                      Move 2 (Code [
+                                     PushMarker 2,
+                                     Move 3 (Code [
+                                                    PushMarker 3,
+                                                    Push (IntConst 1),
+                                                    Enter (Label \"inc\")
+                                                  ]),
+                                     Push (Code [
+                                                  Enter (Arg 3)
+                                                ]),
+                                     Push (IntConst 1),
+                                     Enter (Label \"K1\")
+                                   ]),
+                      Push (Code [
+                                   Enter (Arg 2)
+                                 ]),
+                      Enter (Label \"K1\")
+                    ]
+                  )
+                -}
+
+ex_4_20_2_7_1 = "inc n = n + 1 ; " ++
+                "main = K1 1 (K1 1 (inc 1))"  -- (EAp (EAp op e1) e2) の op が2項演算子以外で e2 が EVar v, ENum n 以外の場合 (e1 は ENum n)
+                {-
+                  (EAp (EAp (EVar "K1") (ENum 1)) (EAp (EAp (EVar "K1") (ENum 1)) (EAp (EVar "inc") (ENum 1))))
+                            ^^^^^^^^^^^ ^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                  ↓
+                  (
+                    \"main\",
+                    [
+                      UpdateMarkers 0,
+                      Take 2 0,
+                      Move 1 (Code [
+                                     PushMarker 1,
+                                     Move 2 (Code [
+                                                    PushMarker 2,
+                                                    Push (IntConst 1),
+                                                    Enter (Label \"inc\")
+                                                  ]),
+                                     Push (Code [
+                                                  Enter (Arg 2)
+                                                ]),
+                                     Push (IntConst 1),
+                                     Enter (Label \"K1\")
+                                   ]),
+                      Push (Code [
+                                   Enter (Arg 1)
+                                 ]),
+                      Push (IntConst 1),
+                      Enter (Label \"K1\")
+                    ]
+                  )
+                -}
+
+ex_4_20_2_7_2 = "y = 2 / 2 ; " ++
+                "inc n = n + 1 ; " ++
+                "main = K1 y (K1 1 (inc 1))"  -- (EAp (EAp op e1) e2) の op が2項演算子以外で e2 が EVar v, ENum n 以外の場合 (e1 は EVar v)
+                {-
+                  (EAp (EAp (EVar "K1") (EVar "y")) (EAp (EAp (EVar "K1") (ENum 1)) (EAp (EVar "inc") (ENum 1))))
+                            ^^^^^^^^^^^ ^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                  ↓
+                  (
+                    \"main\",
+                    [
+                      UpdateMarkers 0,
+                      Take 2 0,
+                      Move 1 (Code [
+                                     PushMarker 1,
+                                     Move 2 (Code [
+                                                    PushMarker 2,
+                                                    Push (IntConst 1),
+                                                    Enter (Label \"inc\")
+                                                  ]),
+                                     Push (Code [
+                                                  Enter (Arg 2)
+                                                ]),
+                                     Push (IntConst 1),
+                                     Enter (Label \"K1\")
+                                   ]),
+                      Push (Code [
+                                   Enter (Arg 1)
+                                 ]),
+                      Push (Label \"y\"),
+                      Enter (Label \"K1\")
+                    ]
+                  )
+                -}
+
+ex_4_20_2_7_3 = "inc n = n + 1 ; " ++
+                "main = K1 (inc 2) (K1 1 (inc 1))"  -- (EAp (EAp op e1) e2) の op が2項演算子以外で e2 が EVar v, ENum n 以外の場合 (e1 は EVar v, ENum n 以外)
+                {-
+                  (EAp (EAp (EVar "K1") (EAp (EVar "inc") (ENum 2))) (EAp (EAp (EVar "K1") (ENum 1)) (EAp (EVar "inc") (ENum 1))))
+                            ^^^^^^^^^^^ ^^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                  ↓
+                  (
+                    \"main\",
+                    [
+                      UpdateMarkers 0,
+                      Take 3 0,
+                      Move 1 (Code [
+                                     PushMarker 1,
+                                     Move 2 (Code [
+                                                    PushMarker 2,
+                                                    Push (IntConst 1),
+                                                    Enter (Label \"inc\")
+                                                  ]),
+                                     Push (Code [
+                                                  Enter (Arg 2)
+                                                ]),
+                                     Push (IntConst 1),
+                                     Enter (Label \"K1\")
+                                   ]),
+                      Push (Code [
+                                   Enter (Arg 1)
+                                 ]),
+                      Move 3 (Code [
+                                     PushMarker 3,
+                                     Push (IntConst 2),
+                                     Enter (Label \"inc\")
+                                   ]),
+                      Push (Code [
+                                   Enter (Arg 3)
+                                 ]),
+                      Enter (Label \"K1\")
+                    ]
+                  )
+                -}
+
+ex_4_20_2_7_4 = "inc n = n + 1 ; " ++
+                "main = K1 (K1 2 (inc 2)) (K1 1 (inc 1))"  -- (EAp (EAp op e1) e2) の op が2項演算子以外で e2 が EVar v, ENum n 以外の場合 (e1 は EVar v, ENum n 以外)
+                {-
+                  (EAp (EAp (EVar "K1") (EAp (EAp (EVar "K1") (ENum 2)) (EAp (EVar "inc") (ENum 2)))) (EAp (EAp (EVar "K1") (ENum 1)) (EAp (EVar "inc") (ENum 1))))
+                            ^^^^^^^^^^^ ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                  ↓
+                  (
+                    \"main\",
+                    [
+                      UpdateMarkers 0,
+                      Take 4 0,
+                      Move 1 (Code [
+                                     PushMarker 1,
+                                     Move 2 (Code [
+                                                    PushMarker 2,
+                                                    Push (IntConst 1),
+                                                    Enter (Label \"inc\")
+                                                  ]),
+                                     Push (Code [
+                                                  Enter (Arg 2)
+                                                ]),
+                                     Push (IntConst 1),
+                                     Enter (Label \"K1\")
+                                   ]),
+                      Push (Code [
+                                   Enter (Arg 1)
+                                 ]),
+                      Move 3 (Code [
+                                     PushMarker 3,
+                                     Move 4 (Code [
+                                                    PushMarker 4,
+                                                    Push (IntConst 2),
+                                                    Enter (Label \"inc\")
+                                                  ]),
+                                     Push (Code [
+                                                  Enter (Arg 4)
+                                                ]),
+                                     Push (IntConst 2),
+                                     Enter (Label \"K1\")
+                                   ]),
+                      Push (Code [
+                                   Enter (Arg 3)
+                                 ]),
+                      Enter (Label \"K1\")
+                    ]
+                  )
+                -}
+
+ex_4_20_2 = "f x = (x + x) + x ; " ++
+            "main = f (3 + 5)"
+ex_4_20_3 = "factorial n = if n 1 (n * factorial (n-1)) ; " ++
+            "f x = ((x + x) + x) + x ; " ++
+            "main = f (factorial 3)"
+ex_4_20_4 = "f x = g x ; " ++
+            "g x = h x ; " ++
+            "h x = i x ; " ++
+            "i x = j x ; " ++
+            "j x = k x ; " ++
+            "k x = l x ; " ++
+            "l x = x + x ; " ++
+            "main = f (3 + 5)"
+
 ex_4_21_1 = "pair x y f = f x y ; " ++
             "fst p = p K ; " ++
             "snd p = p K1 ; " ++
@@ -1053,9 +1823,22 @@ ex_4_21_3 = "pair x y f = f x y ; " ++
             "snd p = p K1 ; " ++
             "main = let w = if(2 * 3 > 8) (pair 2 3) (pair 3 2) " ++
                    "in (fst w) * (snd w)"
+ex_4_21_4 = "add a b = a+b ; " ++
+            "twice2 f x = f (f x) ; " ++
+            "g x = add (x*x) ; " ++
+            "main = twice2 (g 3) 4"
+ex_4_21_4_ = "add a b = a+b ; " ++
+             "g x = add (x*x) ; " ++
+             "main = twice (g 3) 4"
+ex_4_21_4__ = "add a b = a+b ; " ++
+              "twice2 f x = f (f x) ; " ++
+              "nfib n = if (n<2) 1 " ++
+                        "(nfib (n-1) + nfib (n-2)) ;" ++
+              "g x = add (nfib x) ; " ++
+              "main = twice2 (g 10) 4"
 --------------------------------
 -- テストプログラム (ここまで) --
 --------------------------------
 
 main :: IO()
-main = (putStrLn . fullRun) ex_2_11
+main = (putStrLn . fullRun) ex_4_21_4__
