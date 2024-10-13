@@ -351,30 +351,23 @@ compileA (ENum n) env = IntConst n  -- Mark4で変更
 -- Mark2で追加
 compileB :: CoreExpr -> TimCompilerEnv -> Int -> [Instruction] -> (Int, [Instruction])  -- Bスキーム  Mark3で変更
 compileB (EAp (EAp (EVar op) e1) e2) env d cont  -- Mark3で変更
-  = case (op `elem` op_list) of
-    True -> (d3, is2)  -- Mark3で変更
-            where
-              i = case op of
-                  "+"  -> Op Add
-                  "-"  -> Op Sub
-                  "*"  -> Op Mult
-                  "/"  -> Op Div
-                  ">"  -> Op Gr
-                  ">=" -> Op GrEq
-                  "<"  -> Op Lt
-                  "<=" -> Op LtEq
-                  "==" -> Op Eq
-                  "~=" -> Op NotEq
-              (d1, is1) = compileB e1 env d (i : cont)  -- Mark3で変更
-              -- (d2, is2) = compileB e2 env d1 is1  -- Mark3で変更 (これだと、e1とe2が必要とするスロットが、個別に領域確保される。)
-              (d2, is2) = compileB e2 env d is1  -- Mark3で変更 (これだと、e1とe2が必要とするスロットが、共通に領域確保される。)
-              d3 = max d1 d2
-    _ -> (d2, is2)
-         where
-           (d1, is1) = compileR (EAp (EVar op) e1) env d
-           (d2, is2) = compileB e2 env d1 ((Push (Code cont)) : is1)
+  = (d3, is2)  -- Mark3で変更
     where
-      op_list = ["+", "-", "*", "/", "<", "<=", ">", ">=", "==", "~="]
+      i = case op of
+          "+"  -> Op Add
+          "-"  -> Op Sub
+          "*"  -> Op Mult
+          "/"  -> Op Div
+          ">"  -> Op Gr
+          ">=" -> Op GrEq
+          "<"  -> Op Lt
+          "<=" -> Op LtEq
+          "==" -> Op Eq
+          "~=" -> Op NotEq
+      (d1, is1) = compileB e1 env d (i : cont)  -- Mark3で変更
+      -- (d2, is2) = compileB e2 env d1 is1  -- Mark3で変更 (これだと、e1とe2が必要とするスロットが、個別に領域確保される。)
+      (d2, is2) = compileB e2 env d is1  -- Mark3で変更 (これだと、e1とe2が必要とするスロットが、共通に領域確保される。)
+      d3 = max d1 d2
 compileB (EAp (EVar "negate") e) env d cont  -- Mark3で変更
   = compileB e env d (Op Neg : cont)  -- Mark3で変更
 compileB (ENum n) env d cont  -- Mark3で変更
