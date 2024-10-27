@@ -953,9 +953,12 @@ nTerse = 3
 -- Mark5で変更 (データフレームポインタを追加)
 showCompiledCode :: String -> String
 showCompiledCode coreprg
-  = show codes
+  = iDisplay (iConcat [
+      iStr "Supercombinator definitions", iNewline, iNewline,
+      showSCDefns first_state, iNewline
+    ])
     where
-      (_, _, _, _, _, _, _, _, codes, _) = compile $ parse coreprg
+      first_state = compile $ parse coreprg
 
 showUsedSlotNumber :: [Instruction] -> Iseq
 showUsedSlotNumber []
@@ -1364,4 +1367,4 @@ ex_4_23_2__ = "cons  = Pack{2, 2} ; " ++
 --------------------------------
 
 main :: IO()
-main = (putStrLn . fullRun) ex_4_23_2_
+main = (putStrLn . fullRun) ex_4_23_1
