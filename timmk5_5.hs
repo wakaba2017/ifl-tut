@@ -1031,9 +1031,12 @@ nTerse = 3
 -- Mark5で変更 (出力情報とデータフレームポインタを追加)
 showCompiledCode :: String -> String
 showCompiledCode coreprg
-  = show codes
+  = iDisplay (iConcat [
+      iStr "Supercombinator definitions", iNewline, iNewline,
+      showSCDefns first_state, iNewline
+    ])
     where
-      (_, _, _, _, _, _, _, _, _, codes, _) = compile $ parse coreprg
+      first_state = compile $ parse coreprg
 
 showUsedSlotNumber :: [Instruction] -> Iseq
 showUsedSlotNumber []
