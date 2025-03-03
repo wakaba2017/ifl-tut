@@ -1701,7 +1701,7 @@ redexのルートを結果で物理的に更新することにより、外側の
 		これが完了すると、外側の組み込みプリミティブ適用の簡約に戻ることができます。
 \end{description}
 
-\subsubsection{次のredexを見つけるためのスパインの巻き戻し}
+\subsubsection{次のredexを見つけるためのスパインのアンワインド}
 
 簡約サイクルの最初のステップは、実行する次の簡約の部位を見つけることです。
 つまり、最も外側の簡約可能な関数適用です。
@@ -1709,7 +1709,7 @@ redexのルートを結果で物理的に更新することにより、外側の
 
 \begin{enumerate}
 	\item スーパーコンビネータまたは組み込みプリミティブに到達するまで、ルートから開始して、関数適用ノードの左側の枝をたどります。
-	      この関数適用ノードの左分岐チェーンはエクスプレッションの\textbf{スパイン}と呼ばれ、このプロセスはスパインの\textbf{巻き戻し}と呼ばれます。
+	      この関数適用ノードの左分岐チェーンはエクスプレッションの\textbf{スパイン}と呼ばれ、このプロセスはスパインの\textbf{アンワインド}と呼ばれます。
 	      通常、\textbf{スタック}は、途中で遭遇したノードのアドレスを記憶するために使用されます。
 	\item ここで、スーパーコンビネータまたはプリミティブが取る引数の数を確認し、その数の関数適用ノードに戻ります。
 	      これで、最も外側の関数適用のルートが見つかりました。
@@ -3760,7 +3760,7 @@ Gマシンの最初のバージョン (これはlazyではありません) で�
 
 \begin{itemize}
 	\item スタックの一番上にある単一のアイテムが整数へのポインタである場合、マシンは終了しました。
-	\item そうでない場合は、スーパーコンビネータノードに到達するまで、遭遇した関数適用ノードを巻き戻します。
+	\item そうでない場合は、スーパーコンビネータノードに到達するまで、遭遇した関数適用ノードをアンワインドします。
 	      次に、スーパーコンビネータ本体のコピーをインスタンス化し、その引数を置換します。
 \end{itemize}
 
@@ -3942,8 +3942,8 @@ $n$ 個の引数を持つスーパーコンビネータの後置シーケンス�
 \includegraphics*[scale=0.5]{Fig_3-2.png}
 
 redexを新しくインスタンス化された本体に置き換え、\texttt{Slide}命令を使用して$n$個のアイテムをスタックからポップする必要があります。
-次のスーパーコンビネータを見つけるには、\texttt{Unwind}命令を使用して、再び巻き戻しを開始する必要があります。
-後置演算子シーケンスに整理と巻き戻しを行う操作を追加することで、テンプレートインスタンス化マシンをを Mark 1 Gマシンに変換しました。
+次のスーパーコンビネータを見つけるには、\texttt{Unwind}命令を使用して、再びアンワインドを開始する必要があります。
+後置演算子シーケンスに整理とアンワインドを行う操作を追加することで、テンプレートインスタンス化マシンをを Mark 1 Gマシンに変換しました。
 \vskip\baselineskip
 
 関数\texttt{f x1 ... xn = e}のコードは次のとおりです。
@@ -4374,7 +4374,7 @@ Mark 1 Gマシン については、このケースを無視します。
 	$\mathcal{SC} \llbracket f ~ x_1 \ldots x_n = e \rrbracket = \mathcal{R} \llbracket e \rrbracket ~ \left[ x_1 \mapsto 0, \ldots, x_n \mapsto n - 1 \right] ~ n$ \\ \hline
 	$\mathcal{R} \llbracket e \rrbracket ~ \rho ~ d$ は、アリティ $d$ のスーパーコンビネータのために、                                                              \\
 	環境 $\rho$ で式 $e$ をインスタンス化するコードを生成し、                                                                                                       \\
-	結果のスタックの巻き戻しに進みます。                                                                                                                            \\
+	結果のスタックのアンワインドに進みます。                                                                                                                        \\
 	$\mathcal{R} \llbracket e \rrbracket ~ \rho ~ d = \mathcal{C} \rho \texttt{++} [\texttt{Slide} ~ d + 1, ~ \texttt{Unwind}]$                                     \\ \hline
 	$\mathcal{C} \llbracket e \rrbracket ~ \rho$ は、環境 $\rho$ で $e$ のグラフを構築するコードを生成し、                                                          \\
 	それへのポインターをスタックの一番上に残します。                                                                                                                \\
@@ -4847,7 +4847,7 @@ Mark 1 マシンでは、各スーパーコンビネータのコードは [\text
 \begin{tabular}{|l|} \hline
 	$\mathcal{R}\llbracket e \rrbracket ~ \rho ~ d$ は、アリティ $d$ のスーパーコンビネータのために、                                                                          \\
 	環境 $\rho$ で式 $e$ をインスタンス化するコードを生成し、                                                                                                                  \\
-	次に、結果のスタックの巻き戻しに進みます。                                                                                                                                 \\
+	次に、結果のスタックのアンワインドに進みます。                                                                                                                             \\
 	\\
 	$\mathcal{R} \llbracket e \rrbracket ~ \rho ~ d = \mathcal{C} \llbracket e \rrbracket ~ \rho ~ \texttt{++} ~ [\texttt{Update} ~ d, ~ \texttt{Pop} ~ d, ~ \texttt{Unwind}]$ \\ \hline
 \end{tabular}
@@ -4883,7 +4883,7 @@ Mark 1 マシンでは、各スーパーコンビネータのコードは [\text
 \textbf{スタックからの引数アクセス}
 \vskip\baselineskip
 
-巻き戻しプロセスがスーパーコンビネータノード \texttt{f} に到達し、スーパーコンビネータが $n$ 個の引数を取るとします。
+アンワインドプロセスがスーパーコンビネータノード \texttt{f} に到達し、スーパーコンビネータが $n$ 個の引数を取るとします。
 Mark 1 マシンでは、スタックは図 3.7 の左側の図に示す状態になります。
 \vskip\baselineskip
 
@@ -6820,7 +6820,7 @@ $\mathcal{R}$スキームの新しいコンパイルスキームを図3.20に示
 \begin{tabular} {|l|} \hline
 	$\mathcal{R} \llbracket e \rrbracket ~ \rho ~ d$は，アリティ$d$のスーパーコンビネータのために、               \\
 	環境$\rho$で式$e$をインスタンス化するコードを生成し、                                                         \\
-	その後、結果のスタックの巻き戻しに進みます。                                                                  \\
+	その後、結果のスタックのアンワインドに進みます。                                                              \\
 	\begin{tabular}{r c l}
 		\multicolumn{3}{l}{$\mathcal{R} \llbracket \texttt{let} ~ x_1 ~ \texttt{=} ~ e_1\texttt{;} ~  \ldots \texttt{;} ~ x_n ~ \texttt{=} ~ e_n ~ \texttt{in} ~ e \rrbracket ~ \rho ~ d$}                                                                                                                           \\
 		                                                                                      & $=$ & $\mathcal{C} \llbracket e_1 \rrbracket ~ \rho^{+0} ~ \texttt{++}$                                                                                                                                              \\
@@ -8898,7 +8898,7 @@ $\mathcal{SC}$ スキームと $\mathcal{R}$ スキームのみが影響を受�
 \begin{itemize}
 	\item コードを \texttt{PushMarker} 命令で始めることにより、\texttt{let(rec)} 束縛の右辺に自己更新クロージャを使用します。
 	\item \texttt{let(rec)} で束縛された変数をスタックにプッシュする場合は、通常の(更新しない)間接アドレッシングモードを使用します。
-		  まだ、クロージャのコピーを取得するのではなく、間接アドレッシングを使用する必要があります。
+	      まだ、クロージャのコピーを取得するのではなく、間接アドレッシングを使用する必要があります。
 	      これは、クロージャが更新されるまで、コピーすると重複した作業が発生するため、
 \end{itemize}
 
@@ -8918,12 +8918,12 @@ $\mathcal{SC}$ スキームと $\mathcal{R}$ スキームのみが影響を受�
 \vskip\baselineskip
 
 \begin{tabular} {|l|} \hline
-	$\mathcal{U} \llbracket e \rrbracket ~ u ~ \rho ~ d$ はペア $(d', ~ am)$ です。  \\
-	ここで、$am$ は環境 $\rho$ における式 $e$ の TIM アドレッシングモードです。      \\
-	$am$ によってアドレス指定されたクロージャがEnterされると、                       \\
-	現在のフレームのスロット $u$ が、その正規形(※評価結果)で更新されます。 \\
-	このコードは、フレームの最初の $d$ スロットが占有されていると想定しており、      \\
-	スロット $(d + 1, ~ \ldots, ~ d')$ を使用します。                                \\
+	$\mathcal{U} \llbracket e \rrbracket ~ u ~ \rho ~ d$ はペア $(d', ~ am)$ です。 \\
+	ここで、$am$ は環境 $\rho$ における式 $e$ の TIM アドレッシングモードです。     \\
+	$am$ によってアドレス指定されたクロージャがEnterされると、                      \\
+	現在のフレームのスロット $u$ が、その正規形(※評価結果)で更新されます。          \\
+	このコードは、フレームの最初の $d$ スロットが占有されていると想定しており、     \\
+	スロット $(d + 1, ~ \ldots, ~ d')$ を使用します。                               \\
 	\\
 	\begin{tabular}{r c l}
 		$\mathcal{U} \llbracket e \rrbracket ~ u ~ \rho ~ d$ & $=$ & ($d'$, \texttt{Code} (\texttt{PushMarker} $u$ \texttt{:} $is$)) \\
@@ -9683,11 +9683,11 @@ CAFの適切な更新を Mark 4 または Mark 5 TIM に追加するには、次
 		$\mathcal{R} \llbracket e \rrbracket ~ \rho ~ d$                 & $=$ & $\mathcal{B} \llbracket e \rrbracket ~ \rho ~ d$ [\texttt{Return}]                                                                            \\
 		                                                                 &     & ここで、$e$は整数または算術式です。                                                                                                           \\
 		\\
-		$\mathcal{R} \llbracket a \rrbracket ~ \rho ~ d$                 & $=$ & $(d, ~ \left[ \texttt{Enter} ~ (\mathcal{A} \llbracket a \rrbracket ~ \rho) \right])$                                                        \\
+		$\mathcal{R} \llbracket a \rrbracket ~ \rho ~ d$                 & $=$ & $(d, ~ \left[ \texttt{Enter} ~ (\mathcal{A} \llbracket a \rrbracket ~ \rho) \right])$                                                         \\
 		                                                                 &     & ここで、$a$ はスーパーコンビネータ                                                                                                            \\
 		                                                                 &     & またはローカル変数です。                                                                                                                      \\
 		\\
-		$\mathcal{R} \llbracket e ~ a \rrbracket ~ \rho ~ d$             & $=$ & ($d_1$, \texttt{Push} ($\mathcal{A} \llbracket a \rrbracket ~ \rho$) \texttt{:} $is$)                                                       \\
+		$\mathcal{R} \llbracket e ~ a \rrbracket ~ \rho ~ d$             & $=$ & ($d_1$, \texttt{Push} ($\mathcal{A} \llbracket a \rrbracket ~ \rho$) \texttt{:} $is$)                                                         \\
 		                                                                 &     & ここで、$a$ はスーパーコンビネータ、                                                                                                          \\
 		                                                                 &     & ローカル変数、または整数であり、                                                                                                              \\
 		                                                                 &     & $d_1, ~ is$ は以下の通りです。                                                                                                                \\
@@ -9707,7 +9707,7 @@ CAFの適切な更新を Mark 4 または Mark 5 TIM に追加するには、次
 \begin{tabular} {|l|} \hline
 	\begin{tabular}{r c l}
 		\multicolumn{3}{l}{$\mathcal{R} \llbracket \texttt{let} ~ x_1 ~ \texttt{=} ~ e_1\texttt{;} ~  \ldots \texttt{;} ~ x_n ~ \texttt{=} ~ e_n ~ \texttt{in} ~ e \rrbracket ~ \rho ~ d$} \\
-		 & $=$ & $(d', ~ \left[ \texttt{Move} ~ (d + 1) ~ am_1, ~ \ldots, ~ \texttt{Move} ~ (d + n) ~ am_n \right]$ ~ \texttt{++} ~ $is$)                                                    \\
+		 & $=$ & $(d', ~ \left[ \texttt{Move} ~ (d + 1) ~ am_1, ~ \ldots, ~ \texttt{Move} ~ (d + n) ~ am_n \right]$ ~ \texttt{++} ~ $is$)                                                  \\
 		 &     & ここで $am_1, ~ \ldots, ~ am_n, ~ is$ は以下の通りです。                                                                                                                  \\
 		 &     & $(d_1, ~ am_1) = \mathcal{U} \llbracket e_1 \rrbracket ~ (d + 1) ~ \rho ~ (d + n)$                                                                                        \\
 		 &     & $(d_2, ~ am_2) = \mathcal{U} \llbracket e_2 \rrbracket ~ (d + 2) ~ \rho ~ d_1$                                                                                            \\
@@ -9993,7 +9993,7 @@ CAFの適切な更新を Mark 4 または Mark 5 TIM に追加するには、次
   main = par I (I 3)
 \end{verbatim}
 
-後で説明するように、恒等関数の2つの縮小は並行して行われる。
+後で説明するように、恒等関数の2つの簡約は並行して行われます。
 \vskip\baselineskip
 
 優れたコンパイラは、\texttt{main} スーパーコンビネータに対して次のコードを生成します。\footnote{コンパイラが十分に洗練されていない場合、このコードを生成しない可能性があります。}
@@ -10026,7 +10026,7 @@ CAFの適切な更新を Mark 4 または Mark 5 TIM に追加するには、次
 本体がインスタンス化されると、\texttt{Task 1} は \texttt{main} である redex ノードを上書きします。
 \texttt{Task 2} は \texttt{Push 0} 命令を実行します。これは \texttt{I} スーパーコンビネータのコードの最初の命令です。
 これは図 (e) に示されています (図5.3)。
-図 (f) では、\texttt{Task 1} がスパインを巻き戻し始め、\texttt{Task 2} が更新を実行していることがわかります。
+図 (f) では、\texttt{Task 1} がスパインをアンワインドし始め、\texttt{Task 2} が更新を実行していることがわかります。
 \vskip\baselineskip
 
 \includegraphics*[scale=0.5]{Fig_5-3.png}
@@ -10361,7 +10361,7 @@ Mark 4 以降のGマシンに基づく場合は以下を使用します。
 \end{verbatim}
 
 \begin{description}
-	\item[演習 5.2] \texttt{Par} が正しく処理されるように、\texttt{showInstruction}、\texttt{dispatch}、\texttt{instruction} を変更します。
+	\item[演習 5.2] \texttt{Par} が正しく処理されるように、\texttt{showInstruction}, \texttt{dispatch}, \texttt{instruction} を変更します。
 \end{description}
 
 \subsubsection{プログラムのコンパイル}
@@ -10386,7 +10386,7 @@ Mark 7 ベースのマシンでは、より広範な変更が必要です。
 また、実行を開始するために、ローカルコンポーネントにタスクを配置します。
 
 \begin{verbatim}
-  initialTask :: Addr -> PgmLoccalState
+  initialTask :: Addr -> PgmLocalState
   initialTask addr = (initialCode, [addr], [], [], 0)
 \end{verbatim}
 
@@ -10435,7 +10435,7 @@ Mark 4 または Mar 5 マシンの場合、これは次のように変更され
 \end{enumerate}
 \vskip\baselineskip
 
-\textbf{マーク7 Gマシンをベースに}
+\textbf{Mark 7 Gマシンをベースに}
 \vskip\baselineskip
 
 上で述べたように、これは少しトリッキーな操作です。
@@ -10580,11 +10580,11 @@ Mark 1 マシンの問題は、ヒープ内の同じノードを簡約するた�
 \subsubsection{命令セット}
 
 必要な変更は、適切な場所でノードをロックおよびロック解除することだけです。
-巻き戻し時に、アプリケーションノードとスーパーコンビネータを引数なしでロックする必要があります。
+アンワインド時に、関数適用ノードとスーパーコンビネータを引数なしでロックする必要があります。
 ノードが更新されると、そのノードの下のスパインにあるすべてのノードのロックを解除する必要があります。
 ヒープノードのロックとロック解除を実行するには、2つの関数を使用します。
 \texttt{lock} 関数は、ロックされていないが更新可能な可能性のあるノードをロックされたノードに変換します。
-ロックする必要があるノードは、アプリケーションノードと引数のないグローバルノードです。
+ロックする必要があるノードは、関数適用ノードと引数のないグローバルノードです。
 
 \begin{verbatim}
   lock :: Addr -> GmState -> GmState
@@ -10597,7 +10597,7 @@ Mark 1 マシンの問題は、ヒープ内の同じノードを簡約するた�
                               | otherwise = heap
 \end{verbatim}
 
-ロックされたアプリケーションノードを \texttt{unlock} する場合、そのノードが指すスパインもロック解除されていることを確認する必要があります。
+ロックされた関数適用ノードを \texttt{unlock} する場合、そのノードが指すスパインもロック解除されていることを確認する必要があります。
 したがって、\texttt{unlock} は再帰的です。
 
 \begin{verbatim}
@@ -10615,7 +10615,7 @@ Mark 1 マシンの問題は、ヒープ内の同じノードを簡約するた�
 
 \texttt{Unwind} と \texttt{Update} の新しいステップ遷移は、\texttt{lock} と \texttt{unlock} の観点から定義する必要があります。
 これらの遷移は現在定義されています。
-遷移規則 5.2 では、アプリケーションノード(\texttt{*NAp} で表される)をロックすること以外は、\texttt{Unwind} は Mark 1 マシンと同じ遷移規則を持つことがわかります。
+遷移規則 5.2 では、関数適用ノード(\texttt{*NAp} で表される)をロックすること以外は、\texttt{Unwind} は Mark 1 マシンと同じ遷移規則を持つことがわかります。
 \vskip\baselineskip
 
 (5.2) \\
@@ -10642,58 +10642,297 @@ Mark 1 マシンの問題は、ヒープ内の同じノードを簡約するた�
 (5.4) \\
 \begin{tabular} {|l r l l l l r r r l|} \hline
 	                  & $\langle$ & $h\left[
-						\begin{array}{l}
-							a_1' : \texttt{NGlobal} ~ n ~ c \\
-							a_2' : \texttt{*NAp} ~ a_1' ~ a_1 \\
-							\cdots \\
-							a_{n-1}' : \texttt{*NAp} ~ a_{n-2}' ~ a_{n-2} \\
-							a_{n-1}' : \texttt{*NAp} ~ a_{n-2}' ~ a_{n-2} \\
-							a_n : \texttt{*NAp} ~ a_{n-1}' ~ a_{n-1}
-						\end{array}
-						\right]$  & $m$ & $t$ & $\rangle$ & $\langle$ & \texttt{Update} $n$ \texttt{:} $i$ & $a$ \texttt{:} $a_1$ \texttt{:} $\ldots$ \texttt{:} $a_n$ \texttt{:} $s$ & $\rangle$ \\
+			\begin{array}{l}
+				a_1' : \texttt{NGlobal} ~ n ~ c               \\
+				a_2' : \texttt{*NAp} ~ a_1' ~ a_1             \\
+				\cdots                                        \\
+				a_{n-1}' : \texttt{*NAp} ~ a_{n-2}' ~ a_{n-2} \\
+				a_n : \texttt{*NAp} ~ a_{n-1}' ~ a_{n-1}
+			\end{array}
+	\right]$          & $m$       & $t$      & $\rangle$ & $\langle$ & \texttt{Update} $n$ \texttt{:} $i$ & $a$ \texttt{:} $a_1$ \texttt{:} $\ldots$ \texttt{:} $a_n$ \texttt{:} $s$ & $\rangle$ \\
 	$\Longrightarrow$ & $\langle$ & $h\left[
-		                \begin{array}{l}
-							a_1' : \texttt{NGlobal} ~ n ~ c \\
-							a_2' : \texttt{NAp} ~ a_1' ~ a_1 \\
-							\cdots \\
-							a_{n-1}' : \texttt{NAp} ~ a_{n-2}' ~ a_{n-2} \\
-							a_{n-1}' : \texttt{NAp} ~ a_{n-2}' ~ a_{n-2} \\
-							a_n : \texttt{*NInd} ~ a
-						\end{array}
-						\right]$ & $m$ & $t$ & $\rangle$ & $\langle$ & $i$                                & $a_1$ \texttt{:} $\ldots$ \texttt{:} $a_n$ \texttt{:} $s$                & $\rangle$ \\ \hline
+			\begin{array}{l}
+				a_1' : \texttt{NGlobal} ~ n ~ c              \\
+				a_2' : \texttt{NAp} ~ a_1' ~ a_1             \\
+				\cdots                                       \\
+				a_{n-1}' : \texttt{NAp} ~ a_{n-2}' ~ a_{n-2} \\
+				a_n : \texttt{NInd} ~ a
+			\end{array}
+	\right]$          & $m$       & $t$      & $\rangle$ & $\langle$ & $i$                                & $a_1$ \texttt{:} $\ldots$ \texttt{:} $a_n$ \texttt{:} $s$                & $\rangle$ \\ \hline
 \end{tabular}
 \vskip\baselineskip
 
 \begin{description}
-  \item[演習 5.9] 遷移関数 \texttt{unwind} と \texttt{update} の定義を変更します。
-                  コードでは \texttt{lock} 関数と \texttt{unlock} 関数を使用する必要があります。
-                  また、スタックを再配置するときにロックされたノードを「調べる」必要があるため、\texttt{getArg} は次のようになります。
-                  \begin{verbatim}
+	\item[演習 5.9] 遷移関数 \texttt{unwind} と \texttt{update} の定義を変更します。
+		コードでは \texttt{lock} 関数と \texttt{unlock} 関数を使用する必要があります。
+		また、スタックを再配置するときにロックされたノードを「調べる」必要があるため、\texttt{getArg} は次のようになります。
+		\begin{verbatim}
 					getArg (NLAp a1 a2) = a2
 				  \end{verbatim}
-  \item[演習 5.10] あなたのマシンで次のプログラムを実行してみてください。
-				   \begin{verbatim}
+	\item[演習 5.10] あなたのマシンで次のプログラムを実行してみてください。
+		\begin{verbatim}
 				     main = twice' (twice' (twice' (S K K))) 3
 				     twice' f x = par f (f x)
 				   \end{verbatim}
-  \item[演習 5.11] 分割統治プログラムは、実行中の各プロセスで30命令ごとに \texttt{par} 命令を実行します。
-                   プロセスは終了しません。
-                   宇宙の電子1つにつき1つのタスクが実行されるまでに、シミュレートされたクロックティックが何回経過しますか?
-                   (ヒント: 宇宙には約 $10^{85}$ 個の電子があります。)
-  \item[演習 5.12] プロセッサのコストが $\pounds 0.01$ の場合、誰もそのマシンを購入できなくなるまで、演習 5.11 のプログラムはどのくらい実行できますか?
-                   (ヒント: 米国の連邦予算は約 $\pounds 5 \times 10^{12}$ です。)
+	\item[演習 5.11] 分割統治プログラムは、実行中の各プロセスで30命令ごとに \texttt{par} 命令を実行します。
+		プロセスは終了しません。
+		宇宙の電子1つにつき1つのタスクが実行されるまでに、シミュレートされたクロックティックが何回経過しますか?
+		(ヒント: 宇宙には約 $10^{85}$ 個の電子があります。)
+	\item[演習 5.12] プロセッサのコストが $\pounds 0.01$ の場合、誰もそのマシンを購入できなくなるまで、演習 5.11 のプログラムはどのくらい実行できますか?
+		(ヒント: 米国の連邦予算は約 $\pounds 5 \times 10^{12}$ です。)
 \end{description}
 \newpage
 
-\subsection{Mark 3: A realistic parallel G-machine}
-\subsubsection{Scheduling policy}
-\subsubsection{Conservative and speculative parallelism}
+\subsection{Mark 3: 現実的な並列Gマシン}
+
+演習 5.11 と 5.12 で示したように、現実世界では並列処理の量には物理的および経済的な制限があります。
+使用している並列処理モデルはあまり現実的ではありません。
+各並列タスクを実行するために新しいプロセッサを作成していますが、現実世界ではすぐにリソースが不足します。
+
+\subsubsection{スケジューリングポリシー}
+
+より現実的なモデルでは、並列処理の量をハードウェアによって提供される量に制限する必要があります。
+これは、一度に実行できるプロセッサの数に上限を設定することで簡単に実現できます。
+その結果、タスクを実行するために使用できるプロセッサがない場合、タスクは変更されません。
+\vskip\baselineskip
+
+タスクよりもプロセッサの数が多い場合、一部のプロセッサはアイドル状態になります。
+一方、逆の場合は、次にどのタスクを実行するかを決定する問題に直面します。
+この決定は、\textbf{スケジューリングポリシー}と呼ばれます。
+
+\subsubsection{保守的な並列性と投機的な並列性}
+
+いくつかのタスクは他のタスクよりも重要になります。
+タスクは、次の2つのグループに分類できます:
+
+\begin{itemize}
+	\item 結果が確実に必要になるタスク
+	\item 結果が必要になる可能性があるタスク。
+\end{itemize}
+
+最初のカテゴリのタスクを\textbf{保守的タスク}と呼び、2番目のカテゴリのタスクを\textbf{投機的タスク}と呼びます。
+\vskip\baselineskip
+
+投機的並列タスクを許可することを選択した場合、タスクのスケジュール設定における優先順位の問題に対処する必要があります。
+つまり、タスクを重要度順にランク付けする必要があります。
+また、同じ優先順位を持つ異なるタスクに同じ計算時間を許可する必要があります。
+これが望ましい理由を理解するには、判別式 \texttt{e0} の評価と並行してケース式の 2 つの分岐 (\texttt{e1} と \texttt{e2}) を評価することを検討してください。
+
+\begin{verbatim}
+  case e0 of
+       <1> -> e1
+       <2> -> e2
+\end{verbatim}
+
+\texttt{e0} の評価が完了するまで、\texttt{e1} と \texttt{e2} のどちらが必要になるかはわかりません。
+したがって、それぞれを同量評価するようにするのが理にかなっています。
+このようなスケジューリングポリシーは、\textbf{公平なスケジューリング}と呼ばれます。
+この例では、\texttt{e0} が完了すると、タスクの 1 つ (\texttt{e1} または \texttt{e2}) が必要になり、
+もう 1 つは強制終了する必要があることに注意してください。
+したがって、タスクの実行中にタスクの優先順位を調整する必要があります。
+\vskip\baselineskip
+
+この本では、投機的並列処理に適したマシンを実装する試みは行いません。
+これは「難しい問題」であるという言い訳をして、この問題はそのままにしておきます。
+今後は、 \texttt{par} プリミティブの使用はすべて、保守的な並列処理のみを生み出す状況で発生するものと想定します。
+\vskip\baselineskip
+
+Mark 3 並列Gマシンでは、マシン内のアクティブなタスクの数は限られています。
+これらはマシン内のプロセッサによって実行されます。
+プロセッサの数は固定されています。
+この固定数は \texttt{machineSize} で、現在は \texttt{4} に設定されています。
+
+\begin{verbatim}
+  machineSize :: Int
+  machineSize = 4
+\end{verbatim}
+
+評価ツールの主な変更点は \texttt{steps} 関数にあります。これは、作成されたすべてのタスクをマシンに追加するだけではありません。
+代わりに、\texttt{scheduler} を使用して、続行できないタスクの代替タスクを選択します。
+
+\begin{enumerate}
+	\item まず、グローバル状態コンポーネントからタスクプール内のスパークを抽出します。
+	\item 次に、スパークに対して新しいタスクが作成され、すでに実行中のタスクに追加されます。
+	\item 次に、\texttt{scheduler} 関数が実行するタスクを選択します。
+\end{enumerate}
+
+\texttt{steps} をコード化する方法は次のとおりです。
+
+\begin{verbatim}
+  steps :: PgmState -> PgmState
+  steps state
+    = scheduler global' local'
+      where ((out, heap, globals, sparks, stats), local) = state
+            newtasks = [makeTask a | a <- sparks]
+            global' = (out, heap, globals, [], stats)
+            local' = local ++ newtasks
+\end{verbatim}
+
+スケジューリングポリシーは非常にシンプルです。
+最初の \texttt{machineSize} タスクを選択して実行します。
+これらのタスクは、スケジューリングキューの最後に配置されます。
+このスケジューリングポリシーは通常、\textbf{ラウンドロビン}スケジューリングポリシーと呼ばれます。
+
+\begin{verbatim}
+  scheduler :: PgmGlobalState -> [PgmLocalState] -> PgmState
+  scheduler global tasks
+    = (global', nonRunning ++ tasks')
+      where running = map tick (take machineSize tasks)
+            nonRunning = drop machineSize tasks
+            (global', tasks') = mapAccuml step global running
+\end{verbatim}
+
+\begin{description}
+	\item[演習 5.13] 実行されたタスクが次のステップのスケジュールキューの最後に配置されていない場合、何が起こるでしょうか。
+		(ヒント: 試してみてください!)
+	\item[演習 5.14] 改善できる点の1つは、アイドル状態のプロセッサがある場合にのみ、スパークプールからタスクを作成することです。
+		これを行うには、\texttt{steps} を変更します。
+	\item[演習 5.15] もう 1 つの改善点は、続行可能なタスクのみをスケジュールすることです。
+		現時点では、すでに WHNF にあるノードを評価するタスクをスケジュールします。
+		ロックされたノードをアンワインドしようとしているためにブロックされているタスクもスケジュールします。
+		これが発生しないように \texttt{scheduler} を変更します。
+	\item[演習 5.16] 他のスケジューリング戦略の使用を調査します。
+		たとえば、タスクプールの最後のタスクをスケジュールしてみます。
+		スケジューリング戦略によってプログラムの実行時間に違いが生じますか?
+\end{description}
+
 \newpage
 
-\subsection{Mark 4: A better way to handle blocking}
-\subsubsection{Data structures}
-\subsubsection{Locking and unlocking}
+\subsection{Mark 4: ブロックを処理するためのより良い方法}
+
+これまで、ブロックされたタスクはマシンのローカル状態に残し、\texttt{scheduler} 関数で実行可能なタスクを選択する必要がありました。
+つまり、\texttt{scheduler} 関数は、実行可能なタスクを見つけるまでに、かなりの数のブロックされたタスクをスキップしなければならない可能性があります。
+\vskip\baselineskip
+
+これよりも良い方法があります!
+ブロックされたタスクを、ブロックの原因となったノードにアタッチする方がはるかに良いでしょう。
+ロックされたノードは任意の数のタスクをブロックする可能性があるため、ロックされたノードにタスクのリストを配置できるようにする必要があります。
+これを\textbf{保留リスト}と呼びます。
+\vskip\baselineskip
+
+保留リストはどのように使用しますか?
+
+\begin{enumerate}
+	\item ノードがロックされると、保留リストは \texttt{[]} に設定されます。
+	\item タスクがロックされたノードに遭遇すると、タスクはロックされたノードの保留リストに自身を配置します。
+	\item ロックされたノードがロック解除されると、保留リスト内のすべてのタスクが実行可能になり、マシンのローカル状態に転送されます。
+\end{enumerate}
+
+Mark 4 マシンを実装するには、マシンのデータ構造に次の変更を加える必要があります。
+
+\subsubsection{データ構造}
+
+まず、ロックされた各ノードには保留リストが必要です。つまり、\texttt{node} のデータ型は次のようになります。
+
+\begin{verbatim}
+  data Node = NNum Int                           -- Numbers
+            | NAp Addr Addr                      -- Applications
+            | NGlobal Int GmCode                 -- Globals
+            | NInd Addr                          -- Indirections
+            | NConstr Int [Addr]                 -- Constructors
+            | NLAp Addr Addr PgmPendingList      -- Locked applications
+            | NLGlobal Int GmCode PgmPendingList -- Locked globals
+\end{verbatim}
+
+保留リストは単なるタスクのリストです。
+ロックされたノードの保留リスト内のタスクは、ロックされたノードでブロックされているタスクになります。
+
+\begin{verbatim}
+	type PgmPendingList = [PgmLocalState]
+\end{verbatim}
+
+\begin{description}
+	\item[演習 5.17] \texttt{node} の新しい定義で動作するように \texttt{showNode} を変更します。
+\end{description}
+
+もう1つの変更は、\texttt{gmSparks} の型です。
+以前の並列Gマシンのようにアドレスのリストではなく、タスクのリストになりました。
+
+\begin{verbatim}
+  type GmSparks = [PgmLocalState]
+\end{verbatim}
+
+\begin{description}
+	\item[演習 5.18] \texttt{par} の遷移規則を変更して、タスクをアドレスではなくスパークプールに配置するようにします。
+		\texttt{showSparks} 関数を変更してスパークプール内のタスクの数を出力する必要があります。
+		また、スパークプール内の項目をタスクに変換する必要がなくなったため、\texttt{steps} 関数を変更する必要があります。
+\end{description}
+
+\subsubsection{ロックとロック解除}
+
+ノードのロックとロック解除を処理する新しい方法を構築してきました。
+まず、ロックされたノードが更新されるときに何が起こるかを考えてみましょう。
+\texttt{Update} 命令は、\texttt{lock} の呼び出しを使用して実装されます。
+上書きされる式のスパイン内の各ノードでは、保留リスト内のタスクがスパークプールに転送される必要があります。
+これを行うには、タスクをスパークプールに転送する次の関数を定義します。
+
+\begin{verbatim}
+    emptyPendingList :: [PgmLocalState] -> GmState -> GmState
+    emptyPendingList tasks state
+      = putSparks (tasks ++ getSparks state) state
+\end{verbatim}
+
+\begin{description}
+	\item[演習 5.19] \texttt{unlock} 関数を変更して、保留リスト内のタスクをスパークプールに空にします。
+\end{description}
+
+ロック操作は、\texttt{Unwind} 命令の一部として行われます。
+以前と同様に、ロック操作を実行するには \texttt{lock} 関数を使用します。
+ここで、新しくロックされた各ノードに空の保留リストを与える必要があります。
+
+\begin{description}
+	\item[演習 5.20] ロックされたノードに空の保留リストを与えるように \texttt{lock} 関数を変更します。
+\end{description}
+
+最後に、タスクがロックされたノードを解除しようとしたときに何が起こるかについて説明します。
+明らかに、タスクをノードの保留リストに配置します。
+しかし、タスクを何に置き換えるのでしょうか?
+\texttt{step} の型は次のようになります。
+
+\begin{verbatim}
+	step :: gmState -> gmState
+\end{verbatim}
 \newpage
+
+私たちが採用した解決策は、タスクを \texttt{emptyTask} に置き換えることです。
+
+\begin{verbatim}
+    emptyTask :: PgmLocalState
+    emptyTask = ([], [], [], [], 0)
+\end{verbatim}
+
+したがって、\texttt{Unwind} には2つの新しい遷移規則が必要です。
+まず、ロックされた関数適用ノードの遷移規則から始めます。
+この遷移では、タスクがノードの保留リストに配置され、タスクが \texttt{emptyTask} に置き換えられます。
+\vskip\baselineskip
+
+(5.5) \\
+\begin{tabular} {|l r l l l l r r r l|} \hline
+	                  & $\langle$ & $h[a : \texttt{*NAp} ~ a_1 ~ a_2 ~ pl]$                                                                & $m$ & $t$ & $\rangle$ & $\langle$ & [\texttt{Unwind}]  & $a$ \texttt{:} $s$ & $\rangle$ \\
+	$\Longrightarrow$ & $\langle$ & $h[a : \texttt{*NAp} ~ a_1 ~ a_2 ~ \langle [\texttt{Unwind}], ~ a \texttt{:} s \rangle \texttt{:} pl]$ & $m$ & $t$ & $\rangle$ &           & \texttt{emptyTask} &                    &           \\ \hline
+\end{tabular}
+\vskip\baselineskip
+
+ロックされたグローバルノードのルールも同様です。
+タスクはノードの保留リストに配置され、それ自体が \texttt{emptyTask} に置き換えられます。
+\vskip\baselineskip
+
+(5.6) \\
+\begin{tabular} {|l r l l l l r r r l|} \hline
+	                  & $\langle$ & $h[a : \texttt{*NGlobal} ~ 0 ~ c ~ pl]$                                                                & $m$ & $t$ & $\rangle$ & $\langle$ & [\texttt{Unwind}]  & $a$ \texttt{:} $s$ & $\rangle$ \\
+	$\Longrightarrow$ & $\langle$ & $h[a : \texttt{*NGlobal} ~ 0 ~ c ~ \langle [\texttt{Unwind}], ~ a \texttt{:} s \rangle \texttt{:} pl]$ & $m$ & $t$ & $\rangle$ &           & \texttt{emptyTask} &                    &           \\ \hline
+\end{tabular}
+\vskip\baselineskip
+
+\begin{description}
+	\item[演習 5.21] \texttt{Unwind} 関数を変更して、\texttt{Unwind} 命令の新しい遷移を実装します。
+		\texttt{getArg} 関数も作成する必要があります。
+		\begin{verbatim}
+		    getArg (NLAp a1 a2 pl) = a2
+	    \end{verbatim}
+	\item[演習 5.22] 実行されていないタスクをスパークプールに配置するように \texttt{scheduler} 関数を変更します。
+	\item[演習 5.23] \texttt{doAdmin} 関数を変更して、ローカル状態から \texttt{emptyTask} を除外します。
+\end{description}
 
 \subsection{結論}
 
@@ -10708,13 +10947,16 @@ Mark 1 マシンの問題は、ヒープ内の同じノードを簡約するた�
 投機的な並列処理を使用する場合は、現実的な実装でこの問題に対処する必要があります。
 一方、非投機的並列処理を見つけることは多くの場合困難であり、大規模なプログラムではこれが困難になる場合もあります。
 この目的のために抽象的な解釈を使用する試みがなされており、その結果は有望に見えますが、暫定的なものとみなされるべきです。
+\vskip\baselineskip
 
-私たちがカバーしていない最後の領域の 1 つは、分散メモリ並列マシンの領域です。
+私たちがカバーしていない最後の領域の1つは、分散メモリ並列マシンの領域です。
 繰り返しますが、原理的には共有メモリマシンに似ていますが、実際の機能はまったく異なります。
 デッドロックを回避するようにメッセージの受け渡しを調整するのは、一種の黒魔術です。
 \newpage
 
 \section{ラムダリフティング}
+
+\subsection{はじめに}
 
 この章では、本書で以前に見たマシンに受け入れられる一連のプログラムを拡張する方法を見ていきます。
 導入する拡張機能は、\textbf{ローカル関数定義}を許可することです。
@@ -10731,10 +10973,9 @@ Mark 1 マシンの問題は、ヒープ内の同じノードを簡約するた�
 この章は、\textbf{完全なlaziness}の概念を紹介する適切なポイントでもあります。
 ここでも、関数型言語のこの望ましい最適化は、プログラム変換を使用して実現されます。
 
-\subsection{Introduction}
-\newpage
+\subsection{\texttt{expr} データ型の改善}
 
-\subsection{Improving the \texttt{expr} data type}
+プログラムを本格的に始める前に、言語モジュールとユーティリティモジュールをインポートする必要があります。
 
 \begin{verbatim}
   module Lambda where
@@ -10742,6 +10983,54 @@ Mark 1 マシンの問題は、ヒープ内の同じノードを簡約するた�
   import Language
 \end{verbatim}
 \newpage
+
+残念ながら、そこで定義されているデータ型 (\texttt{coreExpr}、\texttt{coreProgram} など) は、
+この章でのニーズを満たすには柔軟性が不十分なので、まずこの問題に取り組みます。
+多くのコンパイラパスは抽象構文木に情報を追加するため、この情報を表す体系的な方法が必要です。
+この種の情報を生成する分析の例としては、自由変数分析、バインディングレベル分析、型推論、厳密性分析、共有分析などがあります。
+\vskip\baselineskip
+
+このような情報を追加する最も明白な方法は、\texttt{expr} データ型に注釈用の新しいコンストラクタを追加することです。
+
+\begin{verbatim}
+  expr * = EVar name
+         | ...
+         | EAnnot annotation (expr *)
+\end{verbatim}
+
+必要に応じて拡張できる注釈用の補助データ型とともに:
+
+\begin{verbatim}
+  annotation ::= FreeVars (set name)
+               | Level num
+\end{verbatim}
+
+これにより、構文ツリー全体に注釈を自由に表示できるようになり、非常に柔軟に見えます。
+実際には、2つの大きな欠点があります。
+
+\begin{itemize}
+	\item 先ほど説明した形式で注釈情報を\textbf{追加する}のは簡単ですが、
+	      前のパスで配置された情報を\textbf{使用する}コンパイラパスを記述するのは実に厄介です。
+	      たとえば、パスが、前のパスでツリーの各ノードに残された自由変数情報を使用したいとします。
+	      おそらくこの情報は各ノードのすぐ上に添付されますが、データ型によって各ノードの上に複数の注釈ノードが表示されることが許可され、
+	      さらに悪いことに、自由変数注釈がまったく存在しない(または1つ以上する)可能性があります。
+	      \vskip\baselineskip
+
+	      プログラマが、各ツリーノードの上に1つの注釈ノードがあり、それが自由変数注釈であることを証明する準備ができている場合でも、
+	      実装は注釈を抽出するときにパターンマッチングを実行してこれらのアサーションをチェックします。
+	      これらの問題、つまりチェックできないプログラマーのアサーションの必要性と実装のオーバーヘッドは、
+	      注釈が付けられたすべてのツリーが、どの注釈が存在するかについて何も言わない、
+	      あまり情報のない型 \texttt{expr} を持っているという事実に直接起因します。
+	\item 2つ目の大きな問題は、さらに実験を進めると、2つの異なる形式の注釈が必要であることがわかったことです。
+	      1つ目は上記のように式に注釈を付けますが、2つ目は変数のバインディング発生に注釈を付けます。
+	      つまり、\texttt{let(rec)} 定義の左側の発生と、ラムダ抽象化または \texttt{case} 式内のバインドされた変数です。
+	      これらの発生を\textbf{バインダ}と呼びます。
+	      バインダに注釈を付ける必要がある例として、型推論が挙げられます。
+	      型推論では、コンパイラが各バインダと各サブ式の型を推論します。
+	      \vskip\baselineskip
+
+	      式注釈を使用してバインダに注釈を付けることもできますが、これは扱いにくく不便です。
+\end{itemize}
 
 \subsection{Mark 1: A simple lambda lifter}
 \subsubsection{Implementing a simple lambda lifter}
@@ -10790,13 +11079,13 @@ Mark 1 マシンの問題は、ヒープ内の同じノードを簡約するた�
 \subsection{結論}
 
 完全な遅延評価に対する私たちのアプローチを、同様の問題を扱ったBirdの非常に優れた論文 [Bird 1987] と比較するのは興味深いことです。
-Bird の目的は、初期仕様を連続的に変換することによって、効率的な完全遅延ラムダ リフターを正式に開発することです。
-結果として得られるアルゴリズムはかなり複雑で、直接書き出すのは難しいため、正式な開発の努力は十分に正当化されます。
+Bird の目的は、初期仕様を連続的に変換することによって、効率的な完全遅延ラムダリフターを形式的に開発することです。
+結果として得られるアルゴリズムはかなり複雑で、直接書き出すのは難しいため、形式的な開発の努力は十分に正当化されます。
 \vskip\baselineskip
 
 対照的に、私たちはアルゴリズムを多数の非常に単純なフェーズの構成として表現しており、各フェーズは簡単に指定して直接書き出すことができます。
 結果として得られるプログラムは、式を何度も走査するため、定数因数の非効率性を伴います。
-これは、連続するパスを 1 つの関数に折りたたんで、中間データ構造を排除することで簡単に削除できます。
+これは、連続するパスを1つの関数に折りたたんで、中間データ構造を排除することで簡単に削除できます。
 Bird の変換とは異なり、これは簡単なプロセスです。
 \vskip\baselineskip
 
