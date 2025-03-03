@@ -1148,7 +1148,8 @@ showStateLocal s
   = iConcat [showStack s, iNewline,
              showDump s, iNewline,
              showVStack s, iNewline,  -- SGM Mark7で追加
-             showInstructions (getCode s)]
+             showInstructions (getCode s),
+             showClocks s, iNewline]
 
 showStack :: GmState -> Iseq
 showStack s
@@ -1224,6 +1225,13 @@ showSparks sparks
   = iConcat [iStr " Sparks:[",
              iIndent (iInterleave iNewline
                      (map iNum sparks)),
+             iStr "]"]
+
+-- PGM Mark1で追加
+showClocks :: GmState -> Iseq
+showClocks s
+  = iConcat [iStr " Clocks:[",
+             iNum (getClock s),
              iStr "]"]
 --------------------------
 -- 結果の表示 (ここまで) --
@@ -1444,4 +1452,4 @@ ex_5_7_2 = "main = I (I 3)"
 ---------------------------------
 
 main :: IO()
-main = (putStrLn . runProg) b_3_2_3'
+main = (putStrLn . runProg) ex_5_6_1
