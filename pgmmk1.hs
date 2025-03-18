@@ -363,6 +363,7 @@ push n state
 
 getArg :: Node -> Addr
 getArg (NAp a1 a2) = a2
+getArg (NInd n) = n  -- PGM Mark1で追加
 
 slide :: Int -> GmState -> GmState  -- 遷移規則 (3.9)
 slide n state
@@ -1117,7 +1118,7 @@ showInstruction Not            = iStr "Not"                                     
 showInstruction Return         = iStr "Return"                                         -- SGM Mark7で追加
 showInstruction (UpdateInt  n) = (iStr "UpdateInt ") `iAppend` (iNum n)                -- SGM Mark7で追加
 showInstruction (UpdateBool n) = (iStr "UpdateBool ") `iAppend` (iNum n)               -- SGM Mark7で追加
-showInstruction Par            = (iStr "Par ")  -- PDM Mark1で追加
+showInstruction Par            = (iStr "Par")  -- PDM Mark1で追加
 
 -- SGM Mark6で追加
 showOutput :: GmOutput -> Iseq
@@ -1447,9 +1448,20 @@ ex_5_6_2 = "main = S K K (S K K 3)"
 ex_5_7_1 = "main = par I (I 3)"
 
 ex_5_7_2 = "main = I (I 3)"
+
+ex_5_10 = "twice_ f x = par f (f x) ; " ++
+          "main = twice_ (twice_ (twice_ (S K K))) 3"
+
+ex_5_10_2 = "twice_ f x = par f (f x) ; " ++
+            "inc x = x + 1 ; " ++
+            "main = twice_ (twice_ (twice_ inc)) 0"
+
+ex_5_10_3 = "twice_ f x = f (f x) ; " ++
+            "inc x = x + 1 ; " ++
+            "main = twice_ (twice_ (twice_ inc)) 0"
 ---------------------------------
 -- テストプログラム (ここまで) --
 ---------------------------------
 
 main :: IO()
-main = (putStrLn . runProg) ex_5_6_1
+main = (putStrLn . runProg) ex_5_10_2
