@@ -368,7 +368,7 @@ push n state
 getArg :: Node -> Addr
 getArg (NAp a1 a2) = a2
 getArg (NLAp a1 a2) = a2  -- PGM Mark2で追加
-getArg (NInd n) = n  -- PGM Mark2で追加
+getArg (NInd n) = n  -- PGM Mark1で追加
 
 slide :: Int -> GmState -> GmState  -- 遷移規則 (3.9)
 slide n state
@@ -389,13 +389,7 @@ unwind state
       {-
         hLookup heap a1 の結果が、(NGlobal n' c')で、length (a:as) < n' が成り立つなら、[Unwind]の代わりに[Return]をputCodeしてもいいはず。
       -}
-      newState (NLAp a1 a2) = putCode newCommand (putStack (a1:a:as) state)  -- 遷移規則 (3.11) -- (5.2) PGM Mark2で変更
-        where e1 = hLookup heap a1
-              newCommand = case e1 of
-                           (NGlobal n' _) -> if length (a:as) < n'
-                                             then [Return]
-                                             else [Unwind]
-                           _ -> [Unwind]
+      newState (NLAp a1 a2) = putCode [Unwind] state  -- PGM Mark2で追加
       -- newState (NAp a1 a2) = putCode newCommand (putStack (a1:a:as) state)  -- 遷移規則 (3.11)
       newState (NAp a1 a2) = lock a $ putCode newCommand (putStack (a1:a:as) state)  -- 遷移規則 (3.11) -- (5.2) PGM Mark2で変更
         where e1 = hLookup heap a1
@@ -404,8 +398,7 @@ unwind state
                                              then [Return]
                                              else [Unwind]
                            _ -> [Unwind]
-      newState (NLGlobal 0 c)
-        = putCode c (putStack (a:as) state)  -- 遷移規則 (5.2) PGM Mark2で追加
+      newState (NLGlobal 0 c) = putCode [Unwind] state  -- PGM Mark2で追加
       newState (NGlobal 0 c)
         = lock a $ putCode c (putStack (a:as) state)  -- 遷移規則 (5.2) PGM Mark2で追加
       newState (NGlobal n c)
@@ -1170,7 +1163,7 @@ showInstruction Not            = iStr "Not"                                     
 showInstruction Return         = iStr "Return"                                         -- SGM Mark7で追加
 showInstruction (UpdateInt  n) = (iStr "UpdateInt ") `iAppend` (iNum n)                -- SGM Mark7で追加
 showInstruction (UpdateBool n) = (iStr "UpdateBool ") `iAppend` (iNum n)               -- SGM Mark7で追加
-showInstruction Par            = (iStr "Par ")  -- PDM Mark1で追加
+showInstruction Par            = (iStr "Par")  -- PDM Mark1で追加
 
 -- SGM Mark6で追加
 showOutput :: GmOutput -> Iseq
@@ -1509,6 +1502,10 @@ ex_5_10 = "twice_ f x = par f (f x) ; " ++
           "main = twice_ (twice_ (twice_ (S K K))) 3"
 
 ex_5_10_2 = "twice_ f x = par f (f x) ; " ++
+            "inc x = x + 1 ; " ++
+            "main = twice_ (twice_ (twice_ inc)) 0"
+
+ex_5_10_3 = "twice_ f x = f (f x) ; " ++
             "inc x = x + 1 ; " ++
             "main = twice_ (twice_ (twice_ inc)) 0"
 ---------------------------------
