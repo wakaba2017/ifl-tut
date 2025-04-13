@@ -1207,7 +1207,10 @@ showStack s
 showStackItem :: GmState -> Addr -> Iseq
 showStackItem s a
   = iConcat [iStr (showaddr a), iStr ": ",
-             showNode s a (hLookup (getHeap s) a)]
+--              showNode s a (hLookup (getHeap s) a)]
+             showNode s a (hLookup (getHeap s) a),
+             iStr "  -- ",
+             showContent s a (hLookup (getHeap s) a)]
 
 -- SGM Mark4で追加
 showDump :: GmState -> Iseq
@@ -1260,6 +1263,25 @@ showNode s a (NLGlobal n g) = iConcat [iStr "Locked Global ", iStr v]
                               where v = head [n | (n,b) <- getGlobals s, a==b]  -- PGM Mark2で追加
 showNode s a (NLAp a1 a2) = iConcat [iStr "Locked Ap ", iStr (showaddr a1),
                                      iStr " ", iStr (showaddr a2)]  -- PGM Mark2で追加
+
+showContent :: GmState -> Addr -> Node -> Iseq
+showContent s a (NNum n) = iNum n
+showContent s a (NGlobal n g) = iStr $ head [n | (n,b) <- getGlobals s, a==b]
+showContent s a (NAp a1 a2) = iConcat [iStr "(",
+                                       showContent s a1 (hLookup (getHeap s) a1),
+                                       iStr " ",
+                                       showContent s a2 (hLookup (getHeap s) a2),
+                                       iStr ")"]
+showContent s a (NInd n) = iConcat [iStr "#(",
+                                    showContent s n (hLookup (getHeap s) n),
+                                    iStr ")"]
+showContent s a (NConstr t as) = iStr "----"
+showContent s a (NLGlobal n g) = iStr $ head [n | (n,b) <- getGlobals s, a==b]
+showContent s a (NLAp a1 a2) = iConcat [iStr "(",
+                                        showContent s a1 (hLookup (getHeap s) a1),
+                                        iStr " ",
+                                        showContent s a2 (hLookup (getHeap s) a2),
+                                        iStr ")"]
 
 -- PGM Mark1で変更
 showStats :: PgmState -> Iseq
