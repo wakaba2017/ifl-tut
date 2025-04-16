@@ -23,25 +23,27 @@ type PgmState = (PgmGlobalState,   -- Current global state
 
 -- PGM Mark1で追加
 pgmGetOutput :: PgmState -> GmOutput
-pgmGetOutput ((o, heap, globals, sparks, stats), locals) = o
+pgmGetOutput ((o, heap, globals, sparks, unUsedIdNumList, stats), locals) = o
 
 -- PGM Mark1で追加
 pgmGetHeap :: PgmState -> GmHeap
-pgmGetHeap ((o, heap, globals, sparks, stats), locals) = heap
+pgmGetHeap ((o, heap, globals, sparks, unUsedIdNumList, stats), locals) = heap
 
 -- PGM Mark1で追加
 pgmGetGlobals :: PgmState -> GmGlobals
-pgmGetGlobals ((o, heap, globals, sparks, stats), locals) = globals
+pgmGetGlobals ((o, heap, globals, sparks, unUsedIdNumList, stats), locals) = globals
 
 -- PGM Mark1で追加
 type PgmGlobalState = (GmOutput,   -- output stream
                        GmHeap,     -- Heap of nodes
                        GmGlobals,  -- Global addresses in heap
                        GmSparks,   -- Sparked task pool
+                       GmUnUsedIdNumList,  -- Un used task id number list
                        GmStats)    -- Statisti
 
 -- PGM Mark1で追加
-type PgmLocalState = (GmCode,    -- Instruction stream
+type PgmLocalState = (GmIdNum,   -- Id number
+                      GmCode,    -- Instruction stream
                       GmStack,   -- Pointer stack
                       GmDump,    -- Stack of dump items
                       GmVStack,  -- Value stack
@@ -123,27 +125,28 @@ type GmOutput = [Char]
 
 -- SGM Mark6で追加
 getOutput :: GmState -> GmOutput
-getOutput ((o, heap, globals, sparks, stats), local) = o
+getOutput ((o, heap, globals, sparks, unUsedIdNumList, stats), local) = o
 
 -- SGM Mark6で追加
 putOutput :: GmOutput -> GmState -> GmState
-putOutput o ((_, heap, globals, sparks, stats), local) = ((o, heap, globals, sparks, stats), local)
+putOutput o ((_, heap, globals, sparks, unUsedIdNumList, stats), local)
+  = ((o, heap, globals, sparks, unUsedIdNumList, stats), local)
 
 type GmCode = [Instruction]
 
 getCode :: GmState -> GmCode
-getCode (global, (code, stack, dump, vstack, clock)) = code
+getCode (global, (idNum, code, stack, dump, vstack, clock)) = code
 
 putCode :: GmCode -> GmState -> GmState
-putCode code (global, (_, stack, dump, vstack, clock)) = (global, (code, stack, dump, vstack, clock))
+putCode code (global, (idNum, _, stack, dump, vstack, clock)) = (global, (idNum, code, stack, dump, vstack, clock))
 
 type GmStack = [Addr]
 
 getStack :: GmState -> GmStack
-getStack (global, (code, stack, dump, vstack, clock)) = stack
+getStack (global, (idNum, code, stack, dump, vstack, clock)) = stack
 
 putStack :: GmStack -> GmState -> GmState
-putStack stack (global, (code, _, dump, vstack, clock)) = (global, (code, stack, dump, vstack, clock))
+putStack stack (global, (idNum, code, _, dump, vstack, clock)) = (global, (idNum, code, stack, dump, vstack, clock))
 
 -- SGM Mark4で追加
 type GmDump = [GmDumpItem]
@@ -151,30 +154,31 @@ type GmDumpItem = (GmCode, GmStack)
 
 -- SGM Mark4で追加
 getDump :: GmState -> GmDump
-getDump (global, (code, stack, dump, vstack, clock)) = dump
+getDump (global, (idNum, code, stack, dump, vstack, clock)) = dump
 
 -- SGM Mark4で追加
 putDump :: GmDump -> GmState -> GmState
-putDump dump (global, (code, stack, _, vstack, clock)) = (global, (code, stack, dump, vstack, clock))
+putDump dump (global, (idNum, code, stack, _, vstack, clock)) = (global, (idNum, code, stack, dump, vstack, clock))
 
 -- SGM Mark7で追加
 type GmVStack = [Int]
 
 -- SGM Mark7で追加
 getVStack :: GmState -> GmVStack
-getVStack (global, (code, stack, dump, vstack, clock)) = vstack
+getVStack (global, (idNum, code, stack, dump, vstack, clock)) = vstack
 
 -- SGM Mark7で追加
 putVStack :: GmVStack -> GmState -> GmState
-putVStack vstack (global, (code, stack, dump, _, clock)) = (global, (code, stack, dump, vstack, clock))
+putVStack vstack (global, (idNum, code, stack, dump, _, clock)) = (global, (idNum, code, stack, dump, vstack, clock))
 
 type GmHeap = Heap Node
 
 getHeap :: GmState -> GmHeap
-getHeap ((o, heap, globals, sparks, stats), local) = heap
+getHeap ((o, heap, globals, sparks, unUsedIdNumList, stats), local) = heap
 
 putHeap :: GmHeap -> GmState -> GmState
-putHeap heap ((o, _, globals, sparks, stats), local) = ((o, heap, globals, sparks, stats), local)
+putHeap heap ((o, _, globals, sparks, unUsedIdNumList, stats), local)
+  = ((o, heap, globals, sparks, unUsedIdNumList, stats), local)
 
 -- Node 型の定義を、とりあえずシーケンシャルGマシンから引っ張ってきた。
 data Node
@@ -195,42 +199,66 @@ instance Eq Node
 type GmGlobals = ASSOC Name Addr
 
 getGlobals :: GmState -> GmGlobals
-getGlobals ((o, heap, globals, sparks, stats), local) = globals
+getGlobals ((o, heap, globals, sparks, unUsedIdNumList, stats), local) = globals
 
 putGlobals :: GmGlobals -> GmState -> GmState
-putGlobals globals ((o, heap, _, sparks, stats), local) = ((o, heap, globals, sparks, stats), local)
+putGlobals globals ((o, heap, _, sparks, unUsedIdNumList, stats), local)
+  = ((o, heap, globals, sparks, unUsedIdNumList, stats), local)
 
 -- PGM Mark1で追加
-type GmSparks = [Addr]
+type GmSparks = [(Addr, Int)]
 
 -- PGM Mark1で追加
 pgmGetSparks :: PgmState -> GmSparks
-pgmGetSparks ((o, heap, globals, sparks, stats), locals) = sparks
+pgmGetSparks ((o, heap, globals, sparks, unUsedIdNumList, stats), locals) = sparks
 
 getSparks :: GmState -> GmSparks
-getSparks ((o, heap, globals, sparks, stats), local) = sparks
+getSparks ((o, heap, globals, sparks, unUsedIdNumList, stats), local) = sparks
 
 putSparks :: GmSparks -> GmState -> GmState
-putSparks sparks ((o, heap, globals, _, stats), local) = ((o, heap, globals, sparks, stats), local)
+putSparks sparks ((o, heap, globals, _, unUsedIdNumList, stats), local)
+  = ((o, heap, globals, sparks, unUsedIdNumList, stats), local)
 
 type GmClock = Int
 
 getClock :: GmState -> GmClock
-getClock (global, (code, stack, dump, vstack, clock)) = clock
+getClock (global, (idNum, code, stack, dump, vstack, clock)) = clock
 
 putClock :: GmClock -> GmState -> GmState
-putClock clock (global, (code, stack, dump, vstack, _)) = (global, (code, stack, dump, vstack, clock))
+putClock clock (global, (idNum, code, stack, dump, vstack, _)) = (global, (idNum, code, stack, dump, vstack, clock))
 
 type GmStats = [Int]
 
 getStats :: GmState -> GmStats
-getStats ((o, heap, globals, sparks, stats), local) = stats
+getStats ((o, heap, globals, sparks, unUsedIdNumList, stats), local) = stats
 
 putStats :: GmStats -> GmState -> GmState
-putStats stats ((o, heap, globals, sparks, _), local) = ((o, heap, globals, sparks, stats), local)
+putStats stats ((o, heap, globals, sparks, unUsedIdNumList, _), local)
+  = ((o, heap, globals, sparks, unUsedIdNumList, stats), local)
 
 pgmGetStats :: PgmState -> GmStats
-pgmGetStats ((o, heap, globals, sparks, stats), locals) = stats
+pgmGetStats ((o, heap, globals, sparks, unUsedIdNumList, stats), locals) = stats
+
+type GmUnUsedIdNumList = [Int]
+
+getUnUsedIdNumList :: GmState -> GmUnUsedIdNumList
+getUnUsedIdNumList ((o, heap, globals, sparks, unUsedIdNumList, stats), local) = unUsedIdNumList
+
+putUnUsedIdNumList :: GmUnUsedIdNumList -> GmState -> GmState
+putUnUsedIdNumList unUsedIdNumList ((o, heap, globals, sparks, _, stats), local)
+  = ((o, heap, globals, sparks, unUsedIdNumList, stats), local)
+
+pgmGetUnUsedIdNumList :: PgmState -> GmUnUsedIdNumList
+pgmGetUnUsedIdNumList ((o, heap, globals, sparks, unUsedIdNumList, stats), locals) = unUsedIdNumList
+
+type GmIdNum = (Int, Int)
+
+getIdNum :: GmState -> GmIdNum
+getIdNum (global, (idNum, code, stack, dump, vstack, clock)) = idNum
+
+putIdNum :: GmIdNum -> GmState -> GmState
+putIdNum idNum (global, (_, code, stack, dump, vstack, clock))
+  = (global, (idNum, code, stack, dump, vstack, clock))
 -------------------------------
 -- データ型の定義 (ここまで) --
 -------------------------------
@@ -247,16 +275,20 @@ eval state = state: restStates
 steps :: PgmState -> PgmState
 steps state
   = mapAccuml step global' local'
-    where ((out, heap, globals, sparks, stats), local) = state
-          newtasks = [makeTask a | a <- sparks]
-          global' = (out, heap, globals, [], stats)
+    where ((out, heap, globals, sparks, unUsedIdNumList, stats), local) = state
+          sparks_ = zip2 sparks unUsedIdNumList
+          newtasks = [makeTask a | a <- sparks_]
+          newUnUsedIdNumList = drop (length sparks_) unUsedIdNumList
+          global' = (out, heap, globals, [], newUnUsedIdNumList, stats)
           local' = map tick (local ++ newtasks)
 
-makeTask :: Addr -> PgmLocalState
+-- makeTask :: Addr -> PgmLocalState
 -- makeTask addr = ([Unwind], [addr], [], [], 0)  -- for G-machine mark 2 to 3
-makeTask addr = ([Eval],   [addr], [], [], 0)  -- for G-machine mark 4 to 7
+makeTask :: ((Addr, Int), Int) -> PgmLocalState
+makeTask ((addr, pidnum), idnum) = ((idnum, pidnum), [Eval],   [addr], [], [], 0)  -- for G-machine mark 4 to 7
 
-tick (i, stack, dump, vstack, lock) = (i, stack, dump, vstack, lock+1)
+
+tick (idNum, i, stack, dump, vstack, lock) = (idNum, i, stack, dump, vstack, lock+1)
 
 gmFinal :: PgmState -> Bool
 gmFinal s = second s == [] && pgmGetSparks s == []
@@ -267,12 +299,12 @@ step global local = dispatch i (putCode is state)
                           state = (global, local)
 
 doAdmin :: PgmState -> PgmState
-doAdmin ((out, heap, globals, sparks, stats), local)
-  = ((out, heap, globals, sparks, stats'), local')
+doAdmin ((out, heap, globals, sparks, unUsedIdNumList, stats), local)
+  = ((out, heap, globals, sparks, unUsedIdNumList, stats'), local')
     where (local', stats') = foldr filter ([], stats) local
-          filter (i, stack, dump, vstack, lock) (local, stats)
+          filter (idNum, i, stack, dump, vstack, lock) (local, stats)
             | i == [] = (local, lock:stats)
-            | otherwise = ((i, stack, dump, vstack, lock): local, stats)
+            | otherwise = ((idNum, i, stack, dump, vstack, lock): local, stats)
 
 dispatch :: Instruction -> GmState -> GmState
 dispatch (Pushglobal f) = pushglobal f
@@ -762,9 +794,10 @@ updatebool n state
 -- PGM Mark1で追加
 par :: GmState -> GmState
 -- par s = s
-par state = putSparks (a : t) $ putStack s state
+par state = putSparks ((a, idnum) : t) $ putStack s state
             where (a : s) = getStack state
                   t = getSparks state
+                  idnum = fst $ getIdNum state
 ----------------------
 -- 評価器 (ここまで) --
 ----------------------
@@ -775,7 +808,7 @@ par state = putSparks (a : t) $ putStack s state
 -- PGM Mark1で変更
 compile :: CoreProgram -> PgmState
 compile program
-  = (([], heap, globals, [], []), [initialTask addr])
+  = (([], heap, globals, [], [2..], []), [initialTask addr])
     where (heap, globals) = buildInitialHeap program
           addr = aLookup globals "main" (error "main undefined")
 
@@ -793,7 +826,7 @@ allocateSc heap (name, nargs, instns)
 
 -- PGM Mark1で追加
 initialTask :: Addr -> PgmLocalState
-initialTask addr = (initialCode, [addr], [], [], 0)
+initialTask addr = ((1, 0), initialCode, [addr], [], [], 0)
 
 -- PGM Mark1で変更
 initialCode :: GmCode
@@ -1146,11 +1179,20 @@ showStateGlobal s
 -- PGM Mark1で追加
 showStateLocal :: GmState -> Iseq
 showStateLocal s
-  = iConcat [showStack s, iNewline,
+  = iConcat [showIdNum s, iNewline,
+             showStack s, iNewline,
              showDump s, iNewline,
              showVStack s, iNewline,  -- SGM Mark7で追加
              showInstructions (getCode s),
              showClocks s, iNewline]
+
+showIdNum :: GmState -> Iseq
+showIdNum s
+  = iConcat [iStr " -- Task ", iNum idnum, parentTaskId, iStr " --"]
+    where
+      (idnum, pidnum) = getIdNum s
+      parentTaskId | pidnum == 0 = iStr ""
+                   | otherwise   = iConcat [iStr " (Parent Task ", iNum pidnum, iStr ")"]
 
 showStack :: GmState -> Iseq
 showStack s
@@ -1162,7 +1204,10 @@ showStack s
 showStackItem :: GmState -> Addr -> Iseq
 showStackItem s a
   = iConcat [iStr (showaddr a), iStr ": ",
-             showNode s a (hLookup (getHeap s) a)]
+--              showNode s a (hLookup (getHeap s) a)]
+             showNode s a (hLookup (getHeap s) a),
+             iStr "  -- ",
+             showContent s a (hLookup (getHeap s) a)]
 
 -- SGM Mark4で追加
 showDump :: GmState -> Iseq
@@ -1212,6 +1257,19 @@ showNode s a (NConstr t as)  -- SGM Mark6で追加
   = iConcat [iStr "Cons ", iNum t, iStr " [",
              iInterleave (iStr ", ") (map (iStr.showaddr) as), iStr "]"]
 
+showContent :: GmState -> Addr -> Node -> Iseq
+showContent s a (NNum n) = iNum n
+showContent s a (NGlobal n g) = iStr $ head [n | (n,b) <- getGlobals s, a==b]
+showContent s a (NAp a1 a2) = iConcat [iStr "(",
+                                       showContent s a1 (hLookup (getHeap s) a1),
+                                       iStr " ",
+                                       showContent s a2 (hLookup (getHeap s) a2),
+                                       iStr ")"]
+showContent s a (NInd n) = iConcat [iStr "#(",
+                                    showContent s n (hLookup (getHeap s) n),
+                                    iStr ")"]
+showContent s a (NConstr t as) = iStr "----"
+
 -- PGM Mark1で変更
 showStats :: PgmState -> Iseq
 showStats pgmstate
@@ -1225,8 +1283,11 @@ showSparks :: GmSparks -> Iseq
 showSparks sparks
   = iConcat [iStr " Sparks:[",
              iIndent (iInterleave iNewline
-                     (map iNum sparks)),
+                     (map subFuncForShowSparks sparks)),
              iStr "]"]
+    where
+      subFuncForShowSparks (addr, idnum)
+        = iConcat [iStr "(", iNum addr, iStr ", ", iNum idnum, iStr ")"]
 
 -- PGM Mark1で追加
 showClocks :: GmState -> Iseq
