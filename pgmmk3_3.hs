@@ -187,8 +187,8 @@ data Node
   | NGlobal Int GmCode -- Globals
   | NInd Addr          -- Indirections  -- SGM Mark2で追加
   | NConstr Int [Addr] -- Constructor   -- SGM Mark6で追加
-  | NLAp Addr Addr      -- Locked Applications  -- PGM Mark2で追加
-  | NLGlobal Int GmCode -- Locked Globals       -- PGM Mark2で追加
+  | NLAp Addr Addr Int      -- Locked Applications  -- PGM Mark2で追加
+  | NLGlobal Int GmCode Int -- Locked Globals       -- PGM Mark2で追加
  deriving Show  -- テキストにはないけれど追加
 instance Eq Node
   where
@@ -197,8 +197,8 @@ instance Eq Node
     NGlobal a b == NGlobal c d = False  -- not needed
     NInd    a   == NInd    b   = False  -- not needed
     NConstr a b == NConstr c d = a == c && b == d  -- needed to compare boolean  -- SGM Mark6で追加
-    NLAp     a b == NLAp     c d = False  -- not needed  -- PGM Mark2で追加
-    NLGlobal a b == NLGlobal c d = False  -- not needed  -- PGM Mark2で追加
+    NLAp     a b e == NLAp     c d f = False  -- not needed  -- PGM Mark2で追加
+    NLGlobal a b e == NLGlobal c d f = False  -- not needed  -- PGM Mark2で追加
 
 type GmGlobals = ASSOC Name Addr
 
@@ -312,8 +312,8 @@ scheduler global tasks
               _ -> False
               where
                 stkTopNode = hLookup (pgmGetHeap (global, tasks)) (head stack)
-                isTargetNode (NLAp _ _) = True
-                isTargetNode (NLGlobal _ _) = True
+                isTargetNode (NLAp _ _ _) = True
+                isTargetNode (NLGlobal _ _ _) = True
                 isTargetNode _ = False
           blokked    = [task | task <- tasks, filter_func task == True ]
           nonBlokked = [task | task <- tasks, filter_func task == False]
@@ -431,7 +431,7 @@ push n state
 
 getArg :: Node -> Addr
 getArg (NAp a1 a2) = a2
-getArg (NLAp a1 a2) = a2  -- PGM Mark2で追加
+getArg (NLAp a1 a2 id) = a2  -- PGM Mark2で追加
 getArg (NInd n) = n  -- PGM Mark1で追加
 
 slide :: Int -> GmState -> GmState  -- 遷移規則 (3.9)
@@ -453,7 +453,7 @@ unwind state
       {-
         hLookup heap a1 の結果が、(NGlobal n' c')で、length (a:as) < n' が成り立つなら、[Unwind]の代わりに[Return]をputCodeしてもいいはず。
       -}
-      newState (NLAp a1 a2) = putCode [Unwind] state  -- PGM Mark2で追加
+      newState (NLAp a1 a2 id) = putCode [Unwind] state  -- PGM Mark2で追加
       -- newState (NAp a1 a2) = putCode newCommand (putStack (a1:a:as) state)  -- 遷移規則 (3.11)
       newState (NAp a1 a2) = lock a $ putCode newCommand (putStack (a1:a:as) state)  -- 遷移規則 (3.11) -- (5.2) PGM Mark2で変更
         where e1 = hLookup heap a1
@@ -462,7 +462,7 @@ unwind state
                                              then [Return]
                                              else [Unwind]
                            _ -> [Unwind]
-      newState (NLGlobal 0 c) = putCode [Unwind] state  -- PGM Mark2で追加
+      newState (NLGlobal 0 c id) = putCode [Unwind] state  -- PGM Mark2で追加
       newState (NGlobal 0 c)
         = lock a $ putCode c (putStack (a:as) state)  -- 遷移規則 (5.2) PGM Mark2で追加
       newState (NGlobal n c)
@@ -849,8 +849,9 @@ lock addr state
   = putHeap (newHeap (hLookup heap addr)) state
     where
       heap = getHeap state
-      newHeap (NAp a1 a2) = hUpdate heap addr (NLAp a1 a2)
-      newHeap (NGlobal n c) | n == 0 = hUpdate heap addr (NLGlobal n c)
+      id = fst $ getIdNum state
+      newHeap (NAp a1 a2) = hUpdate heap addr (NLAp a1 a2 id)
+      newHeap (NGlobal n c) | n == 0 = hUpdate heap addr (NLGlobal n c id)
                             | otherwise = heap
 
 -- PGM Mark2で追加
@@ -859,9 +860,9 @@ unlock addr state
   = newState (hLookup heap addr)
     where
       heap = getHeap state
-      newState (NLAp a1 a2)
+      newState (NLAp a1 a2 id)
         = unlock a1 (putHeap (hUpdate heap addr (NAp a1 a2)) state)
-      newState (NLGlobal n c)
+      newState (NLGlobal n c id)
         = putHeap (hUpdate heap addr (NGlobal n c)) state
       newState n = state
 
@@ -870,9 +871,9 @@ unlockAll :: Addr -> GmState -> GmState
 unlockAll addr state = unlockArg addr (unlock addr state)
   where
     unlockArg addr state = case hLookup heap addr of
-      NAp _ a2   -> unlockAll a2 state
-      NLAp _ a2  -> unlockAll a2 state
-      _          -> state
+      NAp _ a2      -> unlockAll a2 state
+      NLAp _ a2 id  -> unlockAll a2 state
+      _             -> state
       where
         heap = getHeap state
 ----------------------
@@ -1333,10 +1334,10 @@ showNode s a (NInd n) = iConcat [iStr "Ind ", iStr(showaddr n)]  -- SGM Mark2で
 showNode s a (NConstr t as)  -- SGM Mark6で追加
   = iConcat [iStr "Cons ", iNum t, iStr " [",
              iInterleave (iStr ", ") (map (iStr.showaddr) as), iStr "]"]
-showNode s a (NLGlobal n g) = iConcat [iStr "Locked Global ", iStr v]
-                              where v = head [n | (n,b) <- getGlobals s, a==b]  -- PGM Mark2で追加
-showNode s a (NLAp a1 a2) = iConcat [iStr "Locked Ap ", iStr (showaddr a1),
-                                     iStr " ", iStr (showaddr a2)]  -- PGM Mark2で追加
+showNode s a (NLGlobal n g id) = iConcat [iStr "Locked Global (", iNum id, iStr ") ", iStr v]
+                               where v = head [n | (n,b) <- getGlobals s, a==b]  -- PGM Mark2で追加
+showNode s a (NLAp a1 a2 id) = iConcat [iStr "Locked Ap (", iNum id, iStr ") ", iStr (showaddr a1),
+                                        iStr " ", iStr (showaddr a2)]  -- PGM Mark2で追加
 
 showContent :: GmState -> Addr -> Node -> Iseq
 showContent s a (NNum n) = iNum n
@@ -1350,14 +1351,14 @@ showContent s a (NInd n) = iConcat [iStr "#(",
                                     showContent s n (hLookup (getHeap s) n),
                                     iStr ")"]
 showContent s a (NConstr t as) = iStr "----"
-showContent s a (NLGlobal n g) = iConcat [iStr "L(",
-                                          iStr (head [n | (n,b) <- getGlobals s, a==b]),
-                                          iStr ")"]
-showContent s a (NLAp a1 a2) = iConcat [iStr "L(",
-                                        showContent s a1 (hLookup (getHeap s) a1),
-                                        iStr " ",
-                                        showContent s a2 (hLookup (getHeap s) a2),
-                                        iStr ")"]
+showContent s a (NLGlobal n g id) = iConcat [iStr "L", iNum id, iStr "(",
+                                             iStr (head [n | (n,b) <- getGlobals s, a==b]),
+                                             iStr ")"]
+showContent s a (NLAp a1 a2 id) = iConcat [iStr "L", iNum id, iStr "(",
+                                           showContent s a1 (hLookup (getHeap s) a1),
+                                           iStr " ",
+                                           showContent s a2 (hLookup (getHeap s) a2),
+                                           iStr ")"]
 
 -- PGM Mark1で変更
 showStats :: PgmState -> Iseq
