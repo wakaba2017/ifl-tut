@@ -281,8 +281,7 @@ steps :: PgmState -> PgmState
 steps state
   = scheduler global' local'
     where ((out, heap, globals, sparks, unUsedIdNumList, stats), local) = state
-          numOfUnUsedPrc = machineSize - length local
-          sparks_ = zip2 (take numOfUnUsedPrc sparks) unUsedIdNumList
+          sparks_ = zip2 sparks unUsedIdNumList
           newtasks = [makeTask a | a <- sparks_]
           newUnUsedIdNumList = drop (length sparks_) unUsedIdNumList
           global' = (out, heap, globals, [], newUnUsedIdNumList, stats)
@@ -299,7 +298,6 @@ scheduler global tasks
     where running = map tick (take machineSize nonBlokked)
           nonRunning = (drop machineSize nonBlokked) ++ blokked
           (global', tasks') = mapAccuml step global running
-
           {-
             tasks の各要素について、スタックトップのヒープアドレスの中身を調べる。
             NLAp, NLGlobal の場合、コードキューの中身も調べる。
@@ -1617,3 +1615,4 @@ ex_5_10_3 = "twice_ f x = f (f x) ; " ++
 
 main :: IO()
 main = (putStrLn . runProg) ex_5_10_2
+-- main = (putStrLn . runProg) ex_5_10
