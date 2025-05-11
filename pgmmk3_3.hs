@@ -956,7 +956,7 @@ compileR (EAp (EAp (EVar op) e0) e1) env  -- SGM Mark7で追加
     where d     = length env
           env'  = argOffset 1 env
           temp  = [(oprtr, instrctn) | (oprtr, instrctn) <- builtInDyadic, oprtr == op]
-          temp' | fst (hd temp) `elem` ["+", "-", "*", "div"] = [Mkint, Update d, Pop d, Unwind]
+          temp' | fst (hd temp) `elem` ["+", "-", "*", "/"] = [Mkint, Update d, Pop d, Unwind]
                 | otherwise = [Mkbool, Update d, Pop d, Unwind]
 compileR (EAp (EVar "negate") e) env  -- SGM Mark7で追加
   = compileB (EAp (EVar "negate") e) env ++ [UpdateInt d, Pop d, Unwind]
@@ -1002,7 +1002,7 @@ compileE (EAp (EAp (EVar op) e0) e1) env
   | otherwise        = compileC e1 env ++ compileC (EAp (EVar op) e0) env' ++ [Mkap]
     where env'  = argOffset 1 env
           temp  = [(oprtr, instrctn) | (oprtr, instrctn) <- builtInDyadic, oprtr == op]
-          temp' | fst (hd temp) `elem` ["+", "-", "*", "div"] = [Mkint]
+          temp' | fst (hd temp) `elem` ["+", "-", "*", "/"] = [Mkint]
                 | otherwise = [Mkbool]
 compileE (EAp (EVar "negate") e) env
   = compileB (EAp (EVar "negate") e) env ++ [Mkint]
@@ -1168,7 +1168,7 @@ primitives
 -- SGM Mark5で追加
 builtInDyadic :: ASSOC Name Instruction
 builtInDyadic
-  = [("+", Add), ("-", Sub), ("*", Mul), ("div", Div),
+  = [("+", Add), ("-", Sub), ("*", Mul), ("/", Div),
      ("==", Eq), ("~=", Ne),
      (">=", Ge), (">", Gt),
      ("<=", Le), ("<", Lt),
