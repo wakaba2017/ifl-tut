@@ -88,6 +88,7 @@ instance Eq Instruction
     Push       a == Push       b = a == b
     Mkap         == Mkap         = True
     Update     a == Update     b = a == b  -- SGM Mark2で追加
+    Pop        a == Pop        b = a == b  -- SGM Mark2で追加
     Slide      a == Slide      b = a == b  -- SGM Mark3で復活
     Alloc      a == Alloc      b = a == b  -- SGM Mark3で追加
     Eval         == Eval         = True    -- SGM Mark4で追加
@@ -857,7 +858,7 @@ compileR (EAp (EAp (EVar op) e0) e1) env  -- SGM Mark7で追加
     where d     = length env
           env'  = argOffset 1 env
           temp  = [(oprtr, instrctn) | (oprtr, instrctn) <- builtInDyadic, oprtr == op]
-          temp' | fst (hd temp) `elem` ["+", "-", "*", "div"] = [Mkint, Update d, Pop d, Unwind]
+          temp' | fst (hd temp) `elem` ["+", "-", "*", "/"] = [Mkint, Update d, Pop d, Unwind]
                 | otherwise = [Mkbool, Update d, Pop d, Unwind]
 compileR (EAp (EVar "negate") e) env  -- SGM Mark7で追加
   = compileB (EAp (EVar "negate") e) env ++ [UpdateInt d, Pop d, Unwind]
@@ -903,7 +904,7 @@ compileE (EAp (EAp (EVar op) e0) e1) env
   | otherwise        = compileC e1 env ++ compileC (EAp (EVar op) e0) env' ++ [Mkap]
     where env'  = argOffset 1 env
           temp  = [(oprtr, instrctn) | (oprtr, instrctn) <- builtInDyadic, oprtr == op]
-          temp' | fst (hd temp) `elem` ["+", "-", "*", "div"] = [Mkint]
+          temp' | fst (hd temp) `elem` ["+", "-", "*", "/"] = [Mkint]
                 | otherwise = [Mkbool]
 compileE (EAp (EVar "negate") e) env
   = compileB (EAp (EVar "negate") e) env ++ [Mkint]
@@ -1069,7 +1070,7 @@ primitives
 -- SGM Mark5で追加
 builtInDyadic :: ASSOC Name Instruction
 builtInDyadic
-  = [("+", Add), ("-", Sub), ("*", Mul), ("div", Div),
+  = [("+", Add), ("-", Sub), ("*", Mul), ("/", Div),
      ("==", Eq), ("~=", Ne),
      (">=", Ge), (">", Gt),
      ("<=", Le), ("<", Lt),
@@ -1501,6 +1502,97 @@ test_program_for_not4 = "main = not (1 == 1)"
 test_program_for_and_or_not = "main = not (1 == 3 & 1 == 1) | (1 == 2)"
 
 test_program_for_and_or_not' = "main = (1 == 3 & 1 == 1) | (1 == 2)"
+
+ex_4_20_2_1_1 = "x = 2 * 2 ; " ++
+                "main = 1 + x"  -- (EAp (EAp op e1) e2) の op が2項演算子で e2 が EVar v の場合 (e1 は ENum n)
+
+ex_4_20_2_1_2 = "x = 2 * 2 ; " ++
+                "y = 2 / 2 ; " ++
+                "main = y + x"  -- (EAp (EAp op e1) e2) の op が2項演算子で e2 が EVar v の場合 (e1 は EVar v)
+
+ex_4_20_2_1_3 = "x = 2 * 2 ; " ++
+                "inc n = n + 1 ; " ++
+                "main = (inc 2) + x"  -- (EAp (EAp op e1) e2) の op が2項演算子で e2 が EVar v の場合 (e1 は ENum n, EVar v 以外)
+
+ex_4_20_2_1_4 = "x = 2 * 2 ; " ++
+                "inc n = n + 1 ; " ++
+                "main = (K1 1 (inc 2)) + x"  -- (EAp (EAp op e1) e2) の op が2項演算子で e2 が EVar v の場合 (e1 は ENum n, EVar v 以外)
+
+ex_4_20_2_2_1 = "main = 1 + 2"  -- (EAp (EAp op e1) e2) の op が2項演算子で e2 が ENum n の場合 (e1 は ENum n)
+
+ex_4_20_2_2_2 = "y = 2 / 2 ; " ++
+                "main = y + 2"  -- (EAp (EAp op e1) e2) の op が2項演算子で e2 が ENum n の場合 (e1 は EVar v)
+
+ex_4_20_2_2_3 = "inc n = n + 1 ; " ++
+                "main = (inc 1) + 2"  -- (EAp (EAp op e1) e2) の op が2項演算子で e2 が ENum n の場合 (e1 は ENum n, EVar v 以外)
+
+ex_4_20_2_2_4 = "inc n = n + 1 ; " ++
+                "main = (K1 1 (inc 1)) + 2"  -- (EAp (EAp op e1) e2) の op が2項演算子で e2 が EVar v の場合 (e1 は ENum n, EVar v 以外)
+
+ex_4_20_2_3_1 = "inc n = n + 1 ; " ++
+                "main = 1 + (inc 2)"  -- (EAp (EAp op e1) e2) の op が2項演算子で e2 が EVar v, ENum n 以外の場合 (e1 は ENum n)
+
+ex_4_20_2_3_2 = "y = 2 / 2 ; " ++
+                "inc n = n + 1 ; " ++
+                "main = y + (inc 2)"  -- (EAp (EAp op e1) e2) の op が2項演算子で e2 が EVar v, ENum n 以外の場合 (e1 は EVar v)
+
+ex_4_20_2_3_3 = "inc n = n + 1 ; " ++
+                "main = (inc 1) + (inc 2)"  -- (EAp (EAp op e1) e2) の op が2項演算子で e2 が EVar v, ENum n 以外の場合 (e1 は ENum n, EVar v 以外)
+
+ex_4_20_2_3_4 = "inc n = n + 1 ; " ++
+                "main = (K1 1 (inc 1)) + (inc 2)"  -- (EAp (EAp op e1) e2) の op が2項演算子で e2 が EVar v, ENum n 以外の場合 (e1 は ENum n, EVar v 以外)
+
+ex_4_20_2_4_1 = "x = 2 * 2 ; " ++
+                "main = K1 1 x"  -- (EAp (EAp op e1) e2) の op が2項演算子以外で e2 が EVar v の場合 (e1 は ENum n)
+
+ex_4_20_2_4_2 = "x = 2 * 2 ; " ++
+                "y = 2 / 2 ; " ++
+                "main = K1 y x"  -- (EAp (EAp op e1) e2) の op が2項演算子以外で e2 が EVar v の場合 (e1 は EVar v)
+
+ex_4_20_2_4_3 = "x = 2 * 2 ; " ++
+                "inc n = n + 1 ; " ++
+                "main = K1 (inc 1) x"  -- (EAp (EAp op e1) e2) の op が2項演算子以外で e2 が EVar v の場合 (e1 は ENum n, EVar v 以外)
+
+ex_4_20_2_4_4 = "x = 2 * 2 ; " ++
+                "inc n = n + 1 ; " ++
+                "main = K1 (K1 1 (inc 1)) x"  -- (EAp (EAp op e1) e2) の op が2項演算子以外で e2 が EVar v の場合 (e1 は ENum n, EVar v 以外)
+
+ex_4_20_2_5_1 = "main = K1 1 2"  -- (EAp (EAp op e1) e2) の op が2項演算子以外で e2 が ENum n の場合 (e1 は ENum n)
+
+ex_4_20_2_5_2 = "y = 2 / 2 ; " ++
+                "main = K1 y 2"  -- (EAp (EAp op e1) e2) の op が2項演算子以外で e2 が ENum n の場合 (e1 は EVar v)
+
+ex_4_20_2_5_3 = "inc n = n + 1 ; " ++
+                "main = K1 (inc 2) 2"  -- (EAp (EAp op e1) e2) の op が2項演算子以外で e2 が ENum n の場合 (e1 は ENum n, EVar v 以外)
+
+ex_4_20_2_5_4 = "inc n = n + 1 ; " ++
+                "main = K1 (K1 1 (inc 2)) 2"  -- (EAp (EAp op e1) e2) の op が2項演算子以外で e2 が ENum n の場合 (e1 は ENum n, EVar v 以外)
+
+ex_4_20_2_6_1 = "inc n = n + 1 ; " ++
+                "main = K1 1 (inc 2)"  -- (EAp (EAp op e1) e2) の op が2項演算子以外で e2 が EVar v, ENum n 以外の場合 (e1 は ENum n)
+
+ex_4_20_2_6_2 = "y = 2 / 2 ; " ++
+                "inc n = n + 1 ; " ++
+                "main = K1 y (inc 2)"  -- (EAp (EAp op e1) e2) の op が2項演算子以外で e2 が EVar v, ENum n 以外の場合 (e1 は EVar v)
+
+ex_4_20_2_6_3 = "inc n = n + 1 ; " ++
+                "main = K1 (inc 1) (inc 2)"  -- (EAp (EAp op e1) e2) の op が2項演算子以外で e2 が EVar v, ENum n 以外の場合 (e1 は EVar v, ENum n 以外)
+
+ex_4_20_2_6_4 = "inc n = n + 1 ; " ++
+                "main = K1 (K1 1 (inc 1)) (inc 2)"  -- (EAp (EAp op e1) e2) の op が2項演算子以外で e2 が EVar v, ENum n 以外の場合 (e1 は EVar v, ENum n 以外)
+
+ex_4_20_2_7_1 = "inc n = n + 1 ; " ++
+                "main = K1 1 (K1 1 (inc 1))"  -- (EAp (EAp op e1) e2) の op が2項演算子以外で e2 が EVar v, ENum n 以外の場合 (e1 は ENum n)
+
+ex_4_20_2_7_2 = "y = 2 / 2 ; " ++
+                "inc n = n + 1 ; " ++
+                "main = K1 y (K1 1 (inc 1))"  -- (EAp (EAp op e1) e2) の op が2項演算子以外で e2 が EVar v, ENum n 以外の場合 (e1 は EVar v)
+
+ex_4_20_2_7_3 = "inc n = n + 1 ; " ++
+                "main = K1 (inc 2) (K1 1 (inc 1))"  -- (EAp (EAp op e1) e2) の op が2項演算子以外で e2 が EVar v, ENum n 以外の場合 (e1 は EVar v, ENum n 以外)
+
+ex_4_20_2_7_4 = "inc n = n + 1 ; " ++
+                "main = K1 (K1 2 (inc 2)) (K1 1 (inc 1))"  -- (EAp (EAp op e1) e2) の op が2項演算子以外で e2 が EVar v, ENum n 以外の場合 (e1 は EVar v, ENum n 以外)
 
 ex_5_6_1 = "main = par (S K K) (S K K 3)"
 
