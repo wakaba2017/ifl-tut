@@ -43,6 +43,7 @@ instance Eq Instruction
     Push       a == Push       b = a == b
     Mkap         == Mkap         = True
     Update     a == Update     b = a == b  -- Mark2で追加
+    Pop        a == Pop        b = a == b  -- SGM Mark2で追加
     Slide      a == Slide      b = a == b  -- Mark3で復活
     Alloc      a == Alloc      b = a == b  -- Mark3で追加
     _            == _            = False
