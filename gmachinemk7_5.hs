@@ -62,6 +62,7 @@ instance Eq Instruction
     Push       a == Push       b = a == b
     Mkap         == Mkap         = True
     Update     a == Update     b = a == b  -- Mark2で追加
+    Pop        a == Pop        b = a == b  -- SGM Mark2で追加
     Slide      a == Slide      b = a == b  -- Mark3で復活
     Alloc      a == Alloc      b = a == b  -- Mark3で追加
     Eval         == Eval         = True    -- Mark4で追加
@@ -326,7 +327,9 @@ unwind state
       heap = getHeap state
       newState (NNum n) = putCode i' (putStack (a : s') (putDump d state))  -- 遷移規則 (3.22)
         where ((i', s') : d) = getDump state
-      --newState (NAp a1 a2) = putCode [Unwind] (putStack (a1:a:as) state)  -- 遷移規則 (3.11)
+      {-
+      newState (NAp a1 a2) = putCode [Unwind] (putStack (a1:a:as) state)  -- 遷移規則 (3.11)
+      -}
       {-
         hLookup heap a1 の結果が、(NGlobal n' c')で、length (a:as) < n' が成り立つなら、[Unwind]の代わりに[Return]をputCodeしてもいいはず。
       -}
@@ -344,6 +347,16 @@ unwind state
                 ak           = last (getStack state)  -- asが空リストの場合、last asではエラーとなるため、改めてスタックを取得している。
                 as'          = rearrange n (getHeap state) (getStack state)
       newState (NInd n) = putCode [Unwind] (putStack (n : as) state)  -- 遷移規則 (3.17)
+      {-
+      {-
+        hLookup heap n の結果が、(NNum n')だったら、[Unwind]の代わりに[Return]をputCodeしてもいいはず。
+      -}
+      newState (NInd n) = putCode newCommand (putStack (n : as) state)  -- 遷移規則 (3.17)
+        where n' = hLookup heap n
+              newCommand = case n' of
+                           (NNum _) -> [Return]
+                           _        -> [Unwind]
+      -}
       newState (NConstr t as) = putCode i' (putStack (a : s') (putDump d state))  -- 遷移規則 (3.35)
         where ((i', s') : d) = getDump state
 
@@ -694,9 +707,9 @@ updatebool n state
           ((size, free, cts), a) = hAlloc (getHeap state) (NConstr t [])
           an = (getStack state) !! n
           newHeap = hUpdate (size, free, cts) an (NInd a)
------------------------
+----------------------
 -- 評価器 (ここまで) --
------------------------
+----------------------
 
 ---------------------------------------
 -- プログラムのコンパイル (ここから) --
@@ -742,7 +755,7 @@ compileR (EAp (EAp (EVar op) e0) e1) env  -- Mark7で追加
     where d     = length env
           env'  = argOffset 1 env
           temp  = [(oprtr, instrctn) | (oprtr, instrctn) <- builtInDyadic, oprtr == op]
-          temp' | fst (hd temp) `elem` ["+", "-", "*", "div"] = [Mkint, Update d, Pop d, Unwind]
+          temp' | fst (hd temp) `elem` ["+", "-", "*", "/"] = [Mkint, Update d, Pop d, Unwind]
                 | otherwise = [Mkbool, Update d, Pop d, Unwind]
 compileR (EAp (EVar "negate") e) env  -- Mark7で追加
   = compileB (EAp (EVar "negate") e) env ++ [UpdateInt d, Pop d, Unwind]
@@ -785,7 +798,7 @@ compileE (EAp (EAp (EVar op) e0) e1) env
   | otherwise        = compileC e1 env ++ compileC (EAp (EVar op) e0) env' ++ [Mkap]
     where env'  = argOffset 1 env
           temp  = [(oprtr, instrctn) | (oprtr, instrctn) <- builtInDyadic, oprtr == op]
-          temp' | fst (hd temp) `elem` ["+", "-", "*", "div"] = [Mkint]
+          temp' | fst (hd temp) `elem` ["+", "-", "*", "/"] = [Mkint]
                 | otherwise = [Mkbool]
 compileE (EAp (EVar "negate") e) env
   = compileB (EAp (EVar "negate") e) env ++ [Mkint]
@@ -949,7 +962,7 @@ primitives
 -- Mark5で追加
 builtInDyadic :: ASSOC Name Instruction
 builtInDyadic
-  = [("+", Add), ("-", Sub), ("*", Mul), ("div", Div),
+  = [("+", Add), ("-", Sub), ("*", Mul), ("/", Div),
      ("==", Eq), ("~=", Ne),
      (">=", Ge), (">", Gt),
      ("<=", Le), ("<", Lt),
@@ -959,9 +972,9 @@ builtInDyadic
 -- プログラムのコンパイル (ここまで) --
 ---------------------------------------
 
----------------------------
+--------------------------
 -- 結果の表示 (ここから) --
----------------------------
+--------------------------
 showResults :: [GmState] -> [Char]
 showResults states
   = iDisplay (iConcat [iStr "Supercombinator definitions", iNewline,
@@ -1107,9 +1120,9 @@ showNode s a (NConstr t as)  -- Mark6で追加
 showStats :: GmState -> Iseq
 showStats s
   = iConcat [ iStr "Steps taken = ", iNum (statGetSteps (getStats s))]
----------------------------
+--------------------------
 -- 結果の表示 (ここまで) --
----------------------------
+--------------------------
 
 ---------------------------------
 -- テストプログラム (ここから) --
@@ -1312,6 +1325,97 @@ test_program_for_not4 = "main = not (1 == 1)"
 test_program_for_and_or_not = "main = not (1 == 3 & 1 == 1) | (1 == 2)"
 
 test_program_for_and_or_not' = "main = (1 == 3 & 1 == 1) | (1 == 2)"
+
+ex_4_20_2_1_1 = "x = 2 * 2 ; " ++
+                "main = 1 + x"  -- (EAp (EAp op e1) e2) の op が2項演算子で e2 が EVar v の場合 (e1 は ENum n)
+
+ex_4_20_2_1_2 = "x = 2 * 2 ; " ++
+                "y = 2 / 2 ; " ++
+                "main = y + x"  -- (EAp (EAp op e1) e2) の op が2項演算子で e2 が EVar v の場合 (e1 は EVar v)
+
+ex_4_20_2_1_3 = "x = 2 * 2 ; " ++
+                "inc n = n + 1 ; " ++
+                "main = (inc 2) + x"  -- (EAp (EAp op e1) e2) の op が2項演算子で e2 が EVar v の場合 (e1 は ENum n, EVar v 以外)
+
+ex_4_20_2_1_4 = "x = 2 * 2 ; " ++
+                "inc n = n + 1 ; " ++
+                "main = (K1 1 (inc 2)) + x"  -- (EAp (EAp op e1) e2) の op が2項演算子で e2 が EVar v の場合 (e1 は ENum n, EVar v 以外)
+
+ex_4_20_2_2_1 = "main = 1 + 2"  -- (EAp (EAp op e1) e2) の op が2項演算子で e2 が ENum n の場合 (e1 は ENum n)
+
+ex_4_20_2_2_2 = "y = 2 / 2 ; " ++
+                "main = y + 2"  -- (EAp (EAp op e1) e2) の op が2項演算子で e2 が ENum n の場合 (e1 は EVar v)
+
+ex_4_20_2_2_3 = "inc n = n + 1 ; " ++
+                "main = (inc 1) + 2"  -- (EAp (EAp op e1) e2) の op が2項演算子で e2 が ENum n の場合 (e1 は ENum n, EVar v 以外)
+
+ex_4_20_2_2_4 = "inc n = n + 1 ; " ++
+                "main = (K1 1 (inc 1)) + 2"  -- (EAp (EAp op e1) e2) の op が2項演算子で e2 が EVar v の場合 (e1 は ENum n, EVar v 以外)
+
+ex_4_20_2_3_1 = "inc n = n + 1 ; " ++
+                "main = 1 + (inc 2)"  -- (EAp (EAp op e1) e2) の op が2項演算子で e2 が EVar v, ENum n 以外の場合 (e1 は ENum n)
+
+ex_4_20_2_3_2 = "y = 2 / 2 ; " ++
+                "inc n = n + 1 ; " ++
+                "main = y + (inc 2)"  -- (EAp (EAp op e1) e2) の op が2項演算子で e2 が EVar v, ENum n 以外の場合 (e1 は EVar v)
+
+ex_4_20_2_3_3 = "inc n = n + 1 ; " ++
+                "main = (inc 1) + (inc 2)"  -- (EAp (EAp op e1) e2) の op が2項演算子で e2 が EVar v, ENum n 以外の場合 (e1 は ENum n, EVar v 以外)
+
+ex_4_20_2_3_4 = "inc n = n + 1 ; " ++
+                "main = (K1 1 (inc 1)) + (inc 2)"  -- (EAp (EAp op e1) e2) の op が2項演算子で e2 が EVar v, ENum n 以外の場合 (e1 は ENum n, EVar v 以外)
+
+ex_4_20_2_4_1 = "x = 2 * 2 ; " ++
+                "main = K1 1 x"  -- (EAp (EAp op e1) e2) の op が2項演算子以外で e2 が EVar v の場合 (e1 は ENum n)
+
+ex_4_20_2_4_2 = "x = 2 * 2 ; " ++
+                "y = 2 / 2 ; " ++
+                "main = K1 y x"  -- (EAp (EAp op e1) e2) の op が2項演算子以外で e2 が EVar v の場合 (e1 は EVar v)
+
+ex_4_20_2_4_3 = "x = 2 * 2 ; " ++
+                "inc n = n + 1 ; " ++
+                "main = K1 (inc 1) x"  -- (EAp (EAp op e1) e2) の op が2項演算子以外で e2 が EVar v の場合 (e1 は ENum n, EVar v 以外)
+
+ex_4_20_2_4_4 = "x = 2 * 2 ; " ++
+                "inc n = n + 1 ; " ++
+                "main = K1 (K1 1 (inc 1)) x"  -- (EAp (EAp op e1) e2) の op が2項演算子以外で e2 が EVar v の場合 (e1 は ENum n, EVar v 以外)
+
+ex_4_20_2_5_1 = "main = K1 1 2"  -- (EAp (EAp op e1) e2) の op が2項演算子以外で e2 が ENum n の場合 (e1 は ENum n)
+
+ex_4_20_2_5_2 = "y = 2 / 2 ; " ++
+                "main = K1 y 2"  -- (EAp (EAp op e1) e2) の op が2項演算子以外で e2 が ENum n の場合 (e1 は EVar v)
+
+ex_4_20_2_5_3 = "inc n = n + 1 ; " ++
+                "main = K1 (inc 2) 2"  -- (EAp (EAp op e1) e2) の op が2項演算子以外で e2 が ENum n の場合 (e1 は ENum n, EVar v 以外)
+
+ex_4_20_2_5_4 = "inc n = n + 1 ; " ++
+                "main = K1 (K1 1 (inc 2)) 2"  -- (EAp (EAp op e1) e2) の op が2項演算子以外で e2 が ENum n の場合 (e1 は ENum n, EVar v 以外)
+
+ex_4_20_2_6_1 = "inc n = n + 1 ; " ++
+                "main = K1 1 (inc 2)"  -- (EAp (EAp op e1) e2) の op が2項演算子以外で e2 が EVar v, ENum n 以外の場合 (e1 は ENum n)
+
+ex_4_20_2_6_2 = "y = 2 / 2 ; " ++
+                "inc n = n + 1 ; " ++
+                "main = K1 y (inc 2)"  -- (EAp (EAp op e1) e2) の op が2項演算子以外で e2 が EVar v, ENum n 以外の場合 (e1 は EVar v)
+
+ex_4_20_2_6_3 = "inc n = n + 1 ; " ++
+                "main = K1 (inc 1) (inc 2)"  -- (EAp (EAp op e1) e2) の op が2項演算子以外で e2 が EVar v, ENum n 以外の場合 (e1 は EVar v, ENum n 以外)
+
+ex_4_20_2_6_4 = "inc n = n + 1 ; " ++
+                "main = K1 (K1 1 (inc 1)) (inc 2)"  -- (EAp (EAp op e1) e2) の op が2項演算子以外で e2 が EVar v, ENum n 以外の場合 (e1 は EVar v, ENum n 以外)
+
+ex_4_20_2_7_1 = "inc n = n + 1 ; " ++
+                "main = K1 1 (K1 1 (inc 1))"  -- (EAp (EAp op e1) e2) の op が2項演算子以外で e2 が EVar v, ENum n 以外の場合 (e1 は ENum n)
+
+ex_4_20_2_7_2 = "y = 2 / 2 ; " ++
+                "inc n = n + 1 ; " ++
+                "main = K1 y (K1 1 (inc 1))"  -- (EAp (EAp op e1) e2) の op が2項演算子以外で e2 が EVar v, ENum n 以外の場合 (e1 は EVar v)
+
+ex_4_20_2_7_3 = "inc n = n + 1 ; " ++
+                "main = K1 (inc 2) (K1 1 (inc 1))"  -- (EAp (EAp op e1) e2) の op が2項演算子以外で e2 が EVar v, ENum n 以外の場合 (e1 は EVar v, ENum n 以外)
+
+ex_4_20_2_7_4 = "inc n = n + 1 ; " ++
+                "main = K1 (K1 2 (inc 2)) (K1 1 (inc 1))"  -- (EAp (EAp op e1) e2) の op が2項演算子以外で e2 が EVar v, ENum n 以外の場合 (e1 は EVar v, ENum n 以外)
 ---------------------------------
 -- テストプログラム (ここまで) --
 ---------------------------------
