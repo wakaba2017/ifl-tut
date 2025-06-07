@@ -1361,6 +1361,7 @@ showNode s a (NLAp a1 a2 id) = iConcat [iStr "Locked Ap (", iNum id, iStr ") ", 
                                         iStr " ", iStr (showaddr a2)]  -- PGM Mark2で追加
 
 showContent :: GmState -> Addr -> Node -> Iseq
+showContent s 0 _ = iStr "X"
 showContent s a (NNum n) = iNum n
 showContent s a (NGlobal n g) = iStr $ head [n | (n,b) <- getGlobals s, a==b]
 showContent s a (NAp a1 a2) = iConcat [iStr "(",
@@ -1371,7 +1372,13 @@ showContent s a (NAp a1 a2) = iConcat [iStr "(",
 showContent s a (NInd n) = iConcat [iStr "#(",
                                     showContent s n (hLookup (getHeap s) n),
                                     iStr ")"]
-showContent s a (NConstr t as) = iStr "----"
+showContent s a (NConstr t as)
+  = iConcat [iStr "Cons ", iNum t, iStr " [",
+             iInterleave (iStr ", ") (map subFunc as), iStr "]"]
+    where
+      subFunc a_ = showContent s a_ node
+                   where
+                     node = hLookup (getHeap s) a_
 showContent s a (NLGlobal n g id) = iConcat [iStr "L", iNum id, iStr "(",
                                              iStr (head [n | (n,b) <- getGlobals s, a==b]),
                                              iStr ")"]
@@ -1722,11 +1729,40 @@ ex_5_10_2 = "twice_ f x = par f (f x) ; " ++
 ex_5_10_3 = "twice_ f x = f (f x) ; " ++
             "inc x = x + 1 ; " ++
             "main = twice_ (twice_ (twice_ inc)) 0"
+
+ex_5_10_4 = "cons = Pack{2,2} ; " ++
+            "nil = Pack{1,0} ; " ++
+            "downfrom n = if (n == 0) " ++
+            "             nil " ++
+            "             (par (cons n) (downfrom (n-1))) ; " ++
+            "main = downfrom 2"
+
+ex_5_10_4' = "cons = Pack{2,2} ; " ++
+             "nil = Pack{1,0} ; " ++
+             "downfrom n = if (n == 0) " ++
+             "             nil " ++
+             "             (cons n (downfrom (n-1))) ; " ++
+             "main = downfrom 2"
+
+ex_5_10_5 = "add x y = x + y ; " ++
+            "main = letrec" ++
+            "         x = 2 + 3 * 4 ; " ++
+            "         y = (4 - 1) * 2 ; " ++
+            "         z = par (add x) y " ++
+            "       in par (add z) z"
+
+ex_5_10_5' = "add x y = x + y ; " ++
+             "main = letrec" ++
+             "         x = 2 + 3 * 4 ; " ++
+             "         y = (4 - 1) * 2 ; " ++
+             "         z = (add x) y " ++
+             "       in (add z) z"
 ---------------------------------
 -- テストプログラム (ここまで) --
 ---------------------------------
 
 main :: IO()
 -- main = (putStrLn . runProg) ex_5_10_2
-main = (putStrLn . runProg) ex_5_10
+-- main = (putStrLn . runProg) ex_5_10
 -- main = (putStrLn . runProg) ex_4_20_2_3_4
+main = (putStrLn . runProg) ex_5_10_4
