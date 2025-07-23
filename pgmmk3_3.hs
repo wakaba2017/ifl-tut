@@ -312,7 +312,7 @@ scheduler global tasks
               node | isTargetNode node -> code == [Unwind]
               _ -> False
               where
-                stkTopNode = hLookup (pgmGetHeap (global, tasks)) (head stack)
+                stkTopNode = hLookup (pgmGetHeap (global, tasks)) (hd stack)
                 isTargetNode (NLAp _ _ _) = True
                 isTargetNode (NLGlobal _ _ _) = True
                 isTargetNode _ = False
@@ -325,7 +325,7 @@ makeTask :: ((Addr, Int), Int) -> PgmLocalState
 makeTask ((addr, pidnum), idnum) = ((idnum, pidnum), [Eval],   [addr], [], [], 0)  -- for G-machine mark 4 to 7
 
 
-tick (idNum, i, stack, dump, vstack, lock) = (idNum, i, stack, dump, vstack, lock+1)
+tick (idNum, i, stack, dump, vstack, clock) = (idNum, i, stack, dump, vstack, clock+1)
 
 gmFinal :: PgmState -> Bool
 gmFinal s = second s == [] && pgmGetSparks s == []
@@ -339,9 +339,9 @@ doAdmin :: PgmState -> PgmState
 doAdmin ((out, heap, globals, sparks, unUsedIdNumList, stats), local)
   = ((out, heap, globals, sparks, unUsedIdNumList, stats'), local')
     where (local', stats') = foldr filter ([], stats) local
-          filter (idNum, i, stack, dump, vstack, lock) (local, stats)
-            | i == [] = (local, lock:stats)
-            | otherwise = ((idNum, i, stack, dump, vstack, lock): local, stats)
+          filter (idNum, i, stack, dump, vstack, clock) (local, stats)
+            | i == [] = (local, clock:stats)
+            | otherwise = ((idNum, i, stack, dump, vstack, clock): local, stats)
 
 dispatch :: Instruction -> GmState -> GmState
 dispatch (Pushglobal f) = pushglobal f
@@ -446,8 +446,10 @@ unwind state
     where
       (a:as) = getStack state
       heap = getHeap state
+      ((i', s') : d) = getDump state
+      vstack = getVStack state
+      clock = getClock state
       newState (NNum n) = putCode i' (putStack (a : s') (putDump d state))  -- 遷移規則 (3.22)
-        where ((i', s') : d) = getDump state
       {-
       newState (NAp a1 a2) = putCode [Unwind] (putStack (a1:a:as) state)  -- 遷移規則 (3.11)
       -}
@@ -467,10 +469,9 @@ unwind state
       newState (NGlobal 0 c)
         = lock a $ putCode c (putStack (a:as) state)  -- 遷移規則 (5.2) PGM Mark2で追加
       newState (NGlobal n c)
-        | length as < n = putCode i (putStack (ak : s) (putDump d state))  -- 遷移規則 (3.29)
+        | length as < n = putCode i' (putStack (ak : s') (putDump d state))  -- 遷移規則 (3.29)
         | otherwise     = putCode c (putStack as' state)  -- 遷移規則 (3.19)
-          where ((i, s) : d) = getDump state
-                ak           = last (getStack state)  -- asが空リストの場合、last asではエラーとなるため、改めてスタックを取得している。
+          where ak           = last (getStack state)  -- asが空リストの場合、last asではエラーとなるため、改めてスタックを取得している。
                 as'          = rearrange n (getHeap state) (getStack state)
       newState (NInd n) = putCode [Unwind] (putStack (n : as) state)  -- 遷移規則 (3.17)
       {-
@@ -484,7 +485,6 @@ unwind state
                            _        -> [Unwind]
       -}
       newState (NConstr t as) = putCode i' (putStack (a : s') (putDump d state))  -- 遷移規則 (3.35)
-        where ((i', s') : d) = getDump state
 
 -- SGM Mark3で追加
 rearrange :: Int -> GmHeap -> GmStack -> GmStack
@@ -513,7 +513,7 @@ update n state
           -- newHeap = hUpdate (getHeap tempState) an (NInd a)
           newHeap = hUpdate currentHeap an (NInd a)
           {-
-            スタックトップに格納されたヒープアドレス a の中身が NNum ノードで、
+            スタックトップに格納されたヒープアドレス a の中身が NNum ノードまたは NConstr ノードで、
             以下の条件を満たしていたら、Update により実質的な処理は終わるので、
             命令キューの中身を空にしてローカルマシンを早めに終了させる。
             ・タスク ID が 1 でない(最上位のタスクでない)。
@@ -525,10 +525,13 @@ update n state
           currentCode = getCode tempState
           idNum = fst $ getIdNum tempState
           newCode = case stkTopNode of
-                    NNum _ -> if idNum /= 1 && currentDump == [([], [])] && currentCode == [Pop (length as - 1), Unwind]
-                              then []
-                              else currentCode
+                    node | isTargetNode node -> if idNum /= 1 && currentDump == [([], [])] && currentCode == [Pop (length as - 1), Unwind]
+                                   then []
+                                   else currentCode
                     _ -> currentCode
+                    where isTargetNode (NNum _) = True
+                          isTargetNode (NConstr _ _) = True
+                          isTargetNode _ = False
 
 -- SGM Mark2で追加
 pop :: Int -> GmState -> GmState  -- 遷移規則 (3.16)
@@ -714,7 +717,7 @@ csの要素を調べて、NConstrのタグに等しい要素を見つけて、�
       heap = getHeap state
       newState (NConstr t as) = putCode newCode state  -- 遷移規則 (3.31)
         where alt = [(t', i') | (t', i') <- cs, t' == t ]
-              newCode | length alt == 1 = (snd (head alt)) ++ (getCode state)
+              newCode | length alt == 1 = (snd (hd alt)) ++ (getCode state)
                       | otherwise       = error "Casejump tag error"
       newState _ = error "Casejump heap contents error"
 
@@ -1348,7 +1351,7 @@ shortShowStack stack
 showNode :: GmState -> Addr -> Node -> Iseq
 showNode s a (NNum n) = iNum n
 showNode s a (NGlobal n g) = iConcat [iStr "Global ", iStr v]
-                             where v = head [n | (n,b) <- getGlobals s, a==b]
+                             where v = hd [n | (n,b) <- getGlobals s, a==b]
 showNode s a (NAp a1 a2) = iConcat [iStr "Ap ", iStr (showaddr a1),
                                     iStr " ", iStr (showaddr a2)]
 showNode s a (NInd n) = iConcat [iStr "Ind ", iStr(showaddr n)]  -- SGM Mark2で追加
@@ -1356,14 +1359,14 @@ showNode s a (NConstr t as)  -- SGM Mark6で追加
   = iConcat [iStr "Cons ", iNum t, iStr " [",
              iInterleave (iStr ", ") (map (iStr.showaddr) as), iStr "]"]
 showNode s a (NLGlobal n g id) = iConcat [iStr "Locked Global (", iNum id, iStr ") ", iStr v]
-                               where v = head [n | (n,b) <- getGlobals s, a==b]  -- PGM Mark2で追加
+                               where v = hd [n | (n,b) <- getGlobals s, a==b]  -- PGM Mark2で追加
 showNode s a (NLAp a1 a2 id) = iConcat [iStr "Locked Ap (", iNum id, iStr ") ", iStr (showaddr a1),
                                         iStr " ", iStr (showaddr a2)]  -- PGM Mark2で追加
 
 showContent :: GmState -> Addr -> Node -> Iseq
 showContent s 0 _ = iStr "X"
 showContent s a (NNum n) = iNum n
-showContent s a (NGlobal n g) = iStr $ head [n | (n,b) <- getGlobals s, a==b]
+showContent s a (NGlobal n g) = iStr $ hd [n | (n,b) <- getGlobals s, a==b]
 showContent s a (NAp a1 a2) = iConcat [iStr "(",
                                        showContent s a1 (hLookup (getHeap s) a1),
                                        iStr " ",
@@ -1380,7 +1383,7 @@ showContent s a (NConstr t as)
                    where
                      node = hLookup (getHeap s) a_
 showContent s a (NLGlobal n g id) = iConcat [iStr "L", iNum id, iStr "(",
-                                             iStr (head [n | (n,b) <- getGlobals s, a==b]),
+                                             iStr (hd [n | (n,b) <- getGlobals s, a==b]),
                                              iStr ")"]
 showContent s a (NLAp a1 a2 id) = iConcat [iStr "L", iNum id, iStr "(",
                                            showContent s a1 (hLookup (getHeap s) a1),
@@ -1757,12 +1760,67 @@ ex_5_10_5' = "add x y = x + y ; " ++
              "         y = (4 - 1) * 2 ; " ++
              "         z = (add x) y " ++
              "       in (add z) z"
+
+test_program_for_and5_par = "f1 x = x == 1 ; " ++
+                            "f2 x = x == 2 ; " ++
+                            "f3 x y = x & y ; " ++
+                            "main = par (f3 (f1 1)) (f2 2)"
+
+dyna_fib = "G a b c d = let e = c d in a (b e) e ; " ++
+           "fmap f x = case x of " ++
+           "  <0>   -> Nothing ; " ++
+           "  <1> y -> Just (f y) ; " ++
+           "Zero = Pack{0,0} ; " ++
+           "Succ n = Pack{1,1} n ; " ++
+           "foldn c f n = case n of " ++
+           "  <0>   -> c ; " ++
+           "  <1> m -> f (foldn c f m) ; " ++
+           "unfoldn psi x = case psi x of " ++
+           "  <0> -> Zero ; " ++
+           "  <1> y -> Succ (unfoldn psi y) ; " ++
+           "out n = case n of " ++
+           "  <0>   -> Nothing ; " ++
+           "  <1> m -> Just m ; " ++
+           "unit x = Pack{1,1} x ; " ++
+           "cons x y = Pack{2,2} x y ; " ++
+           "unwrap nel = case nel of " ++
+           "  <1> x    -> Left x ; " ++
+           "  <2> x xs -> Right (Pair x xs) ; " ++
+           "fold c f nel = case nel of " ++
+           "  <1> x   -> c x ; " ++
+           "  <2> x y -> f x (fold c f y) ; " ++
+           "unfold psi x = case psi x of " ++
+           "  <1> a -> unit a ; " ++
+           "  <2> p -> case p of " ++
+           "    <2> a b -> cons a (unfold psi b) ; " ++
+           "extract x = case x of " ++
+           "  <1> x   -> x ; " ++
+           "  <2> x y -> x ; " ++
+           "sub x = case unwrap x of " ++
+           "  <1> x -> Nothing ; " ++
+           "  <2> p -> case p of " ++
+           "    <0> a b -> Just b ; " ++
+           "maybe n f x = case x of " ++
+           "  <0> -> n ; " ++
+           "  <1> a -> f a ; " ++
+           "histo phi = letrec " ++
+           "              u = G (S (compose maybe unit) cons) phi (compose (fmap u) out) " ++
+           "            in compose extract u ; " ++
+           "dyna f g = compose (histo f) (unfoldn g) ; " ++
+           "phi x = case x of " ++
+           "  <0>   -> 0 ; " ++
+           "  <1> x -> extract x + maybe 1 extract (sub x) ; " ++
+           "psi n = if (n == 0) Nothing (Just (n-1)) ; " ++
+           "fib n = dyna phi psi n ; " ++
+           "main = fib 1"
 ---------------------------------
 -- テストプログラム (ここまで) --
 ---------------------------------
 
 main :: IO()
 -- main = (putStrLn . runProg) ex_5_10_2
+main = (putStrLn . runProg) ex_5_10_3
 -- main = (putStrLn . runProg) ex_5_10
 -- main = (putStrLn . runProg) ex_4_20_2_3_4
-main = (putStrLn . runProg) ex_5_10_4
+-- main = (putStrLn . runProg) ex_5_10_4
+-- main = (putStrLn . runProg) dyna_fib
