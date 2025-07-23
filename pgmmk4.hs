@@ -329,13 +329,9 @@ scheduler global tasks
 -- makeTask addr = ([Unwind], [addr], [], [], 0)  -- for G-machine mark 2 to 3
 makeTask :: ((Addr, Int), Int) -> PgmLocalState
 makeTask ((addr, pidnum), idnum) = ((idnum, pidnum), [Eval],   [addr], [], [], 0)  -- for G-machine mark 4 to 7
-{-
-makeTask :: Addr -> PgmLocalState
-makeTask addr = ([Eval],   [addr], [], [], 0)  -- for G-machine mark 4 to 7
--}
 
 
-tick (idNum, i, stack, dump, vstack, lock) = (idNum, i, stack, dump, vstack, lock+1)
+tick (idNum, i, stack, dump, vstack, clock) = (idNum, i, stack, dump, vstack, clock+1)
 
 gmFinal :: PgmState -> Bool
 gmFinal s = second s == [] && pgmGetSparks s == []
@@ -546,16 +542,6 @@ update n state
           currentDump = getDump tempState
           currentCode = getCode tempState
           idNum = fst $ getIdNum tempState
-          {-
-          newCode = case stkTopNode of
-                    NNum _ -> if idNum /= 1 && currentDump == [([], [])] && currentCode == [Pop (length as - 1), Unwind]
-                              then []
-                              else currentCode
-                    NConstr _ _ -> if idNum /= 1 && currentDump == [([], [])] && currentCode == [Pop (length as - 1), Unwind]
-                                   then []
-                                   else currentCode
-                    _ -> currentCode
-          -}
           newCode = case stkTopNode of
                     node | isTargetNode node -> if idNum /= 1 && currentDump == [([], [])] && currentCode == [Pop (length as - 1), Unwind]
                                                 then []
@@ -894,12 +880,6 @@ updatebool n state
 -- PGM Mark1で追加
 par :: GmState -> GmState
 -- par s = s
-{-
-par state = putSparks ((a, idnum) : t) $ putStack s state
-            where (a : s) = getStack state
-                  t = getSparks state
-                  idnum = fst $ getIdNum state
--}
 par state = putSparks (newTask : t) $ putStack s newState
             where (a : s) = getStack state
                   t = getSparks state
@@ -915,11 +895,9 @@ lock addr state
     where
       heap = getHeap state
       id = fst $ getIdNum state
-      -- id = 999  -- とりあえずの値
       newHeap (NAp a1 a2) = hUpdate heap addr (NLAp a1 a2 id [])
       newHeap (NGlobal n c) | n == 0 = hUpdate heap addr (NLGlobal n c id [])
                             | otherwise = heap
-      pl = undefined
 
 -- PGM Mark2で追加、PGM Mark4で変更
 unlock :: Addr -> GmState -> GmState
