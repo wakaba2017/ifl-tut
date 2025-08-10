@@ -300,8 +300,8 @@ machineSize = 4
 scheduler :: PgmGlobalState -> [PgmLocalState] -> PgmState
 scheduler global tasks
   = (global', tasks')
-    where running = map tick (take machineSize nonBlokked)
-          nonRunning = (drop machineSize nonBlokked) ++ blokked
+    where running = map tick (take machineSize nonBlocked)
+          nonRunning = (drop machineSize nonBlocked) ++ blocked
           (o, heap, globals, sparks, unUsedIdNumList, stats) = global
           newGlobal = (o, heap, globals, (sparks ++ nonRunning), unUsedIdNumList, stats)
           (global', tasks') = mapAccuml step newGlobal running
@@ -322,8 +322,8 @@ scheduler global tasks
                 isTargetNode (NLAp _ _ _ _) = True  -- PGM Mark4で変更
                 isTargetNode (NLGlobal _ _ _ _) = True  -- PGM Mark4で変更
                 isTargetNode _ = False
-          blokked    = [task | task <- tasks, filter_func task == True ]
-          nonBlokked = [task | task <- tasks, filter_func task == False]
+          blocked    = [task | task <- tasks, filter_func task == True  && hd unUsedIdNumList /= 2]
+          nonBlocked = [task | task <- tasks, filter_func task == False || hd unUsedIdNumList == 2]
 
 -- makeTask :: Addr -> PgmLocalState
 -- makeTask addr = ([Unwind], [addr], [], [], 0)  -- for G-machine mark 2 to 3
@@ -456,29 +456,25 @@ unwind state
       heap = getHeap state
       ((i', s') : d) = getDump state
       vstack = getVStack state
-      clock = getClock state
+      isSingleTask = hd (getUnUsedIdNumList state) == 2
       newState (NNum n) = putCode i' (putStack (a : s') (putDump d state))  -- 遷移規則 (3.22)
-      {-
-      newState (NAp a1 a2) = putCode [Unwind] (putStack (a1:a:as) state)  -- 遷移規則 (3.11)
-      -}
-      {-
-        hLookup heap a1 の結果が、(NGlobal n' c')で、length (a:as) < n' が成り立つなら、[Unwind]の代わりに[Return]をputCodeしてもいいはず。
-      -}
-      -- newState (NLAp a1 a2 id pl) = putCode [Unwind] state  -- PGM Mark2で追加
-      newState (NLAp a1 a2 id pl)
-        = (fst state_, emptyTask)  -- PGM Mark2で追加、PGM Mark4で変更
-          where newPl = (snd (putCode [Unwind] state)) : pl
-                newHeap = hUpdate heap a (NLAp a1 a2 id newPl)
-                state_ = putHeap newHeap state
-      -- newState (NAp a1 a2) = putCode newCommand (putStack (a1:a:as) state)  -- 遷移規則 (3.11)
+      newState (NLAp a1 a2 id pl)  -- PGM Mark2で追加、PGM Mark4で変更
+        | isSingleTask = putCode [Unwind] (unlockAll a state)
+        | otherwise = (fst state_, emptyTask)
+                      where newPl = (snd (putCode [Unwind] state)) : pl
+                            newHeap = hUpdate heap a (NLAp a1 a2 id newPl)
+                            state_ = putHeap newHeap state
       newState (NAp a1 a2) = lock a $ putCode newCommand (putStack (a1:a:as) state)  -- 遷移規則 (3.11) -- (5.2) PGM Mark2で変更
         where e1 = hLookup heap a1
               newCommand = case e1 of
+                           {-
+                             hLookup heap a1 の結果が、(NGlobal n' c')で、length (a:as) < n' が成り立つなら、
+                             [Unwind]の代わりに[Return]をputCodeしてもいいはず。
+                           -}
                            (NGlobal n' _) -> if length (a:as) < n'
                                              then [Return]
                                              else [Unwind]
                            _ -> [Unwind]
-      -- newState (NLGlobal 0 c id pl) = putCode [Unwind] state  -- PGM Mark2で追加、PGM Mark4で変更
       newState (NLGlobal 0 c id pl)
         = (fst state_, emptyTask)  -- PGM Mark2で追加、PGM Mark4で変更
           where newPl = (snd (putCode [Unwind] state)) : pl
@@ -493,12 +489,13 @@ unwind state
                 as'          = rearrange n (getHeap state) (getStack state)
       newState (NInd n) = putCode [Unwind] (putStack (n : as) state)  -- 遷移規則 (3.17)
       {-
-      {-
-        hLookup heap n の結果が、(NNum n')だったら、[Unwind]の代わりに[Return]をputCodeしてもいいはず。
-      -}
       newState (NInd n) = putCode newCommand (putStack (n : as) state)  -- 遷移規則 (3.17)
         where n' = hLookup heap n
               newCommand = case n' of
+                           {-
+                             hLookup heap n の結果が、(NNum n')だったら、
+                             [Unwind]の代わりに[Return]をputCodeしてもいいはず。
+                           -}
                            (NNum _) -> [Return]
                            _        -> [Unwind]
       -}
@@ -1857,7 +1854,8 @@ dyna_fib = "G a b c d = let e = c d in a (b e) e ; " ++
 ---------------------------------
 
 main :: IO()
-main = (putStrLn . runProg) ex_5_10_2
+-- main = (putStrLn . runProg) ex_5_10_2
+main = (putStrLn . runProg) ex_5_10_3
 -- main = (putStrLn . runProg) ex_5_10
 -- main = (putStrLn . runProg) ex_4_20_2_3_4
 -- main = (putStrLn . runProg) ex_5_10_4
