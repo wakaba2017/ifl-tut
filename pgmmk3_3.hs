@@ -296,8 +296,8 @@ machineSize = 4
 scheduler :: PgmGlobalState -> [PgmLocalState] -> PgmState
 scheduler global tasks
   = (global', nonRunning ++ tasks')
-    where running = map tick (take machineSize nonBlokked)
-          nonRunning = (drop machineSize nonBlokked) ++ blokked
+    where running = map tick (take machineSize nonBlocked)
+          nonRunning = (drop machineSize nonBlocked) ++ blocked
           (global', tasks') = mapAccuml step global running
           {-
             tasks の各要素について、スタックトップのヒープアドレスの中身を調べる。
@@ -316,8 +316,9 @@ scheduler global tasks
                 isTargetNode (NLAp _ _ _) = True
                 isTargetNode (NLGlobal _ _ _) = True
                 isTargetNode _ = False
-          blokked    = [task | task <- tasks, filter_func task == True ]
-          nonBlokked = [task | task <- tasks, filter_func task == False]
+          (_, _, _, _, unUsedIdNumList, _) = global
+          blocked    = [task | task <- tasks, filter_func task == True  && hd unUsedIdNumList /= 2]
+          nonBlocked = [task | task <- tasks, filter_func task == False || hd unUsedIdNumList == 2]
 
 -- makeTask :: Addr -> PgmLocalState
 -- makeTask addr = ([Unwind], [addr], [], [], 0)  -- for G-machine mark 2 to 3
@@ -448,19 +449,18 @@ unwind state
       heap = getHeap state
       ((i', s') : d) = getDump state
       vstack = getVStack state
-      clock = getClock state
+      isSingleTask = (hd (getUnUsedIdNumList state)) == 2
       newState (NNum n) = putCode i' (putStack (a : s') (putDump d state))  -- 遷移規則 (3.22)
-      {-
-      newState (NAp a1 a2) = putCode [Unwind] (putStack (a1:a:as) state)  -- 遷移規則 (3.11)
-      -}
-      {-
-        hLookup heap a1 の結果が、(NGlobal n' c')で、length (a:as) < n' が成り立つなら、[Unwind]の代わりに[Return]をputCodeしてもいいはず。
-      -}
-      newState (NLAp a1 a2 id) = putCode [Unwind] state  -- PGM Mark2で追加
-      -- newState (NAp a1 a2) = putCode newCommand (putStack (a1:a:as) state)  -- 遷移規則 (3.11)
+      newState (NLAp a1 a2 id)  -- PGM Mark2で追加
+        | isSingleTask = putCode [Unwind] (unlockAll a state)
+        | otherwise    = putCode [Unwind] state
       newState (NAp a1 a2) = lock a $ putCode newCommand (putStack (a1:a:as) state)  -- 遷移規則 (3.11) -- (5.2) PGM Mark2で変更
         where e1 = hLookup heap a1
               newCommand = case e1 of
+                           {-
+                             hLookup heap a1 の結果が、(NGlobal n' c')で、length (a:as) < n' が成り立つなら、
+                             [Unwind]の代わりに[Return]をputCodeしてもいいはず。
+                           -}
                            (NGlobal n' _) -> if length (a:as) < n'
                                              then [Return]
                                              else [Unwind]
@@ -475,12 +475,13 @@ unwind state
                 as'          = rearrange n (getHeap state) (getStack state)
       newState (NInd n) = putCode [Unwind] (putStack (n : as) state)  -- 遷移規則 (3.17)
       {-
-      {-
-        hLookup heap n の結果が、(NNum n')だったら、[Unwind]の代わりに[Return]をputCodeしてもいいはず。
-      -}
       newState (NInd n) = putCode newCommand (putStack (n : as) state)  -- 遷移規則 (3.17)
         where n' = hLookup heap n
               newCommand = case n' of
+                           {-
+                             hLookup heap n の結果が、(NNum n')だったら、
+                             [Unwind]の代わりに[Return]をputCodeしてもいいはず。
+                           -}
                            (NNum _) -> [Return]
                            _        -> [Unwind]
       -}
