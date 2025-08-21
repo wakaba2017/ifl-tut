@@ -905,11 +905,11 @@ unlock addr state
       newState (NLAp a1 a2 id pl)
         = unlock a1 (putHeap (hUpdate heap addr (NAp a1 a2)) state_)
           where
-            state_ =  putSparks ((getSparks state) ++ pl) state
+            state_ = emptyPendingList pl state
       newState (NLGlobal n c id pl)
         = putHeap (hUpdate heap addr (NGlobal n c)) state_
           where
-            state_ =  putSparks ((getSparks state) ++ pl) state
+            state_ = emptyPendingList pl state
       newState n = state
 
 -- PGM Mark2で追加、PGM Mark4で変更
@@ -1801,6 +1801,18 @@ test_program_for_and5_par = "f1 x = x == 1 ; " ++
                             "f2 x = x == 2 ; " ++
                             "f3 x y = x & y ; " ++
                             "main = par (f3 (f1 1)) (f2 2)"
+
+test_program_dsum_p = "add x y = x + y ; " ++
+                      "dsum lo hi = let mid = (lo + hi) / 2 in " ++
+                      "             if (lo == hi) hi (par (add (dsum lo mid)) (dsum (mid + 1) hi)) ; " ++
+                      "psum n = dsum 1 n ; " ++
+                      "main = psum 5"
+
+test_program_dsum_s = "add x y = x + y ; " ++
+                      "dsum lo hi = let mid = (lo + hi) / 2 in " ++
+                      "             if (lo == hi) hi (add (dsum lo mid) (dsum (mid + 1) hi)) ; " ++
+                      "psum n = dsum 1 n ; " ++
+                      "main = psum 5"
 
 dyna_fib = "G a b c d = let e = c d in a (b e) e ; " ++
            "fmap f x = case x of " ++
