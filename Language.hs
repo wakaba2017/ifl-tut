@@ -7,20 +7,20 @@ import Data.Char ( isDigit, isAlpha, isSpace )
 import Utils
 
 data Expr a
-  =  EVar Name                    -- Variables
-   | ENum Int                     -- Numbers
-   | EConstr Int Int              -- Constructor tag arity
-   | EAp (Expr a) (Expr a)        -- Applications
-   | ELet                         -- Let(rec) expressions
-        IsRec                     --   boolean with True = recursive,
-        [(a, Expr a)]             --   Definitions
-        (Expr a)                  --   Body of let(rec)
-   | ECase                        -- Case expression
-        (Expr a)                  --   Expression to scrutinise
-        [Alter a]                 --   Alternatives
-   | ELam [a] (Expr a)            -- Lambda abstraction
-    --deriving (Text)
-    deriving (Show)
+  = EVar Name                    -- Variables
+  | ENum Int                     -- Numbers
+  | EConstr Int Int              -- Constructor tag arity
+  | EAp (Expr a) (Expr a)        -- Applications
+  | ELet                         -- Let(rec) expressions
+       IsRec                     --   boolean with True = recursive,
+       [(a, Expr a)]             --   Definitions
+       (Expr a)                  --   Body of let(rec)
+  | ECase                        -- Case expression
+       (Expr a)                  --   Expression to scrutinise
+       [Alter a]                 --   Alternatives
+  | ELam [a] (Expr a)            -- Lambda abstraction
+  --deriving (Text)
+  deriving (Show)
 
 type CoreExpr = Expr Name
 
@@ -77,10 +77,12 @@ preludeDefs
 -- 1.5.1 文字列をつかったプリティプリンティング
 --
 
+{-
 pprExpr :: CoreExpr -> String
 pprExpr (ENum n) = show n
 pprExpr (EVar v) = v
 pprExpr (EAp e1 e2) = pprExpr e1 ++ " " ++ pprExpr e2
+-}
 {-
 *Language> :t EVar "x"
 EVar "x" :: Expr a
@@ -92,9 +94,11 @@ EVar "x" :: Expr a
 "f x g x"
 -}
 
+{-
 pprAExpr :: CoreExpr -> String
 pprAExpr e | isAtomicExpr e = pprExpr e
            | otherwise      = "(" ++ pprExpr e ++ ")"
+-}
 {-
 *Language> pprAExpr (EVar "x")
 "x"
@@ -133,23 +137,47 @@ iDisplay :: Iseq -> String       -- Turn an iseq into a string
 -}
 
 {- このようなデータ型が与えられた場合、文字のリストの代わりにiseqを返すようにpprExprを書き直します。 -}
-{-
 pprExpr :: CoreExpr -> Iseq
-pprExpr (ENum n) = iStr (show n) -- とりあえず追加してみた。
-pprExpr (EVar v) = iStr v
-pprExpr (EAp e1 e2) = (pprExpr e1) `iAppend` (iStr " ") `iAppend` (pprAExpr e2)
-pprExpr (ELet isrec defns expr) = iConcat [ iStr keyword,
-                                            iNewline,
-                                            iStr " ",
-                                            iIndent (pprDefns defns),
-                                            iNewline,
-                                            iStr "in ",
-                                            pprExpr expr
-                                          ]
-                                  where
-                                    keyword | not isrec = "let"
-                                            | isrec     = "letrec"
--}
+pprExpr (ENum n)
+  = iStr (show n) -- とりあえず追加してみた。
+pprExpr (EVar v)
+  = iStr v
+pprExpr (EAp e1 e2)
+  = (pprExpr e1) `iAppend` (iStr " ") `iAppend` (pprAExpr e2)
+pprExpr (ELet isrec defns expr)
+  = iConcat [ iStr keyword,
+              iNewline,
+              iStr " ",
+              iIndent (pprDefns defns),
+              iNewline,
+              iStr "in ",
+              pprExpr expr
+            ]
+            where
+              keyword | not isrec = "let"
+                      | isrec     = "letrec"
+pprExpr (ECase cond alts)
+  = iConcat [ iStr "case ",
+              pprExpr cond,
+              iStr " of",
+              iNewline,
+              iIndent (pprCoreAlts alts)
+            ]
+pprExpr (ELam lvs body)
+  = iConcat [ iStr "\\",
+              iInterleave (iStr " ") (map pprExpr lvs_),
+              iStr ". ",
+              pprExpr body
+            ]
+            where
+              lvs_ = map EVar lvs
+pprExpr (EConstr tag arity)
+  = iConcat [ iStr "Pack{",
+              iNum tag,
+              iStr " ",
+              iNum arity,
+              iStr "}"
+            ]
 {-
 *Language> pprExpr (EVar "x")
 IStr "x"
@@ -178,53 +206,65 @@ IAppend
   )
 -}
 
-{-
 pprAExpr :: CoreExpr -> Iseq
 pprAExpr e | isAtomicExpr e = pprExpr e
            | otherwise      = iConcat [ iStr "(",
                                         pprExpr e,
                                         iStr ")"
                                       ]
--}
 
-{-
 pprDefns :: [(Name, CoreExpr)] -> Iseq
 pprDefns defns = iInterleave sep (map pprDefn defns)
                  where
                    sep = iConcat [ iStr ";", iNewline ]
--}
 
-{-
 pprDefn :: (Name, CoreExpr) -> Iseq
-pprDefn (name, expr) = iConcat [ iStr name, iStr " = ", iIndent (pprExpr expr) ]
--}
+pprDefn (name, expr) = iConcat [ iStr name, iStr " = ",
+                                 iIndent (pprExpr expr)
+                               ]
 
-iConcat :: [Iseq] -> Iseq
--- Exercise 1.2 (iConcat)
--- BEGIN
-iConcat []             = iNil
-iConcat [x]            = x
-iConcat (x1 : x2 : xs) = iAppend (iAppend x1 x2) (iConcat xs)
--- END
+pprCoreAlts :: [CoreAlt] -> Iseq
+pprCoreAlts alts = iInterleave sep (map pprCoreAlt alts)
+                   where
+                    sep = iNewline
 
-iInterleave :: Iseq -> [Iseq] -> Iseq
--- Exercise 1.2 (iInterleave)
--- BEGIN
+pprCoreAlt :: CoreAlt -> Iseq
+pprCoreAlt (tag, lvs, expr) = iConcat [ iStr "<", iNum tag, iStr "> ",
+                                        iInterleave (iStr " ") (map pprExpr lvs_),
+                                        iStr " -> ",
+                                        pprExpr expr
+                                      ]
+                              where
+                                lvs_ = map EVar lvs
+
+iConcat :: [Iseq] -> Iseq  -- Ex.1.2 で追加。
+iConcat [] = iNil
+iConcat [x] = x
+iConcat (x1 : x2 : xs) = (x1 `iAppend` x2) `iAppend` (iConcat xs)
+
+iInterleave :: Iseq -> [Iseq] -> Iseq  -- Ex.1.2 で追加。
 iInterleave sep [] = iNil
 iInterleave sep [x] = x
 iInterleave sep (x1 : [x2]) = x1 `iAppend` sep `iAppend` x2
 iInterleave sep (x1 : x2 : xs) = x1 `iAppend` sep `iAppend` x2 `iAppend` sep `iAppend` (iInterleave sep xs)
--- END
 
-{-
---pprint :: CoreProgram -> String
---pprint prog = iDisplay (pprProgram prog)
--}
+pprint :: CoreProgram -> String
+pprint prog = iDisplay (pprProgram prog)
 
-{-
--- Exercise 1.3 (pprExpr, pprAExpr, pprProgram)
-pprExpr に式を追加してcase 式とラムダ式を処理し、pprAExprとpprProgram の定義を同じスタイルで記述します。
--}
+pprProgram :: CoreProgram -> Iseq  -- Ex.1.3 で追加。
+pprProgram prog = iInterleave iNewline scDefns
+                  where
+                    scDefns = map pprScDefn prog
+
+pprScDefn :: CoreScDefn -> Iseq  -- Ex.1.3 で追加。
+pprScDefn (name, args, expr) = iConcat [ iStr name,
+                                         iStr " ",
+                                         iInterleave (iStr " ") (map pprExpr args_),
+                                         iStr " = ",
+                                         pprExpr expr
+                                       ]
+                               where
+                                 args_ = map EVar args
 
 --
 -- 1.5.3 iseqの実装
@@ -305,13 +345,13 @@ IAppendを扱うと、list引数の正当性がより明確にわかります。
 
 {-
 -- Exercise 1.4
-iseq のサイズに関して平坦化のコストはいくらですか?
-上記のようにiseq を使用するようにpprExpr を変更し、前の演習と同じ実験を使用して新しい実装の効果を測定します。
-pprExpr の結果にiDisplayを適用することを忘れないでください。
+Iseq のサイズに関して平坦化のコストはいくらですか?
+上記のように Iseq を使用するようにpprExpr を変更し、前の演習と同じ実験を使用して新しい実装の効果を測定します。
+pprExpr の結果に iDisplay を適用することを忘れないでください。
 
 -- Exercise 1.5
-抽象データ型を使用する主な利点は、インターフェイスに影響を与えずにADT の実装を変更できることです。
-この例として、引数のいずれかがINil の場合に単純化された結果を返すようにiAppend を再定義します。
+抽象データ型を使用する主な利点は、インターフェイスに影響を与えずに ADT の実装を変更できることです。
+この例として、引数のいずれかが INil の場合に単純化された結果を返すように iAppend を再定義します。
 -}
 
 --
@@ -319,8 +359,8 @@ pprExpr の結果にiDisplayを適用することを忘れないでください�
 --
 
 {-
-これまでのところ、iIndent操作についてはかなり些細な解釈しか与えていませんが、今度はそれを改善することにします。
-以前と同じ精神で、最初に2つのコンストラクタIIndentとINewlineを追加してiseqRep型を拡張し、
+これまでのところ、iIndent 操作についてはかなり些細な解釈しか与えていませんが、今度はそれを改善することにします。
+以前と同じ精神で、最初に2つのコンストラクタ IIndent と INewline を追加して iseqRep 型を拡張し、
 これらのコンストラクタを使用するように操作を再定義します。
 -}
 data Iseq = INil
@@ -333,10 +373,10 @@ iIndent seq = IIndent seq
 iNewline    = INewline
 
 {-
-次に、flattenをより強力にする必要があります。
+次に、flatten をより強力にする必要があります。
 まず、現在のカラムを追跡する必要があります。
-次に、そのワークリストは(iseq, num)ペアで構成されている必要があります。
-ここで、数値は対応するiseqに必要なインデントを示します。
+次に、そのワークリストは (Iseq, Int) ペアで構成されている必要があります。
+ここで、数値は対応する Iseq に必要なインデントを示します。
 -}
 flatten :: Int              -- Current column; 0 for first column
            -> [(Iseq, Int)] -- Work list
@@ -348,13 +388,13 @@ flatten を適切に初期化するには、iDisplay を変更する必要があ
 iDisplay seq = flatten 0 [(seq, 0)]
 
 {-
-flattenの興味深いケースは、INewlineを処理する場合です。
+flatten の興味深いケースは、INewline を処理する場合です。
 これは、インデントを実行する必要がある場所だからです。
 -}
 flatten col ((INewline, indent) : seqs) = '\n' : (space indent) ++ (flatten indent seqs)
 {-
 新しい行に移動してインデントスペースを追加したため、
-flattenの再帰呼び出しには現在のカラムのインデント引数があることに注意してください。
+flatten の再帰呼び出しには現在のカラムのインデント引数があることに注意してください。
 これは、新しい行に移動してインデントスペースを追加したためです。
 
 IIndent ケースは、現在の列から現在のインデントを設定するだけです。
@@ -429,7 +469,7 @@ pprExpr (ELet isrec defns expr) = iConcat [ iStr keyword,
 -}
 
 --
--- 1.5.6 iseqのその他の便利な機能
+-- 1.5.6 Iseqのその他の便利な機能
 --
 
 iNum :: Int -> Iseq
@@ -1040,7 +1080,7 @@ assembleOp e1 NoOp = e1
 assembleOp e1 (FoundOp op e2) = EAp (EAp (EVar op) e1) e2
 
 -- Exercise 1.24
--- 提案された行に沿って文法を変換し、変更をミランダコードに直訳して、結果のパーサーをテストします。
+-- 提案された行に沿って文法を変換し、変更を Miranda コードに直訳して、結果のパーサーをテストします。
 
 {-
 *Language> pExpr ["1", "+", "2"]
