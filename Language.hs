@@ -142,6 +142,66 @@ pprExpr (ENum n)
   = iStr (show n) -- とりあえず追加してみた。
 pprExpr (EVar v)
   = iStr v
+pprExpr (EAp (EAp (EVar "+") e1) e2)  -- Ex.1.8 で追加。
+  = iConcat [ pprAExpr e1,
+              iStr " + ",
+              pprAExpr e2
+            ]
+pprExpr (EAp (EAp (EVar "-") e1) e2)  -- Ex.1.8 で追加。
+  = iConcat [ pprAExpr e1,
+              iStr " - ",
+              pprAExpr e2
+            ]
+pprExpr (EAp (EAp (EVar "*") e1) e2)  -- Ex.1.8 で追加。
+  = iConcat [ pprAExpr e1,
+              iStr " * ",
+              pprAExpr e2
+            ]
+pprExpr (EAp (EAp (EVar "/") e1) e2)  -- Ex.1.8 で追加。
+  = iConcat [ pprAExpr e1,
+              iStr " / ",
+              pprAExpr e2
+            ]
+pprExpr (EAp (EAp (EVar "==") e1) e2)  -- Ex.1.8 で追加。
+  = iConcat [ pprAExpr e1,
+              iStr " == ",
+              pprAExpr e2
+            ]
+pprExpr (EAp (EAp (EVar "~=") e1) e2)  -- Ex.1.8 で追加。
+  = iConcat [ pprAExpr e1,
+              iStr " ~= ",
+              pprAExpr e2
+            ]
+pprExpr (EAp (EAp (EVar ">=") e1) e2)  -- Ex.1.8 で追加。
+  = iConcat [ pprAExpr e1,
+              iStr " >= ",
+              pprAExpr e2
+            ]
+pprExpr (EAp (EAp (EVar ">") e1) e2)  -- Ex.1.8 で追加。
+  = iConcat [ pprAExpr e1,
+              iStr " > ",
+              pprAExpr e2
+            ]
+pprExpr (EAp (EAp (EVar "<=") e1) e2)  -- Ex.1.8 で追加。
+  = iConcat [ pprAExpr e1,
+              iStr " <= ",
+              pprAExpr e2
+            ]
+pprExpr (EAp (EAp (EVar "<") e1) e2)  -- Ex.1.8 で追加。
+  = iConcat [ pprAExpr e1,
+              iStr " < ",
+              pprAExpr e2
+            ]
+pprExpr (EAp (EAp (EVar "&") e1) e2)  -- Ex.1.8 で追加。
+  = iConcat [ pprAExpr e1,
+              iStr " & ",
+              pprAExpr e2
+            ]
+pprExpr (EAp (EAp (EVar "|") e1) e2)  -- Ex.1.8 で追加。
+  = iConcat [ pprAExpr e1,
+              iStr " | ",
+              pprAExpr e2
+            ]
 pprExpr (EAp e1 e2)
   = (pprExpr e1) `iAppend` (iStr " ") `iAppend` (pprAExpr e2)
 pprExpr (ELet isrec defns expr)
@@ -252,8 +312,9 @@ pprint :: CoreProgram -> String
 pprint prog = iDisplay (pprProgram prog)
 
 pprProgram :: CoreProgram -> Iseq  -- Ex.1.3 で追加。
-pprProgram prog = iInterleave iNewline scDefns
+pprProgram prog = iInterleave sep scDefns
                   where
+                    sep = iConcat [iStr " ; ", iNewline]
                     scDefns = map pprScDefn prog
 
 pprScDefn :: CoreScDefn -> Iseq  -- Ex.1.3 で追加。
