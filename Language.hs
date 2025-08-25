@@ -142,66 +142,14 @@ pprExpr (ENum n)
   = iStr (show n) -- とりあえず追加してみた。
 pprExpr (EVar v)
   = iStr v
-pprExpr (EAp (EAp (EVar "+") e1) e2)  -- Ex.1.8 で追加。
-  = iConcat [ pprAExpr e1,
-              iStr " + ",
-              pprAExpr e2
-            ]
-pprExpr (EAp (EAp (EVar "-") e1) e2)  -- Ex.1.8 で追加。
-  = iConcat [ pprAExpr e1,
-              iStr " - ",
-              pprAExpr e2
-            ]
-pprExpr (EAp (EAp (EVar "*") e1) e2)  -- Ex.1.8 で追加。
-  = iConcat [ pprAExpr e1,
-              iStr " * ",
-              pprAExpr e2
-            ]
-pprExpr (EAp (EAp (EVar "/") e1) e2)  -- Ex.1.8 で追加。
-  = iConcat [ pprAExpr e1,
-              iStr " / ",
-              pprAExpr e2
-            ]
-pprExpr (EAp (EAp (EVar "==") e1) e2)  -- Ex.1.8 で追加。
-  = iConcat [ pprAExpr e1,
-              iStr " == ",
-              pprAExpr e2
-            ]
-pprExpr (EAp (EAp (EVar "~=") e1) e2)  -- Ex.1.8 で追加。
-  = iConcat [ pprAExpr e1,
-              iStr " ~= ",
-              pprAExpr e2
-            ]
-pprExpr (EAp (EAp (EVar ">=") e1) e2)  -- Ex.1.8 で追加。
-  = iConcat [ pprAExpr e1,
-              iStr " >= ",
-              pprAExpr e2
-            ]
-pprExpr (EAp (EAp (EVar ">") e1) e2)  -- Ex.1.8 で追加。
-  = iConcat [ pprAExpr e1,
-              iStr " > ",
-              pprAExpr e2
-            ]
-pprExpr (EAp (EAp (EVar "<=") e1) e2)  -- Ex.1.8 で追加。
-  = iConcat [ pprAExpr e1,
-              iStr " <= ",
-              pprAExpr e2
-            ]
-pprExpr (EAp (EAp (EVar "<") e1) e2)  -- Ex.1.8 で追加。
-  = iConcat [ pprAExpr e1,
-              iStr " < ",
-              pprAExpr e2
-            ]
-pprExpr (EAp (EAp (EVar "&") e1) e2)  -- Ex.1.8 で追加。
-  = iConcat [ pprAExpr e1,
-              iStr " & ",
-              pprAExpr e2
-            ]
-pprExpr (EAp (EAp (EVar "|") e1) e2)  -- Ex.1.8 で追加。
-  = iConcat [ pprAExpr e1,
-              iStr " | ",
-              pprAExpr e2
-            ]
+pprExpr (EAp (EAp (EVar op) e1) e2)  -- Ex.1.8 で追加。
+  | op `elem` op_list = iConcat [ pprAExpr e1,
+                                  iStr " ", iStr op, iStr " ",
+                                  pprAExpr e2
+                                ]
+  | otherwise = (pprExpr (EAp (EVar op) e1)) `iAppend` (iStr " ") `iAppend` (pprAExpr e2)
+  where
+    op_list = ["+", "-", "*", "/", "==", "~=", ">=", ">", "<=", "<", "&", "|"]
 pprExpr (EAp e1 e2)
   = (pprExpr e1) `iAppend` (iStr " ") `iAppend` (pprAExpr e2)
 pprExpr (ELet isrec defns expr)
