@@ -39,7 +39,115 @@ pprintGen :: (Name -> Iseq)   -- function from binders to iseq
 pprintGen :: (a -> Iseq)   -- function from binders to iseq
              -> Program a  -- the program to be formatted
              -> [Char]     -- result string
-pprintGen = undefined
+pprintGen ppr prog = iDisplay (pprProgramGen ppr prog)
+
+pprProgramGen :: (a -> Iseq)   -- function from binders to iseq
+                 -> Program a
+                 -> Iseq
+pprProgramGen ppr prog = iInterleave sep scDefns
+                         where
+                           sep = iConcat [iStr " ; ", iNewline]
+                           scDefns = map (pprScDefnGen ppr) prog
+
+pprScDefnGen :: (a -> Iseq)   -- function from binders to iseq
+                -> ScDefn a  -- CoreScDefn では型不一致となる模様。
+                -> Iseq
+pprScDefnGen ppr (name, args, expr) = iConcat [ iStr name,
+                                                iStr " ",
+                                                iInterleave (iStr " ") (map ppr args),
+                                                iStr " = ",
+                                                pprExprGen ppr expr
+                                              ]
+
+pprExprGen :: (a -> Iseq)   -- function from binders to iseq
+              -> Expr a  -- CoreExpr では型不一致となる模様。
+              -> Iseq
+pprExprGen ppr (ENum n)
+  = iStr (show n)
+pprExprGen ppr (EVar v)
+  = iStr v
+pprExprGen ppr (EAp (EAp (EVar op) e1) e2)
+  | op `elem` op_list = iConcat [ pprAExprGen ppr e1,
+                                  iStr " ", iStr op, iStr " ",
+                                  pprAExprGen ppr e2
+                                ]
+  | otherwise = (pprExprGen ppr (EAp (EVar op) e1)) `iAppend` (iStr " ") `iAppend` (pprAExprGen ppr e2)
+  where
+    op_list = ["+", "-", "*", "/", "==", "~=", ">=", ">", "<=", "<", "&", "|"]
+pprExprGen ppr (EAp e1 e2)
+  = (pprExprGen ppr e1) `iAppend` (iStr " ") `iAppend` (pprAExprGen ppr e2)
+pprExprGen ppr (ELet isrec defns expr)
+  = iConcat [ iStr keyword,
+              iNewline,
+              iStr " ",
+              iIndent (pprDefnsGen ppr defns),
+              iNewline,
+              iStr "in ",
+              pprExprGen ppr expr
+            ]
+            where
+              keyword | not isrec = "let"
+                      | isrec     = "letrec"
+pprExprGen ppr (ECase cond alts)
+  = iConcat [ iStr "case ",
+              pprExprGen ppr cond,
+              iStr " of",
+              iNewline,
+              iIndent (pprCoreAltsGen ppr alts)
+            ]
+pprExprGen ppr (ELam lvs body)
+  = iConcat [ iStr "\\",
+              iInterleave (iStr " ") (map ppr lvs),
+              iStr ". ",
+              pprExprGen ppr body
+            ]
+pprExprGen ppr (EConstr tag arity)
+  = iConcat [ iStr "Pack{",
+              iNum tag,
+              iStr " ",
+              iNum arity,
+              iStr "}"
+            ]
+
+pprAExprGen :: (a -> Iseq)   -- function from binders to iseq
+               -> Expr a  -- CoreExpr では型不一致となる模様。
+               -> Iseq
+pprAExprGen ppr e | isAtomicExpr e = pprExprGen ppr e
+                  | otherwise      = iConcat [ iStr "(",
+                                               pprExprGen ppr e,
+                                               iStr ")"
+                                             ]
+
+pprDefnsGen :: (a -> Iseq)   -- function from binders to iseq
+               -> [(a, Expr a)]  -- [(Name, CoreExpr)] では型不一致となる模様。
+               -> Iseq
+pprDefnsGen ppr defns = iInterleave sep (map (pprDefnGen ppr) defns)
+                        where
+                          sep = iConcat [ iStr ";", iNewline ]
+
+pprDefnGen :: (a -> Iseq)   -- function from binders to iseq
+              -> (a, Expr a)  -- (Name, CoreExpr) では型不一致となる模様。
+              -> Iseq
+pprDefnGen ppr (name, expr) = iConcat [ -- iStr name, iStr " = ",
+                                        ppr name, iStr " = ",
+                                        iIndent (pprExprGen ppr expr)
+                                      ]
+
+pprCoreAltsGen :: (a -> Iseq)   -- function from binders to iseq
+                  -> [Alter a]  -- [CoreAlt] では型不一致となる模様。
+                  -> Iseq
+pprCoreAltsGen ppr alts = iInterleave sep (map (pprCoreAltGen ppr) alts)
+                          where
+                           sep = iNewline
+
+pprCoreAltGen :: (a -> Iseq)   -- function from binders to iseq
+                 -> Alter a  -- CoreAlt では型不一致となる模様。
+                 -> Iseq
+pprCoreAltGen ppr (tag, lvs, expr) = iConcat [ iStr "<", iNum tag, iStr "> ",
+                                               iInterleave (iStr " ") (map ppr lvs),
+                                               iStr " -> ",
+                                               pprExprGen ppr expr
+                                             ]
 
 {-
 pprintAnn :: (Name -> Iseq)                 -- function from binders to iseq
@@ -51,7 +159,7 @@ pprintAnn :: (a -> Iseq)        -- function from binders to iseq
              -> (b -> Iseq)     -- function from annotations to iseq
              -> AnnProgram a b  -- program to be displayed
              -> [Char]          -- result string
-pprintAnn = undefined
+pprintAnn pprbnd pprant prog = undefined
 ----------------------------
 -- pprint 関連 (ここまで) --
 ----------------------------
@@ -63,8 +171,8 @@ lambdaLift :: CoreProgram -> CoreProgram
 lambdaLift = collectSCs . rename . abstract . freeVars
 
 -- runS = pprint . lambdaLift . parse
--- runS = Lambda.pprint . lambdaLift . parse
-runS = Language.pprint . lambdaLift . parse
+runS = Lambda.pprint . lambdaLift . parse
+-- runS = Language.pprint . lambdaLift . parse
 -------------------------
 -- 全体構造 (ここまで) --
 -------------------------
@@ -279,6 +387,16 @@ test_program_1 = "f x = let g = \\y. x*x + y in (g 3 + g 4) ; " ++
 
 test_program_2 = "f x = letrec g = \\y. cons (x*y) (g y) in g 3 ; " ++
                  "main = f 6"
+
+ex_2_11 = "pair x y f = f x y ; " ++
+          "fst p = p K ; " ++
+          "snd p = p K1 ; " ++
+          "f x y = letrec " ++
+          "          a = pair x b ; " ++
+          "          b = pair y a " ++
+          "        in " ++
+          "          fst (snd (snd (snd a))) ; " ++
+          "main = f 3 4"
 ---------------------------------
 -- テストプログラム (ここまで) --
 ---------------------------------
