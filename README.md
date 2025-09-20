@@ -263,7 +263,7 @@
 * lambdaliftermk2_1.hs
 
   演習 6.3 まで対応。
-  演習 6.1, 6.2 は未対応。
+  演習 6.2 は未対応。
 
 ### Mark 3: Johnsson-style lambda lifter
 
