@@ -16,6 +16,11 @@ data AnnExpr' a b = AVar Name
                   | ALam [a] (AnnExpr a b)
                   deriving (Show)
 
+isAtomicAnnExpr :: AnnExpr a b -> Bool
+isAtomicAnnExpr (ant, (AVar v)) = True
+isAtomicAnnExpr (ant, (ANum n)) = True
+isAtomicAnnExpr e               = False
+
 type AnnDefn a b = (a, AnnExpr a b)
 
 type AnnAlt a b = (Int, [a], (AnnExpr a b))
@@ -28,31 +33,29 @@ type AnnProgram a b = [(Name, [a], AnnExpr a b)]
 ----------------------------
 -- pprint 関連 (ここまで) --
 ----------------------------
--- pprint :: CoreProgram -> String
+pprint :: CoreProgram -> String
 pprint prog = pprintGen iStr prog
 
-{-
-pprintGen :: (Name -> Iseq)   -- function from binders to iseq
-             -> Program Name  -- the program to be formatted
-             -> String        -- result string
--}
 pprintGen :: (a -> Iseq)   -- function from binders to iseq
              -> Program a  -- the program to be formatted
              -> [Char]     -- result string
-pprintGen ppr prog = iDisplay (pprProgramGen ppr prog)
+pprintGen ppr prog
+  = iDisplay (pprProgramGen ppr prog)
 
 pprProgramGen :: (a -> Iseq)   -- function from binders to iseq
                  -> Program a
                  -> Iseq
-pprProgramGen ppr prog = iInterleave sep scDefns
+pprProgramGen ppr prog
+  = iInterleave sep scDefns
                          where
                            sep = iConcat [iStr " ; ", iNewline]
                            scDefns = map (pprScDefnGen ppr) prog
 
 pprScDefnGen :: (a -> Iseq)   -- function from binders to iseq
-                -> ScDefn a  -- CoreScDefn では型不一致となる模様。
+                -> ScDefn a
                 -> Iseq
-pprScDefnGen ppr (name, args, expr) = iConcat [ iStr name,
+pprScDefnGen ppr (name, args, expr)
+  = iConcat [ iStr name,
                                                 iStr " ",
                                                 iInterleave (iStr " ") (map ppr args),
                                                 iStr " = ",
@@ -60,7 +63,7 @@ pprScDefnGen ppr (name, args, expr) = iConcat [ iStr name,
                                               ]
 
 pprExprGen :: (a -> Iseq)   -- function from binders to iseq
-              -> Expr a  -- CoreExpr では型不一致となる模様。
+              -> Expr a
               -> Iseq
 pprExprGen ppr (ENum n)
   = iStr (show n)
@@ -110,7 +113,7 @@ pprExprGen ppr (EConstr tag arity)
             ]
 
 pprAExprGen :: (a -> Iseq)   -- function from binders to iseq
-               -> Expr a  -- CoreExpr では型不一致となる模様。
+               -> Expr a
                -> Iseq
 pprAExprGen ppr e | isAtomicExpr e = pprExprGen ppr e
                   | otherwise      = iConcat [ iStr "(",
@@ -119,47 +122,192 @@ pprAExprGen ppr e | isAtomicExpr e = pprExprGen ppr e
                                              ]
 
 pprDefnsGen :: (a -> Iseq)   -- function from binders to iseq
-               -> [(a, Expr a)]  -- [(Name, CoreExpr)] では型不一致となる模様。
+               -> [(a, Expr a)]
                -> Iseq
-pprDefnsGen ppr defns = iInterleave sep (map (pprDefnGen ppr) defns)
+pprDefnsGen ppr defns
+  = iInterleave sep (map (pprDefnGen ppr) defns)
                         where
                           sep = iConcat [ iStr ";", iNewline ]
 
 pprDefnGen :: (a -> Iseq)   -- function from binders to iseq
-              -> (a, Expr a)  -- (Name, CoreExpr) では型不一致となる模様。
+              -> (a, Expr a)
               -> Iseq
-pprDefnGen ppr (name, expr) = iConcat [ -- iStr name, iStr " = ",
+pprDefnGen ppr (name, expr)
+  = iConcat [ -- iStr name, iStr " = ",
                                         ppr name, iStr " = ",
                                         iIndent (pprExprGen ppr expr)
                                       ]
 
 pprCoreAltsGen :: (a -> Iseq)   -- function from binders to iseq
-                  -> [Alter a]  -- [CoreAlt] では型不一致となる模様。
+                  -> [Alter a]
                   -> Iseq
-pprCoreAltsGen ppr alts = iInterleave sep (map (pprCoreAltGen ppr) alts)
+pprCoreAltsGen ppr alts
+  = iInterleave sep (map (pprCoreAltGen ppr) alts)
                           where
                            sep = iNewline
 
 pprCoreAltGen :: (a -> Iseq)   -- function from binders to iseq
-                 -> Alter a  -- CoreAlt では型不一致となる模様。
+                 -> Alter a
                  -> Iseq
-pprCoreAltGen ppr (tag, lvs, expr) = iConcat [ iStr "<", iNum tag, iStr "> ",
+pprCoreAltGen ppr (tag, lvs, expr)
+  = iConcat [ iStr "<", iNum tag, iStr "> ",
                                                iInterleave (iStr " ") (map ppr lvs),
                                                iStr " -> ",
                                                pprExprGen ppr expr
                                              ]
 
-{-
-pprintAnn :: (Name -> Iseq)                 -- function from binders to iseq
-             -> ((Set Name) -> Iseq)        -- function from annotations to iseq
-             -> AnnProgram Name (Set Name)  -- program to be displayed
-             -> String                      -- result string
--}
 pprintAnn :: (a -> Iseq)        -- function from binders to iseq
              -> (b -> Iseq)     -- function from annotations to iseq
              -> AnnProgram a b  -- program to be displayed
              -> [Char]          -- result string
-pprintAnn pprbnd pprant prog = undefined
+pprintAnn pprbnd pprant prog
+  = iDisplay (pprAnnProgram pprbnd pprant prog)
+
+iSet :: Set Name -> Iseq
+iSet set
+  = iInterleave (iStr ",") tmpList
+    where
+      tmpList = map iStr $ setToList set
+
+{-
+-- 使用例 --
+*Lambda> (putStrLn . pprintAnn iStr iSet . freeVars . parse) test_program_1
+f x = [x](let
+ g = [x](\y. [x,y]([x]([](+) ([x]([x]([](*) [x](x)) [x](x)))) [y](y)))
+in [g]([g]([](+) ([g]([g](g) [](3)))) ([g]([g](g) [](4))))) ;
+main  = []([](f) [](6))
+-}
+
+pprAnnProgram :: (a -> Iseq)        -- function from binders to iseq
+                 -> (b -> Iseq)     -- function from annotations to iseq
+                 -> AnnProgram a b  -- program to be displayed
+                 -> Iseq            -- result sequence
+pprAnnProgram pprbnd pprant prog
+  = iInterleave sep annDefns
+    where
+      sep = iConcat [iStr " ; ", iNewline]
+      annDefns = map (pprAnnScDefn pprbnd pprant) prog
+
+pprAnnScDefn :: (a -> Iseq)        -- function from binders to iseq
+                -> (b -> Iseq)     -- function from annotations to iseq
+                -> (Name, [a], AnnExpr a b)
+                -> Iseq
+pprAnnScDefn pprbnd pprant (name, args, expr)
+  = iConcat [ iStr name,
+              iStr " ",
+              iInterleave (iStr " ") (map pprbnd args),
+              iStr " = ",
+              pprAnnExpr pprbnd pprant expr
+            ]
+
+pprAnnExpr :: (a -> Iseq)        -- function from binders to iseq
+              -> (b -> Iseq)     -- function from annotations to iseq
+              -> AnnExpr a b
+              -> Iseq
+pprAnnExpr pprbnd pprant (ant, ANum n)
+  = iConcat [ iStr "[", pprant ant, iStr "](",
+              iStr (show n),
+              iStr ")"
+            ]
+pprAnnExpr pprbnd pprant (ant, AVar v)
+  = iConcat [ iStr "[", pprant ant, iStr "](",
+              iStr v,
+              iStr ")"
+            ]
+pprAnnExpr pprbnd pprant (ant, (AAp e1 e2))
+  = iConcat [ iStr "[", pprant ant, iStr "](",
+              (pprAnnExpr pprbnd pprant e1) `iAppend` (iStr " ") `iAppend` (pprAnnAExpr pprbnd pprant e2),
+              iStr ")"
+            ]
+pprAnnExpr pprbnd pprant (ant, (ALet isrec defns expr))
+  = iConcat [ iStr "[", pprant ant, iStr "](",
+              iStr keyword,
+              iNewline,
+              iStr " ",
+              iIndent (pprAnnDefns pprbnd pprant defns),
+              iNewline,
+              iStr "in ",
+              pprAnnExpr pprbnd pprant expr,
+              iStr ")"
+            ]
+            where
+              keyword | not isrec = "let"
+                      | isrec     = "letrec"
+pprAnnExpr pprbnd pprant (ant, (ACase cond alts))
+  = iConcat [ iStr "[", pprant ant, iStr "](",
+              iStr "case ",
+              pprAnnExpr pprbnd pprant cond,
+              iStr " of",
+              iNewline,
+              iIndent (pprAnnAlts pprbnd pprant alts),
+              iStr ")"
+            ]
+pprAnnExpr pprbnd pprant (ant, (ALam lvs body))
+  = iConcat [ iStr "[", pprant ant, iStr "](",
+              iStr "\\",
+              iInterleave (iStr " ") (map pprbnd lvs),
+              iStr ". ",
+              pprAnnExpr pprbnd pprant body,
+              iStr ")"
+            ]
+pprAnnExpr pprbnd pprant (ant, AConstr tag arity)
+  = iConcat [ iStr "[", pprant ant, iStr "],(",
+              iStr "Pack{",
+              iNum tag,
+              iStr " ",
+              iNum arity,
+              iStr "}",
+              iStr ")"
+            ]
+
+pprAnnAExpr :: (a -> Iseq)        -- function from binders to iseq
+               -> (b -> Iseq)     -- function from annotations to iseq
+               -> AnnExpr a b
+               -> Iseq
+pprAnnAExpr pprbnd pprant e
+  | isAtomicAnnExpr e = pprAnnExpr pprbnd pprant e
+  | otherwise         = iConcat [ iStr "(",
+                                  pprAnnExpr pprbnd pprant e,
+                                  iStr ")"
+                                ]
+
+pprAnnDefns :: (a -> Iseq)        -- function from binders to iseq
+               -> (b -> Iseq)     -- function from annotations to iseq
+               -> [AnnDefn a b]
+               -> Iseq
+pprAnnDefns pprbnd pprant defns
+  = iInterleave sep (map (pprAnnDefn pprbnd pprant) defns)
+    where
+      sep = iConcat [ iStr ";", iNewline ]
+
+pprAnnDefn :: (a -> Iseq)        -- function from binders to iseq
+              -> (b -> Iseq)     -- function from annotations to iseq
+              -> AnnDefn a b
+              -> Iseq
+pprAnnDefn pprbnd pprant (bnd, expr)
+  = iConcat [ pprbnd bnd, iStr " = ",
+              iIndent (pprAnnExpr pprbnd pprant expr)
+            ]
+
+pprAnnAlts :: (a -> Iseq)        -- function from binders to iseq
+              -> (b -> Iseq)     -- function from annotations to iseq
+              -> [AnnAlt a b]
+              -> Iseq
+pprAnnAlts pprbnd pprant alts
+  = iInterleave sep (map (pprAnnAlt pprbnd pprant) alts)
+    where
+     sep = iNewline
+
+pprAnnAlt :: (a -> Iseq)        -- function from binders to iseq
+             -> (b -> Iseq)     -- function from annotations to iseq
+             -> AnnAlt a b
+             -> Iseq
+pprAnnAlt pprbnd pprant (tag, lvs, expr)
+  = iConcat [ iStr "<", iNum tag, iStr "> ",
+              iInterleave (iStr " ") (map pprbnd lvs),
+              iStr " -> ",
+              pprAnnExpr pprbnd pprant expr
+            ]
 ----------------------------
 -- pprint 関連 (ここまで) --
 ----------------------------
@@ -172,7 +320,6 @@ lambdaLift = collectSCs . rename . abstract . freeVars
 
 -- runS = pprint . lambdaLift . parse
 runS = Lambda.pprint . lambdaLift . parse
--- runS = Language.pprint . lambdaLift . parse
 -------------------------
 -- 全体構造 (ここまで) --
 -------------------------
@@ -388,10 +535,10 @@ test_program_1 = "f x = let g = \\y. x*x + y in (g 3 + g 4) ; " ++
 test_program_2 = "f x = letrec g = \\y. cons (x*y) (g y) in g 3 ; " ++
                  "main = f 6"
 
-ex_2_11 = "pair x y f = f x y ; " ++
-          "fst p = p K ; " ++
-          "snd p = p K1 ; " ++
+test_program_3 = "pair x y f = f x y ; " ++
           "f x y = letrec " ++
+                 "          fst = \\p. p K ; " ++
+                 "          snd = \\p. p K1 ; " ++
           "          a = pair x b ; " ++
           "          b = pair y a " ++
           "        in " ++
