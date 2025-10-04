@@ -266,6 +266,12 @@
 
   演習 6.2 は、case 式未対応。
 
+* lambdaliftermk2_2.hs
+
+  演習 6.4 に一部対応。
+
+  (freeVars のみ。)
+
 ### Mark 3: Johnsson-style lambda lifter
 
 ### Mark 4: A separate full laziness pass
