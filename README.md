@@ -256,15 +256,11 @@
 
 * lambdaliftermk1.hs
 
-  演習 6.2 は、case 式未対応。
-
 ### Mark 2: シンプルなラムダリフターの改良
 
 * lambdaliftermk2_1.hs
 
   演習 6.3 まで対応。
-
-  演習 6.2 は、case 式未対応。
 
 * lambdaliftermk2_2.hs
 
