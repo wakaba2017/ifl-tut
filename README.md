@@ -264,9 +264,7 @@
 
 * lambdaliftermk2_2.hs
 
-  演習 6.4 に一部対応。
-
-  (freeVars のみ。)
+  演習 6.4 まで対応。
 
 ### Mark 3: Johnsson-style lambda lifter
 
