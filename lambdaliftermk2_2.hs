@@ -419,12 +419,23 @@ abstract_e (free, ALam args body)
       sc     = ELet nonRecursive [("sc", sc_rhs)] (EVar "sc")
       sc_rhs = ELam (fvList ++ args) (abstract_e body)
 abstract_e (free, AConstr t a)
-  = error "abstract_e: no case for Constr"
+  = EConstr t a
 abstract_e (free, ACase e alts)
   = abstract_case free e alts
 
 abstract_case free e alts
-  = error "abstract_case: not yet written"
+  = ECase e' alts'
+    where
+      (annCond, exprCond) = e  -- case 式の条件式部分を、自由変数候補集合と計算式部分に分解
+      e' = abstract_e (setUnion free annCond, exprCond)  -- 引数 free と条件式の自由変数候補集合の和集合と、条件式の計算式部分を組み合わせて再帰処理
+      alts' = map abstract_alt alts
+      abstract_alt (tag, args, rhs)
+        = (tag, args, abstract_e (freeAlt, exprAlt))  -- 新たに構成し直した自由変数集合と、ブランチの計算式部分を組み合わせて再帰処理
+          where
+            (annAlt, exprAlt) = rhs  -- case 式のブランチ部分を、自由変数候補集合と計算式部分に分解
+            freeBase = setUnion free annCond  -- 念のため、case 式の条件式に現れる自由変数が、ブランチの式に影響する可能性を考慮
+            freeAlt = setSubtraction (setUnion freeBase annAlt) (setFromList args)
+              -- 引数 free と case 式の条件式とブランチの自由変数候補集合の和集合とブランチの束縛変数の差分を自由変数候補集合とする
 ------------------------------
 -- abstract 関連 (ここまで) --
 ------------------------------
@@ -477,9 +488,29 @@ rename_e env ns (ELet is_rec defns body)
       (ns3, rhss') = mapAccuml (rename_e rhsEnv) ns2 (rhssOf defns)
       rhsEnv | is_rec = body_env
              | otherwise = env
-rename_e env ns (EConstr t a) = error "rename_e: no case for constructors"
-rename_e env ns (ECase e alts) = rename_case env ns e alts
-rename_case env ns e alts = error "rename_case: not yet written"
+rename_e env ns (EConstr t a)
+  = (ns, EConstr t a)
+
+rename_e env ns (ECase e alts)
+  = rename_case env ns e alts
+
+rename_case env ns e alts
+  = (ns_final, ECase e' alts')
+    where
+      (ns1, e') = rename_e env ns e
+      (ns_final, alts') = rename_alts ns1 alts
+      rename_alts ns [] = (ns, [])
+      rename_alts ns ((tag, args, rhs) : alts)
+        = (ns3, (tag, args', rhs') : alts')
+          where
+            (ns1, args', env') = newNames ns args
+            rhs_env = env' ++ env
+            (ns2, rhs') = rename_e rhs_env ns1 rhs
+            (ns3, alts') = rename_alts ns2 alts
+
+testExpr = ECase (EVar "x")
+                 [ (1, ["x"], EAp (EVar "x") (EVar "z"))
+                 , (2, [], EVar "y") ]
 ----------------------------
 -- rename 関連 (ここまで) --
 ----------------------------
@@ -587,6 +618,12 @@ test_program_4'' = "f n m = let " ++
                    "          g n m ; " ++
                    "main = f 1 4"
 
+test_program_4''' = "f n m = let " ++
+                    "          g = \\x. \\y. x + y " ++
+                    "        in " ++
+                    "          g n m ; " ++
+                    "main = f 1 4"
+
 ex_4_23_2__ = "cons  = Pack{2, 2} ; " ++
               "nil   = Pack{1, 0} ; " ++
               "true  = Pack{2, 0} ; " ++
@@ -604,6 +641,13 @@ ex_4_23_2__ = "cons  = Pack{2, 2} ; " ++
               "main = let xs = append nil nil " ++
                      "in " ++
                      "length xs + length xs"
+
+test_program_for_case = "cnstr1 = Pack{1, 1} ; " ++
+                        "cnstr2 = Pack{2, 0} ; " ++
+                        "f x y = case x of " ++
+                        "        <1> x -> x " ++
+                        "        <2>   -> y ; " ++
+                        "main = f 1 2"
 ---------------------------------
 -- テストプログラム (ここまで) --
 ---------------------------------
