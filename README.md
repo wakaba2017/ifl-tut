@@ -270,6 +270,10 @@
 
   演習 6.5 まで対応。
 
+* lambdaliftermk2_4.hs
+
+  演習 6.6 まで対応。
+
 ### Mark 3: Johnsson-style lambda lifter
 
 ### Mark 4: A separate full laziness pass
