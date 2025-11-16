@@ -11845,7 +11845,179 @@ $v = \texttt{\textbackslash} args \texttt{.} e$ という形式のもの(スー�
 \end{verbatim}
 
 \subsection{関数内の自由変数の抽象化}
+
+必要な新しい関数は \texttt{abstractJ} だけです。
+抽象化プロセスは、処理が進むにつれて $g$ を $g ~ v_1 \ldots v_n$ に置き換えます。
+ここで $g$ は新しいスーパーコンビネータの1つであり、$v_1, \ldots, v_n$ はその宣言グループの自由変数です。
+したがって、補助関数 \texttt{abstractJ\_e} は、各スーパーコンビネータ $g$ をそのグループ $v_1, \ldots, v_n$ の自由変数にマッピングする環境を受け取る必要があります。
+
+\begin{verbatim}
+	abstractJ_e :: ASSOC Name [Name]          -- Maps each new SC to
+	                                          --   the free vars of its group
+	               -> AnnExpr Name (Set Name) -- Input expression
+	               -> CoreExpr                -- Result expression
+\end{verbatim}
+
+公平に言えば、最初の引数は \texttt{ASSOC Name CoreExpr} 型になるように見えますが、後で説明するように、環境を別の方法でも使用する必要があり、それがここで提案する型につながります。
+\vskip \baselineskip
+
+各トップレベルの定義に \texttt{abstractJ\_e} を適用することで、\texttt{abstractJ} を \texttt{abstractJ\_e} で簡単に定義できます。
+
+\begin{verbatim}
+	abstractJ prog = [ (name,args,abstractJ_e [] rhs)
+	                 | (name, args, rhs) <- prog]
+\end{verbatim}
+
+さて、\texttt{abstractJ\_e} について見てみましょう。
+定数と関数適用のケースは簡単です。
+
+\begin{verbatim}
+	abstractJ_e env (free, ANum n) = ENum n
+	abstractJ_e env (free, AConstr t a) = EConstr t a
+	abstractJ_e env (free, AAp e1 e2) = EAp (abstractJ_e env e1)
+	                                        (abstractJ_e env e2)
+\end{verbatim}
+
+変数 $g$ に遭遇すると、環境内でその変数を検索し、変数のリスト $v_1, \ldots, v_n$ を取得します。
+その後、適用結果 $g ~ v_1 \ldots v_n$ を返します。
+$g$ が環境に現れない場合は、環境検索から空のリストを返します。
+したがって、構築する「適用結果」は単に変数 $g$ になります。
+
+\begin{verbatim}
+	abstractJ_e env (free, AVar g)
+	  = foldll EAp (EVar g) (map EVar (aLookup env g []))
+\end{verbatim}
+
+場合によっては、ラムダ抽象化自体が見つかることもあります。
+たとえば、次のようになります。
+
+\begin{verbatim}
+	f xs = map (\x. x+1) xs
+\end{verbatim}
+
+\texttt{\\x} 抽象化は \texttt{let(rec)} 定義の右辺ではないので、単純なラムダリフターの場合と同じように扱います(\texttt{abstract} の \texttt{ELam} ケースを参照)。
+\vskip \baselineskip
+
+重要な違いが1つだけあります。
+\texttt{abstractJ\_e} は式に対して同時に置換を実行するため、自由変数情報は置換後の状態を反映しません。
+むしろ、結果の中でどの変数が自由であるかを調べるために、自由変数集合に対しても置換を実行する必要があります。
+これは、このセクションの最後で定義されている関数 \texttt{actualFreeList} によって行われます。
+自由変数情報に対してこの操作を実行する必要性が、環境表現の選択を導きました。
+
+\begin{verbatim}
+	abstractJ_e env (free, ALam args body)
+	  = foldll EAp sc (map EVar fv_list)
+	    where
+	      fv_list = actualFreeList env free
+	      sc = ELet nonRecursive [("sc",sc_rhs)] (EVar "sc")
+	      sc_rhs = ELam (fv_list ++ args) (abstractJ_e env body)
+\end{verbatim}
+
+最後に、\texttt{let(rec)} 式を扱います。
+ラムダ抽象に束縛された各変数はスーパーコンビネータに変換されますが、ラムダ抽象に束縛されていない他の変数はスーパーコンビネータに変換されません。
+したがって、これら2種類の定義を別々に扱う必要があり、それぞれ「関数定義」と「変数定義」と呼びます。
+
+\begin{verbatim}
+	abstractJ_e env (free, ALet isrec defns body)
+	  = ELet isrec (fun_defns' ++ var_defns') body'
+	    where
+	      fun_defns = [(name,rhs) | (name,rhs) <- defns, isALam rhs]
+	      var_defns = [(name,rhs) | (name,rhs) <- defns, not (isALam rhs)]
+\end{verbatim}
+
+関数定義と変数定義を分離したので、関数から抽象化する変数の集合を計算できます。
+関数定義の自由変数の和集合を取り、この集合から束縛される関数名を取り除き、\texttt{actualFreeList} (\texttt{ELam} 定義式と同じ理由)を使用して結果を取得します。
+
+\begin{verbatim}
+	fun_names = bindersOf fun_defns
+	free_in_funs = setSubtraction
+	                    (setUnionList [freeVarsOf rhs | (name,rhs)<-fun_defns])
+	                    (setFromList fun_names)
+	vars_to_abstract = actualFreeList env free_in_funs
+\end{verbatim}
+
+次に、\texttt{let(rec)} の右辺と本体で使用される新しい環境を計算します。
+
+\begin{verbatim}
+	body_env = [(fun_name, vars_to_abstract) | fun_name <- fun_names] ++ env
+	rhs_env | isrec = body_env
+	        | otherwise = env
+\end{verbatim}
+
+最後に、適切な環境で \texttt{abstractJ\_e} を再帰的に使用して、新しい関数定義、変数定義、および本体を計算します。
+
+\begin{verbatim}
+	fun_defns' = [ (name, ELam (vars_to_abstract ++ args)
+	                           (abstractJ_e rhs_env body))
+	             | (name, (free, ALam args body)) <- fun_defns
+	             ]
+	var_defns' = [(name, abstractJ_e rhs_env rhs) | (name, rhs) <- var_defns]
+	body' = abstractJ_e body_env body
+\end{verbatim}
+
+関数 \texttt{actualFreeList} は環境と自由変数の集合を受け取り、その集合に環境を適用し、置換後の自由変数のリスト(重複なし)を返します。
+
+\begin{verbatim}
+	actualFreeList :: ASSOC Name [Name℄ -> Set Name -> [Name]
+	actualFreeList env free
+	  = setToList (setUnionList [ setFromList (aLookup env name [name])
+	                            | name <- setToList free
+	                            ])
+\end{verbatim}
+
+関数 \texttt{isALam} は \texttt{ALam} コンストラクタを識別します。
+
+\begin{verbatim}
+	isALam :: AnnExpr a b -> Bool
+	isALam (free, ALam args body) = True
+	isALam other                  = False
+\end{verbatim}
+
+これでジョンソンスタイルのラムダリフターは完了です。
+
+\begin{description}
+	\item[演習 6.7] 関数 \texttt{abstractJ\_e} に \texttt{case} 式のケースを追加します。
+\end{description}
+
 \subsection{難しい点 \dag}
+
+\texttt{letrec} に関数定義と変数定義が混在している場合、設計したラムダリフターによって冗長なパラメータが導入される可能性があります。
+例えば、次の定義を考えてみましょう。
+
+\begin{verbatim}
+	f x y = letrec
+	          g = \p. h p + x ;
+	          h = \q. k + y + q;
+	          k = g y
+	        in
+	        g 4 ;
+\end{verbatim}
+
+\texttt{g} / \texttt{h} グループの自由変数は \texttt{x}、\texttt{y}、\texttt{k} なので、次のように変換します。
+
+\begin{verbatim}
+	f x y = letrec
+	           k = g x y k y
+	        in
+	        g 4
+
+	g x y k p = h x y k p + x ;
+	h x y k q = k + y + q;
+\end{verbatim}
+
+ここで、追加のパラメータ $x$ は実際には $h$ では使用されません。
+したがって、$g$ と $h$ のより良い定義は次のようになります。
+
+\begin{verbatim}
+	g x y k p = h y k p + x ;
+	h y k q = k + y + q;
+\end{verbatim}
+
+\begin{description}
+	\item[演習 6.8 $\dag$] このより洗練された変換を実行するには、\texttt{abstractJ} を修正してください。
+		警告: これはかなり難しい作業です。
+\end{description}
+
 \newpage
 
 \section{Mark 4: A separate full laziness pass}
