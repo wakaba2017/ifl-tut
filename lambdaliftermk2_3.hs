@@ -475,7 +475,7 @@ rename_e env ns (EAp e1 e2)
       (ns1, e1') = rename_e env ns e1
       (ns2, e2') = rename_e env ns1 e2
 rename_e env ns (ELam args body)
-  = (ns1, ELam args' body')
+  = (ns2, ELam args' body')
     where
       (ns1, args', env') = newNames ns args
       (ns2, body') = rename_e (env' ++ env) ns1 body
@@ -580,7 +580,7 @@ collectSCs_e (ELet is_rec defns body)
                                        (rhs_scs, rhs') = collectSCs_e rhs
 
 mkELet is_rec defns body
-  | is_rec == nonRecursive && length defns == 0 = body
+  | length defns == 0 = body
   | otherwise = ELet is_rec defns body
 
 isELam :: Expr a -> Bool
