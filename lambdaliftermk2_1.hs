@@ -448,7 +448,7 @@ rename_e env ns (EAp e1 e2)
       (ns1, e1') = rename_e env ns e1
       (ns2, e2') = rename_e env ns1 e2
 rename_e env ns (ELam args body)
-  = (ns1, ELam args' body')
+  = (ns2, ELam args' body')
     where
       (ns1, args', env') = newNames ns args
       (ns2, body') = rename_e (env' ++ env) ns1 body
@@ -518,7 +518,7 @@ collectSCs_e (ELet is_rec defns body)
                                        (rhs_scs, rhs') = collectSCs_e rhs
 
 mkELet is_rec defns body
-  | is_rec == nonRecursive && length defns == 0 = body
+  | length defns == 0 = body
   | otherwise = ELet is_rec defns body
 
 isELam :: Expr a -> Bool
@@ -546,6 +546,55 @@ test_program_3 = "pair x y f = f x y ; " ++
                  "        in " ++
                  "          fst (snd (snd (snd a))) ; " ++
                  "main = f 3 4"
+
+test_program_4 = "cons  = Pack{2, 2} ; " ++
+                 "nil   = Pack{1, 0} ; " ++
+                 "true  = Pack{2, 0} ; " ++
+                 "false = Pack{1, 0} ; " ++
+                 "between n m = let " ++
+                 -- "                if = \\cond tbranch fbranch. case cond of " ++  -- 変数の出現順序を合わせる必要がありそう。
+                 "                if = \\cond fbranch tbranch. case cond of " ++
+                 "                                               <1> -> fbranch ; " ++
+                 "                                               <2> -> tbranch  " ++
+                 "              in " ++
+                 "                if (n > m) nil (cons n (between (n + 1) m)) ; " ++
+                 "main = between 1 4"
+
+test_program_4' = "f n m = let " ++
+                  "          g = \\x y. x + y " ++
+                  "        in " ++
+                  "          g n m ; " ++
+                  "main = f 1 4"
+
+test_program_4'' = "f n m = let " ++
+                   "          g = \\y x. x + y " ++  -- ここは変数の出現順序が合ってなくても大丈夫そう。
+                   "        in " ++
+                   "          g n m ; " ++
+                   "main = f 1 4"
+
+test_program_4''' = "f n m = let " ++
+                    "          g = \\x. \\y. x + y " ++
+                    "        in " ++
+                    "          g n m ; " ++
+                    "main = f 1 4"
+
+ex_4_23_2__ = "cons  = Pack{2, 2} ; " ++
+              "nil   = Pack{1, 0} ; " ++
+              "true  = Pack{2, 0} ; " ++
+              "false = Pack{1, 0} ; " ++
+              -- "if cond tbranch fbranch = case cond of " ++  -- 変数の出現順序を合わせる必要がありそう。
+              "if cond fbranch tbranch = case cond of " ++
+                                              "<1> -> fbranch ; " ++
+                                              "<2> -> tbranch ; " ++
+              "length xs = case xs of " ++
+                              "<1> -> 0 ; " ++
+                              "<2> p ps -> 1 + length ps ; " ++
+              "append xs ys = case xs of " ++
+                               "<1> -> ys ; " ++
+                               "<2> p ps -> cons p (append ps ys) ; " ++
+              "main = let xs = append nil nil " ++
+                     "in " ++
+                     "length xs + length xs"
 ---------------------------------
 -- テストプログラム (ここまで) --
 ---------------------------------
