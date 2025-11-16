@@ -274,7 +274,11 @@
 
   演習 6.6 まで対応。
 
-### Mark 3: Johnsson-style lambda lifter
+### Mark 3: ジョンソンスタイルのラムダリフター
+
+* lambdaliftermk3.hs
+
+  演習 6.7 の手前まで対応。(case 式には未対応の状態。)
 
 ### Mark 4: A separate full laziness pass
 
