@@ -284,6 +284,10 @@
 
   演習 6.7 まで対応。(case 式にも対応。)
 
+* lambdaliftermk3_3.hs
+
+  演習 6.8 まで対応。
+
 ### Mark 4: A separate full laziness pass
 
 ### Mark 5: Improvements to full laziness
