@@ -288,11 +288,15 @@
 
   演習 6.8 まで対応。
 
-### Mark 4: A separate full laziness pass
+### Mark 4: 完全な遅延処理パスの分離
 
-### Mark 5: Improvements to full laziness
+* lambdaliftermk4.hs
 
-### Mark 6: Dependency analysis
+  演習 6.9 まで対応。
+
+### Mark 5: 完全遅延処理の改善
+
+### Mark 6: 依存関係分析
 
 ## ユーティリティモジュール
 
