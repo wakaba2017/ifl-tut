@@ -38,8 +38,7 @@ type UnusedArgs = [UnusedArg]
 -- ここから、完全遅延評価ラムダリフタの定義
 type Level = Int
 type FloatedDefns = [(Level, IsRec, [(Name, Expr Name)])]
-type ArityEnv = ASSOC Name Int  -- Int -> Maybe Int ?
--- type ArityEnv = ASSOC Name (Maybe Int)  -- これだと NG になった。
+type ArityEnv = ASSOC Name Int
 -------------------------------
 -- データ型の定義 (ここまで) --
 -------------------------------
@@ -1177,14 +1176,9 @@ lookupArity env name = lookup name env
 -----------------------------
 -- renameL 関連 (ここから) --
 -----------------------------
--- renameL :: Program (Name, Level) -> Program (Name, Level)
 renameL :: Program (Name, a) -> Program (Name, a)
 renameL prog = renameGen newNamesL prog
 
--- renameGen :: (NameSupply -> [(Name, Level)] -> (NameSupply, [(Name, Level)], ASSOC Name Name))
---                                       -- New-binders function
---              -> Program (Name, Level) -- Program to be renamed
---              -> Program (Name, Level) -- Resulting program
 renameGen :: (NameSupply -> [(Name, a)] -> (NameSupply, [(Name, a)], ASSOC Name Name))
                                       -- New-binders function
              -> Program (Name, a) -- Program to be renamed
@@ -1198,7 +1192,6 @@ renameGen new_binders prog
             (ns1, args', env) = new_binders ns args
             (ns2, rhs') = renameGen_e new_binders env ns1 rhs
 
--- newNamesL :: NameSupply -> [(Name, Level)] -> (NameSupply, [(Name, Level)], ASSOC Name Name)
 newNamesL :: NameSupply -> [(Name, a)] -> (NameSupply, [(Name, a)], ASSOC Name Name)
 newNamesL ns old_binders
   = (ns', new_binders, env)
@@ -1209,12 +1202,6 @@ newNamesL ns old_binders
       new_binders = zip2 new_names levels
       env = zip2 old_names new_names
 
--- renameGen_e :: (NameSupply -> [(Name, Level)] -> (NameSupply, [(Name, Level)], ASSOC Name Name))
---                                                    -- New-binders function
---                -> ASSOC Name Name                  -- Maps old names to new ones
---                -> NameSupply                       -- Name supply
---                -> Expr (Name, Level)               -- Expression to be renamed
---                -> (NameSupply, Expr (Name, Level)) -- Depleted name supply and result expression
 renameGen_e :: (NameSupply -> [(Name, a)] -> (NameSupply, [(Name, a)], ASSOC Name Name))
                                                -- New-binders function
                -> ASSOC Name Name              -- Maps old names to new ones
