@@ -38,8 +38,7 @@ type UnusedArgs = [UnusedArg]
 -- ここから、完全遅延評価ラムダリフタの定義
 type Level = Int
 type FloatedDefns = [(Level, IsRec, [(Name, Expr Name)])]
-type ArityEnv = ASSOC Name Int  -- Int -> Maybe Int ?
--- type ArityEnv = ASSOC Name (Maybe Int)  -- これだと NG になった。
+type ArityEnv = ASSOC Name Int
 -------------------------------
 -- データ型の定義 (ここまで) --
 -------------------------------
