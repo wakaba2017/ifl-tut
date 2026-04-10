@@ -38,6 +38,8 @@ type UnusedArgs = [UnusedArg]
 -- ここから、完全遅延評価ラムダリフタの定義
 type Level = Int
 type FloatedDefns = [(Level, IsRec, [(Name, Expr Name)])]
+type ArityEnv = ASSOC Name Int  -- Int -> Maybe Int ?
+-- type ArityEnv = ASSOC Name (Maybe Int)  -- これだと NG になった。
 -------------------------------
 -- データ型の定義 (ここまで) --
 -------------------------------
@@ -356,11 +358,28 @@ lambdaLiftJ prog
 runJ = Lambda.pprint . lambdaLiftJ . parse
 
 -- ここから、完全遅延評価ラムダリフタの定義
-fullyLazyLift = float . renameL . identifyMFEs . addLevels . separateLams
+-- fullyLazyLift = float . renameL . identifyMFEs . addLevels . separateLams
+fullyLazyLift :: CoreProgram -> CoreProgram
+fullyLazyLift prog
+  = let
+      -- ① まだカリー化されていない段階で arityEnv を作る
+      arityEnv = buildScArity prog
+      -- ② いつものパイプライン（ただし identifyMFEs には arityEnv を渡す）
+      annProg  = addLevels (separateLams prog)
+      progWithMFEs = identifyMFEs arityEnv annProg
+      -- ③ その後は従来どおり
+      lifted = renameL progWithMFEs
+    in
+      float lifted
+
+buildScArity :: CoreProgram -> ArityEnv
+buildScArity prog
+  = [ (name, length args)
+    | (name, args, _rhs) <- prog
+    ]
 
 -- runF          = pprint . lambdaLift . fullyLazyLift . parse
 runF          = Lambda.pprint . lambdaLift . fullyLazyLift . parse
-
 -------------------------
 -- 全体構造 (ここまで) --
 -------------------------
@@ -1058,44 +1077,54 @@ levelOf (level, e) = level
 ----------------------------------
 -- identifyMFEs 関連 (ここから) --
 ----------------------------------
-identifyMFEs :: AnnProgram (Name, Level) Level -> Program (Name, Level)
-identifyMFEs prog = [ (sc_name, [], identifyMFEs_e 0 rhs)
+identifyMFEs :: ArityEnv -> AnnProgram (Name, Level) Level -> Program (Name, Level)
+identifyMFEs arityEnv prog = [ (sc_name, [], fst (identifyMFEs_e arityEnv 0 rhs))
                     | (sc_name, [], rhs) <- prog
                     ]
 
-identifyMFEs_e :: Level                          -- Level of context
+identifyMFEs_e :: ArityEnv
+                  -> Level                        -- Level of context
                   -> AnnExpr (Name, Level) Level -- Input expression
-                  -> Expr (Name, Level)          -- Result
-identifyMFEs_e cxt (level, e)
-  | level == cxt || notMFECandidate e = e'
-  | otherwise = transformMFE level e'
-  where
-    e' = identifyMFEs_e1 level e
-
-identifyMFEs_e1 :: Level                          -- Level of context
-                   -> AnnExpr' (Name,Level) Level -- Input expressions
-                   -> Expr (Name,Level)           -- Result expression
-identifyMFEs_e1 level (AConstr t a) = EConstr t a
-identifyMFEs_e1 level (ANum n)      = ENum n
-identifyMFEs_e1 level (AVar v)      = EVar v
-identifyMFEs_e1 level (AAp e1 e2)
-  = EAp (identifyMFEs_e level e1) (identifyMFEs_e level e2)
-identifyMFEs_e1 level (ALam args body)
-  = ELam args (identifyMFEs_e arg_level body)
-    where
-      (name, arg_level) = hd args
-identifyMFEs_e1 level (ALet is_rec defns body)
-  = ELet is_rec defns' body'
-    where
-      body' = identifyMFEs_e level body
-      defns' = [ ((name, rhs_level), identifyMFEs_e rhs_level rhs)
-               | ((name, rhs_level), rhs) <- defns
-               ]
-identifyMFEs_e1 level (ACase e alts)
-  = identifyMFEs_case1 level e alts
-
-identifyMFEs_case1 level e alts
-  = error "identifyMFEs_case1: not written"
+                  -> (Expr (Name, Level), Bool)   -- Result (タプル第2要素の Bool = 子で MFE が発生したか)
+identifyMFEs_e arityEnv ctx (level, ANum n)
+  = (ENum n, False)
+identifyMFEs_e arityEnv ctx (level, AVar v)
+  = (EVar v, False)
+identifyMFEs_e arityEnv ctx (level, AConstr t a)
+  = (EConstr t a, False)
+identifyMFEs_e arityEnv ctx (level, AAp e1 e2)
+  = let
+      (e1', m1) = identifyMFEs_e arityEnv ctx e1
+      (e2', m2) = identifyMFEs_e arityEnv ctx e2
+      childHasMFE = m1 || m2
+      expr = EAp e1' e2'
+    in
+      if childHasMFE
+      then (expr, True)
+      else
+        if level < ctx && okAsMFERoot arityEnv expr
+        then (transformMFE level expr, True)
+        else (expr, False)
+identifyMFEs_e arityEnv ctx (level, ALam args body)
+  = let
+      arg_level = snd (head args)
+      (body', m) = identifyMFEs_e arityEnv arg_level body
+    in
+      (ELam args body', m)
+identifyMFEs_e arityEnv ctx (level, ALet is_rec defns body)
+  = let
+      processDef ((name, rhs_level), rhs)
+        = let
+            (rhs', m) = identifyMFEs_e arityEnv rhs_level rhs
+          in
+            (((name, rhs_level), rhs'), m)
+      (defns', ms1) = unzip (map processDef defns)
+      (body', m2)   = identifyMFEs_e arityEnv ctx body
+      childHasMFE   = or (m2 : ms1)
+    in
+      (ELet is_rec defns' body', childHasMFE)
+identifyMFEs_e arityEnv ctx (level, ACase e alts)
+  = error "identifyMFEs_case: not implemented"
 
 notMFECandidate (AConstr t a) = True
 notMFECandidate (ANum k)      = True
@@ -1104,6 +1133,43 @@ notMFECandidate ae            = False -- 今のところ、他のすべては候
 
 transformMFE level e
   = ELet nonRecursive [(("v",level), e)] (EVar "v")
+
+okAsMFERoot :: ArityEnv -> Expr (Name, Level) -> Bool
+okAsMFERoot arityEnv e
+  = case splitAp e of
+    -- (EVar (name, _lvl), args)
+    (EVar name, args)
+      | Just n <- primOpArity name
+      -> length args == n
+      | Just n <- lookupArity arityEnv name
+      -> length args == n
+    _ -> True
+
+splitAp :: Expr (Name, Level) -> (Expr (Name, Level), [Expr (Name, Level)])
+splitAp (EAp f a)
+  = let
+      (h, args) = splitAp f
+    in
+      (h, args ++ [a])
+splitAp e = (e, [])
+
+primOpArity :: Name -> Maybe Int
+primOpArity "*"  = Just 2
+primOpArity "+"  = Just 2
+primOpArity "-"  = Just 2
+primOpArity "/"  = Just 2
+primOpArity ">"  = Just 2
+primOpArity ">=" = Just 2
+primOpArity "<"  = Just 2
+primOpArity "<=" = Just 2
+primOpArity "==" = Just 2
+primOpArity "~=" = Just 2
+primOpArity "negate" = Just 1
+primOpArity "if"     = Just 3
+primOpArity _        = Nothing
+
+lookupArity :: ArityEnv -> Name -> Maybe Int
+lookupArity env name = lookup name env
 ---------------------------------
 -- identifyMFEs 関連 (ここまで) --
 ----------------------------------
@@ -1519,6 +1585,64 @@ test_program_7
     "        in " ++
     "          g 4 ; " ++
     "main = f 3 4"
+
+test_program_sc_arity
+  = "f x = let " ++
+    "        h = sc2 x " ++   -- ★ sc2 は arity 2 なので、ここは部分適用
+    "      in " ++
+    "        (h 3) + (h 4) ; " ++
+    "sc2 a b = a * b ; " ++
+    "main = f 10"
+
+test_program_sc3
+ = "f x = let " ++
+   "        h = sc3 x " ++   -- ★ arity 3 の SC を部分適用（引数1個）
+   "      in " ++
+   "        (h 2 3) + (h 4 5) ; " ++
+   "sc3 a b c = a + b * c ; " ++
+   "main = f 10"
+
+test_program_nested_partial
+  = "f x = letrec " ++
+    "        h1 = sc2 x ; " ++     -- arity 2 → 部分適用
+    "        h2 = h1 " ++          -- さらに部分適用のまま伝播
+    "      in " ++
+    "        (h2 7) + (h2 8) ; " ++
+    "sc2 a b = a - b ; " ++
+    "main = f 20"
+
+test_program_mfe_complex :: CoreProgram
+test_program_mfe_complex
+  = [ ("f", ["x","y"],
+        ELet nonRecursive
+          [ ("z", EAp (EAp (EVar "+") (EVar "x")) (EVar "y")) ]
+          (EAp (EAp (EVar "*") (EVar "z")) (EVar "z"))
+      )
+    , ("main", [],
+        EAp (EAp (EVar "f") (ENum 3)) (ENum 4)
+      )
+    ]
+  -- f x y = let z = x + y in z * z
+  -- main  = f 3 4
+  -- f の中に「自由変数を含む let」があり、それが MFE として抽出される。
+
+test_program_sc_as_arg :: CoreProgram
+test_program_sc_as_arg
+  = [ ("twice", ["f","x"],
+        EAp (EVar "f") (EAp (EVar "f") (EVar "x"))
+      )
+    , ("inc", ["x"],
+        EAp (EAp (EVar "+") (EVar "x")) (ENum 1)
+      )
+    , ("main", [],
+        EAp (EAp (EVar "twice") (EVar "inc")) (ENum 10)
+      )
+    ]
+  -- twice f x = f (f x)
+  -- inc   x   = x + 1
+  -- main      = twice inc 10
+  -- 高階関数 twice に SC を渡す。
+  -- 渡される側・受け取る側の両方で MFE の候補が出る。
 ---------------------------------
 -- テストプログラム (ここまで) --
 ---------------------------------
