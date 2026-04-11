@@ -1125,11 +1125,6 @@ identifyMFEs_e arityEnv ctx (level, ALet is_rec defns body)
 identifyMFEs_e arityEnv ctx (level, ACase e alts)
   = error "identifyMFEs_case: not implemented"
 
-notMFECandidate (AConstr t a) = True
-notMFECandidate (ANum k)      = True
-notMFECandidate (AVar v)      = True
-notMFECandidate ae            = False -- 今のところ、他のすべては候補です
-
 transformMFE level e
   = ELet nonRecursive [(("v",level), e)] (EVar "v")
 
